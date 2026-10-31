@@ -1,8 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { replaceState } from '$app/navigation';
-	import { MAX_LEN, fromUnixMs, truncate, startFx, contains, format, formatDuration, fxToTaiNs, unitSeconds, type Stamp } from '$lib/t32';
-	import { readInput, lengthForDate, errorText, describe, encode, humanSpan, secondsString } from '$lib/describe';
+	import {
+		MAX_LEN, fromUnixMs, truncate, contains, format, formatDuration, durationBetween, durationToNs,
+		unitSeconds, maxLengthFor, type Stamp
+	} from '$lib/t32';
+	import { readInput, errorText, describe, encode, humanSpan, secondsString } from '$lib/describe';
+
+	const MS_LEN = maxLengthFor(1e-3); // Date.now() resolves 1 ms: at most 10 characters
 
 	const examples = [
 		{ label: 'Now', value: 'now' },
@@ -26,9 +31,8 @@
 
 	const parsed: Parsed = $derived.by(() => {
 		if (live) {
-			const s = fromUnixMs(nowMs || 0, MAX_LEN);
-			// Date.now() has millisecond resolution, so 10 characters is the honest maximum.
-			return { ok: true, stamp: truncate(s, Math.min(len, 10)), maxLen: 10, kind: 'date' };
+			const s = fromUnixMs(nowMs || 0, MS_LEN);
+			return { ok: true, stamp: truncate(s, Math.min(len, MS_LEN)), maxLen: MS_LEN, kind: 'date' };
 		}
 		try {
 			const input = readInput(text);
@@ -36,7 +40,7 @@
 				const n = Math.min(len, input.stamp.len);
 				return { ok: true, stamp: truncate(input.stamp, n), maxLen: input.stamp.len, kind: 'stamp' };
 			}
-			return { ok: true, stamp: encode(input.fx, len), maxLen: MAX_LEN, kind: 'date' };
+			return { ok: true, stamp: encode(input.fx, Math.min(len, input.maxLen)), maxLen: input.maxLen, kind: 'date' };
 		} catch (e) {
 			return { ok: false, error: errorText(e) };
 		}
@@ -74,7 +78,7 @@
 		text = value;
 		try {
 			const input = readInput(value);
-			len = input.kind === 'stamp' ? input.stamp.len : lengthForDate(input.fractionDigits);
+			len = input.kind === 'stamp' ? input.stamp.len : input.maxLen;
 		} catch {
 			/* leave length; the error shows below */
 		}
@@ -85,7 +89,7 @@
 		text = (e.currentTarget as HTMLInputElement).value;
 		try {
 			const input = readInput(text);
-			len = input.kind === 'stamp' ? input.stamp.len : Math.max(len, lengthForDate(input.fractionDigits));
+			len = input.kind === 'stamp' ? input.stamp.len : input.maxLen;
 		} catch {
 			/* keep length */
 		}
@@ -97,7 +101,7 @@
 
 	function toStamp(t: string): Stamp {
 		const input = readInput(t);
-		return input.kind === 'stamp' ? input.stamp : encode(input.fx, lengthForDate(input.fractionDigits));
+		return input.kind === 'stamp' ? input.stamp : encode(input.fx, input.maxLen);
 	}
 
 	const cmp = $derived.by(() => {
@@ -106,22 +110,22 @@
 			const b = toStamp(bText);
 			const as = format(a);
 			const bs = format(b);
-			const diffNs = fxToTaiNs(startFx(b)) - fxToTaiNs(startFx(a));
+			const diff = durationBetween(a, b);
 			let relation: string;
 			if (as === bs) relation = 'A and B are the same stamp.';
 			else if (contains(a, b)) relation = 'A contains B (A is a prefix of B).';
 			else if (contains(b, a)) relation = 'B contains A (B is a prefix of A).';
 			else relation = as < bs ? 'A is entirely before B.' : 'A is entirely after B.';
-			const uncertainty = unitSeconds(Math.min(a.len, b.len));
 			return {
 				ok: true as const,
 				a: describe(a),
 				b: describe(b),
 				relation,
 				order: as < bs ? 'A sorts before B' : as > bs ? 'A sorts after B' : 'Equal',
-				diff: secondsString(diffNs) + ' s',
-				diffT32: formatDuration(diffNs, 4),
-				uncertainty: humanSpan(uncertainty)
+				diff: secondsString(durationToNs(diff)) + ' s',
+				diffT32: formatDuration(diff),
+				uA: humanSpan(unitSeconds(a.len)),
+				uB: humanSpan(unitSeconds(b.len))
 			};
 		} catch (e) {
 			return { ok: false as const, error: errorText(e) };
@@ -164,7 +168,7 @@
 </svelte:head>
 
 <div class="titleblock">
-	<div class="docno">T32 · DRAFT 0.1 · PLAYGROUND</div>
+	<div class="docno">T32 · DRAFT 0.2 · PLAYGROUND</div>
 	<h1>Playground</h1>
 	<p class="muted small">Type a stamp (<span class="mono">G0S7G6B1</span>) or a UTC date (<span class="mono">2016-12-31T23:59:60</span>). Everything runs in your browser.</p>
 </div>
@@ -202,8 +206,16 @@
 	{/each}
 </ul>
 
-{#if parsed.ok && parsed.kind === 'stamp' && parsed.maxLen < MAX_LEN}
-	<p class="muted small">A stamp can be shortened but not lengthened: precision that was not recorded cannot be added.</p>
+{#if parsed.ok && parsed.maxLen < MAX_LEN}
+	<p class="muted small">
+		{#if parsed.kind === 'stamp'}
+			A stamp can be shortened but not lengthened: resolution that was not recorded cannot be added.
+		{:else if live}
+			Your clock resolves 1 ms, so at most {parsed.maxLen} characters. More would overstate it.
+		{:else}
+			This date is written to {parsed.maxLen === 8 ? 'the second' : 'a fraction of a second'}, so at most {parsed.maxLen} characters. Add fraction digits to go finer.
+		{/if}
+	</p>
 {/if}
 
 {#if !parsed.ok}
@@ -222,7 +234,7 @@
 				<tr><th>Canonical</th><td class="mono">{d.canonical}</td></tr>
 				<tr><th>Display form</th><td class="mono">{d.display}</td></tr>
 				<tr><th>Length · unit</th><td>{d.stamp.len} characters · {d.unitExact} ({d.unitHuman})</td></tr>
-				<tr><th>Starts (UTC)</th><td class="mono">{d.start}</td></tr>
+				<tr><th>Starts (UTC)</th><td><span class="mono">{d.start}</span>{#if d.inserted}<span class="small muted"> · inserted time: UTC has no ordinary label for this instant</span>{/if}</td></tr>
 				<tr><th>Ends, exclusive (UTC)</th><td class="mono">{d.end}</td></tr>
 				<tr><th>Midpoint (UTC)</th><td class="mono">{d.mid}</td></tr>
 				<tr><th>Starts (your time zone)</th><td>{local || '—'}</td></tr>
@@ -256,7 +268,7 @@
 
 <h2><span class="secno">2</span> Compare</h2>
 
-<p class="small muted">Two stamps or dates. A date is encoded at the length its precision implies (seconds → 8).</p>
+<p class="small muted">Two stamps or dates. A date is encoded at the length its written precision allows (seconds → 8, milliseconds → 10).</p>
 
 <div class="controls two">
 	<label class="field">
@@ -292,7 +304,7 @@
 				<tr><th>Text order</th><td>{cmp.order}</td></tr>
 				<tr><th>B − A (start to start)</th><td class="mono">{cmp.diff}</td></tr>
 				<tr><th>As a T32 duration</th><td class="mono">{cmp.diffT32}</td></tr>
-				<tr><th>Uncertainty</th><td>up to {cmp.uncertainty} (the coarser unit)</td></tr>
+				<tr><th>Between the instants</th><td>more than (B − A) − {cmp.uA}, less than (B − A) + {cmp.uB}</td></tr>
 			</tbody>
 		</table>
 	</div>
