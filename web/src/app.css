@@ -3,11 +3,12 @@
  * One family, Public Sans (a descendant of Franklin Gothic), in a few weights.
  * Tabular figures wherever a stamp or a number sits in a column.
  * Hairline rules instead of boxes; one accent; a 4px spacing grid.
- * Code blocks alone use the reader's own fixed-width face, because code needs columns.
+ * Code, and only code, is set in Roboto Mono, matched to Public Sans in x-height and cap height.
  */
 
 @import '@fontsource-variable/public-sans/wght.css';
 @import '@fontsource-variable/public-sans/wght-italic.css';
+@import '@fontsource-variable/roboto-mono/wght.css';
 
 :root {
 	/* Colour */
@@ -25,7 +26,7 @@
 
 	/* Type */
 	--sans: 'Public Sans Variable', 'Public Sans', 'Libre Franklin', 'Franklin Gothic Book', 'Helvetica Neue', Arial, sans-serif;
-	--code: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+	--code: 'Roboto Mono Variable', 'Roboto Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 	--text: 1rem; /* 16px */
 	--small: 0.875rem; /* 14px */
 	--label: 0.6875rem; /* 11px */
@@ -338,28 +339,32 @@ th {
 
 /* ------------------------------------------------------------------ code and data */
 
-/* Stamps, values and identifiers stay in the text face, with tabular figures. */
-code,
-kbd,
+/* Stamps and values outside code stay in the text face, with tabular figures. */
 .data {
-	font-family: inherit;
 	font-variant-numeric: tabular-nums lining-nums;
 	letter-spacing: 0.015em;
 }
 
+/* Code is set in the companion mono, a step smaller so it sits level with the text. */
+code,
+kbd,
+pre {
+	font-family: var(--code);
+	font-weight: var(--w-text);
+	letter-spacing: -0.01em;
+}
+
 code {
-	font-size: 0.9375em;
-	padding: 0.06em 0.32em;
+	font-size: 0.875em;
+	padding: 0.1em 0.32em;
 	background: var(--wash);
 	border-radius: 2px;
 	white-space: break-spaces;
 }
 
-/* Code blocks need columns, so they alone use the reader's fixed-width face. */
 pre {
-	font-family: var(--code);
 	font-size: 0.8125rem;
-	line-height: 1.6;
+	line-height: 1.65;
 	padding: var(--s4) var(--s5);
 	overflow-x: auto;
 	background: var(--wash);
@@ -367,9 +372,8 @@ pre {
 }
 pre code {
 	padding: 0;
-	font-family: inherit;
 	font-size: inherit;
-	letter-spacing: 0;
+	letter-spacing: inherit;
 	white-space: pre;
 	background: none;
 }
@@ -419,7 +423,7 @@ tbody th {
 	white-space: nowrap;
 }
 td code {
-	font-size: 1em;
+	font-size: 0.9em;
 	padding: 0;
 	background: none;
 }
