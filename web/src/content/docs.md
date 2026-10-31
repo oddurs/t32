@@ -81,11 +81,11 @@ formatDuration(durationBetween(parse('G0S7'), s));   // '+G6B1' (exact)
 
 ## Using the Rust crate
 
-The [reference crate](https://github.com/oddurs/t32/tree/main/rust) has no dependencies and no `unsafe`, and works on Rust 1.70 and later. Until it is published, depend on it from Git:
+The [`t32` crate](https://crates.io/crates/t32) has no required dependencies and no `unsafe`, and builds on Rust 1.70 and later. Add `features = ["serde"]` to serialize its types: text in JSON and other human-readable formats, exact integers in compact ones.
 
 ```toml
 [dependencies]
-t32 = { git = "https://github.com/oddurs/t32" }
+t32 = "0.2"
 ```
 
 ```rust
