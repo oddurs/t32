@@ -20,7 +20,7 @@ G0S7            the 12-day span that contains it
 | Path | What |
 | --- | --- |
 | [`SPEC.md`](SPEC.md) | The specification, with test vectors and the TAI − UTC table |
-| [`rust/`](rust) | Reference implementation: the `t32` crate, no dependencies, Rust 1.70+ ([README](rust/README.md)) |
+| [`rust/`](rust) | Reference implementation: the [`t32`](https://crates.io/crates/t32) crate, no required dependencies, optional serde, Rust 1.70+ ([README](rust/README.md)) |
 | [`web/`](web) | The site (SvelteKit, static) and a single-file TypeScript implementation, [`web/src/lib/t32.ts`](web/src/lib/t32.ts) |
 | [`tools/oracle.py`](tools/oracle.py) | An independent check in exact rational arithmetic, written from the spec |
 
@@ -42,4 +42,4 @@ T32 is a draft proposal, not an adopted standard. Objections, edge cases and pri
 
 ## License
 
-Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or [MIT license](LICENSE-MIT), at your option. Unless you state otherwise, any contribution you submit for inclusion in this work, as defined in the Apache-2.0 license, is dual licensed as above, without any additional terms or conditions.
+Copyright 2026 Oddur Sigurdsson ([@oddurs](https://github.com/oddurs)). Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or [MIT license](LICENSE-MIT), at your option. Unless you state otherwise, any contribution you submit for inclusion in this work, as defined in the Apache-2.0 license, is dual licensed as above, without any additional terms or conditions.
