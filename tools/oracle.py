@@ -5,7 +5,9 @@ Written directly from SPEC.md (Definitions, Encoding, Converting from UTC,
 Appendix A), sharing no code with the implementations. Recomputes the spec's
 encoder, converter and decoder vectors and exits non-zero on any mismatch.
 
-    python3 tools/oracle.py
+    python3 tools/oracle.py                                  # check the spec's vectors
+    python3 tools/oracle.py --write vectors/t32-vectors.json # regenerate the vectors file
+    python3 tools/oracle.py --check vectors/t32-vectors.json # and verify it is current
 """
 from fractions import Fraction as F
 from datetime import date
@@ -74,35 +76,121 @@ def encode_leap(y, mo, d, frac, n):     # 23:59:60.frac
     return digits(v.numerator // v.denominator, n)
 
 
-def decode(stamp):
-    """Interval start and end of a stamp as UTC labels (seconds since 1970, exact).
+UNIT = F(1, 2**40)                      # one unit of biased time, in seconds
+TAI_LABEL = EPOCH + 32                  # TAI seconds since the epoch = X - TAI_LABEL, X = u + dat(u)
 
-    A boundary instant inside inserted time is reported as the label at the end of
-    the insertion, marked with '*'."""
+
+def first_tai(j):
+    """X of the first label of row j."""
+    b = PERIODS[j][0]
+    return b + dat(b, j)
+
+
+def left(k):
+    """X where row k-1 reaches boundary k: the start of any time inserted there."""
+    b = PERIODS[k][0]
+    return b + dat(b, k - 1)             # row -1 is before 1961, where TAI - UTC is 0
+
+
+def step(k):
+    b = PERIODS[k][0]
+    return dat(b, k) - dat(b, k - 1)
+
+
+def invert(j, x):
+    """The label u of row j (or before 1961, j = -1) with u + dat(u) = x. Exact."""
+    if j < 0:
+        return x
+    a0 = PERIODS[j][1](0)                # TAI - UTC is a0 + k*u within a row
+    k = PERIODS[j][1](1) - a0
+    return (x - a0) / (1 + k)
+
+
+def row_before(x, strict):
+    """The last row whose first label maps before x (strictly, or at or before)."""
+    rows = [j for j in range(len(PERIODS)) if (first_tai(j) < x if strict else first_tai(j) <= x)]
+    return rows[-1] if rows else -1
+
+
+def inserted_at(x, strict):
+    """The boundary k if x lies in time inserted there, else None."""
+    j = row_before(x, strict)
+    k = j + 1
+    if k < len(PERIODS) and step(k) > 0 and (x > left(k) if strict else x >= left(k)):
+        return k
+    return None
+
+
+def ceil_ns(seconds):
+    """The smallest whole nanosecond count not below `seconds`."""
+    v = seconds * 10**9
+    return -((-v.numerator) // v.denominator)
+
+
+def reading(t):
+    """The UTC reading of an instant t (TAI seconds since the epoch, a multiple of UNIT).
+
+    SPEC.md, Decoding: an inserted instant reads as the label b where its insertion
+    ends (a leap second as 23:59:60.f); any other instant reads as the latest
+    nanosecond label whose instant encodes, at full resolution, no later than t.
+    Returns (kind, ns): ("label", n), ("leap", (b_ns, offset_ns)) or ("inserted", b_ns).
+    """
+    x = t + TAI_LABEL
+    k = inserted_at(x, strict=False)
+    if k is not None:
+        b = PERIODS[k][0]
+        if step(k) == 1:
+            offset = ceil_ns(x - left(k) + UNIT) - 1   # within 0 .. 999,999,999
+            return ("leap", (b * 10**9, offset))
+        return ("inserted", b * 10**9)
+    y = x + UNIT                        # the end of t's unit: labels must map below it
+    k = inserted_at(y, strict=True)
+    if k is not None:                   # the unit runs into inserted time
+        return ("label", PERIODS[k][0] * 10**9 - 1)
+    return ("label", ceil_ns(invert(row_before(y, strict=True), y)) - 1)
+
+
+def stamp_value(stamp):
     v = 0
     for c in stamp:
         v = v * 32 + ALPHABET.index(c)
+    return v
+
+
+def stamp_bounds(stamp):
+    """Start and end of a stamp as TAI seconds since the epoch (exact)."""
     unit = F(32) ** (8 - len(stamp))
-    out = []
-    for t in (v * unit - BIAS, (v + 1) * unit - BIAS):
-        T = t + EPOCH + 32                  # TAI as a Unix-style label
-        found = None
-        for i in range(len(PERIODS) - 1, -2, -1):
-            if i < 0:
-                found = (T, "")
-                break
-            b, f = PERIODS[i]
-            a0 = f(0)                       # TAI - UTC is a + k*u, linear in u
-            k = f(1) - a0
-            u = (T - a0) / (1 + k)
-            if u >= b:
-                found = (u, "")
-                break
-            if T >= b + dat(b, i - 1 if i > 0 else None) and i > 0:
-                found = (F(b), "*")         # inserted time before period i
-                break
-        out.append(found)
-    return out
+    v = stamp_value(stamp)
+    return v * unit - BIAS, (v + 1) * unit - BIAS
+
+
+def rfc3339(ns, second=None):
+    """RFC 3339 text of a label in nanoseconds since 1970, years extended with a sign."""
+    s, frac = divmod(ns, 10**9)
+    d, r = divmod(s, 86400)
+    y, m, dd = civil(d)
+    year = f"{y:04d}" if 0 <= y <= 9999 else (f"-{-y:04d}" if y < 0 else f"+{y}")
+    sec = r % 60 if second is None else second
+    f = f".{frac:09d}".rstrip("0") if frac else ""
+    return f"{year}-{m:02d}-{dd:02d}T{r // 3600:02d}:{r % 3600 // 60:02d}:{sec:02d}{f}Z"
+
+
+def reading_text(t):
+    kind, v = reading(t)
+    if kind == "leap":
+        b, offset = v
+        return rfc3339(b - 10**9 + offset, second=60), True
+    if kind == "inserted":
+        return rfc3339(v), True
+    return rfc3339(v), False
+
+
+def decode(stamp):
+    """(start text, start inserted, end text or None) for a stamp."""
+    start, end = stamp_bounds(stamp)
+    s_text, s_ins = reading_text(start)
+    e_text = None if end + BIAS >= 2**40 else reading_text(end)[0]
+    return s_text, s_ins, e_text
 
 
 def iso(u):
@@ -186,6 +274,175 @@ def digits(v, n):
     return out
 
 
+
+# ------------------------------------------------------------------ conformance vectors
+
+def ns_label(y, mo, d, h=0, mi=0, s=0, ns=0):
+    return ((date(y, mo, d) - date(1970, 1, 1)).days * 86400 + h * 3600 + mi * 60 + s) * 10**9 + ns
+
+
+def encode_ns(n, length):
+    """Stamp text for a label in nanoseconds, or an error code."""
+    try:
+        return {"stamp": encode_label(F(n, 10**9), length)}
+    except ValueError:
+        return {"error": "removed_time"}
+
+
+def lcg(seed):
+    while True:
+        seed = (seed * 6364136223846793005 + 1442695040888963407) % 2**64
+        yield seed >> 11
+
+
+def vectors():
+    rng = lcg(32)
+    v = {
+        "title": "T32 conformance vectors",
+        "spec": "SPEC.md, draft 0.2",
+        "generator": "tools/oracle.py: exact rational arithmetic written from the spec, sharing no code with the implementations",
+        "conventions": [
+            "Large integers are decimal strings.",
+            "UTC text is RFC 3339 in UTC with astronomical years; years outside 0000-9999 carry a sign. Inputs never use second 60 except during a leap second.",
+            "Lengths follow the resolution rule: 8 for whole seconds, 9 for tenths, 14 for nanoseconds.",
+            "units are the biased time of the spec in units of 2^-40 s (an Instant's fixed-point value); a stamp's start_units is its value shifted left by 5 * (16 - length).",
+            "Decoded UTC readings follow the spec: an inserted instant reads as the label where its insertion ends, a leap second as 23:59:60.f; any other instant as the latest nanosecond label that encodes, at full resolution, no later than it.",
+            "Error codes: empty, too_long, invalid_char, misplaced_hyphen, missing_sign, removed_time, not_a_leap_second, invalid_date.",
+        ],
+    }
+
+    # Parser.
+    parse_cases = ["G0S7G6B1", "g0s7g6b1", "g0s7-g6bi", "G0S7-G6B1-3XYE", "oooo", "LIli", "Z", "ZZZZZZZZZZZZZZZZ",
+                   "G-0-S-7", "", "-", "-1W", "1W-", "G0S7--G6B1", "G0SU", " G0S7", "G0S7 ", "G0S7\t",
+                   "\u0131", "\u017f", "\uff27", "\u00fc", "+1W", "00000000000000000", "t32:G0S7"]
+    v["parse"] = []
+    for text in parse_cases:
+        try:
+            v["parse"].append({"input": text, "stamp": parse(text)})
+        except ValueError as e:
+            code = {"invalid character": "invalid_char", "misplaced hyphen": "misplaced_hyphen",
+                    "too long": "too_long", "empty": "empty"}[str(e)]
+            v["parse"].append({"input": text, "error": code})
+
+    # Encoder and converter, from UTC text.
+    enc = []
+
+    def add(n, length, note=None):
+        r = encode_ns(n, length)
+        row = {"utc": rfc3339(n) if "stamp" in r else rfc3339(n), "length": length, **r}
+        if note:
+            row["note"] = note
+        enc.append(row)
+
+    add(ns_label(1999, 12, 31, 23, 59, 28), 8, "the T32 epoch")
+    add(ns_label(1970, 1, 1), 8, "Unix epoch, rubber-second era")
+    add(ns_label(1969, 7, 20, 20, 17, 40), 8, "Apollo 11 landing")
+    add(ns_label(1966, 6, 15, 12, 0, 0, 123456789), 14, "rubber era, exact")
+    add(ns_label(1972, 1, 1), 8, "UTC becomes TAI - 10 s")
+    add(ns_label(2026, 10, 31, 3, 13, 0), 8, "spec date")
+    add(ns_label(1675, 8, 20), 8, "before 1961: read as Universal Time")
+    t = ns_label(2026, 10, 31, 3, 13, 0, 123456789)
+    for length in range(1, 15):
+        add(t, length, "lengths 1 to 14 of one instant")
+
+    # Every boundary of Appendix A, at nanosecond resolution.
+    for k, (b, _) in enumerate(PERIODS):
+        b_ns = int(b) * 10**9
+        for n, note in [(b_ns - 10**9, "1 s before a boundary"), (b_ns - 1, "1 ns before a boundary"),
+                        (b_ns, "a boundary"), (b_ns + 1, "1 ns after a boundary")]:
+            add(n, 14, f"{note} of Appendix A ({rfc3339(b_ns)[:10]})")
+
+    # Removed time, exactly at its edges.
+    for y, mo, d, last_ok, first_bad in [(1961, 7, 31, 950000000, 950000001), (1968, 1, 31, 900000002, 900000003)]:
+        add(ns_label(y, mo, d, 23, 59, 59, last_ok), 14, "the last label before removed time")
+        add(ns_label(y, mo, d, 23, 59, 59, first_bad), 14, "the first removed label")
+
+    # Leap seconds.
+    leap_utc = []
+    for k, (b, _) in enumerate(PERIODS):
+        if k and step(k) == 1:
+            y, mo, d = civil(int(b) // 86400 - 1)
+            before = ns_label(y, mo, d, 23, 59, 59)
+            for second, frac, length in [(60, "0", 8), (60, "0.5", 9)]:
+                text = rfc3339(before, second=60)[:-1] + ("" if frac == "0" else frac[1:]) + "Z"
+                leap_utc.append({"utc": text, "length": length,
+                                 "stamp": encode_leap(y, mo, d, frac, length), "note": "leap second"})
+            add(before, 8, "the second before a leap second")
+    enc[len(enc):] = leap_utc
+
+    # Pseudo-random instants, 1600 to 2100.
+    lo, hi = ns_label(1600, 1, 1), ns_label(2100, 1, 1)
+    for _ in range(60):
+        n = lo + next(rng) % (hi - lo)
+        add(n, 14)
+    v["encode_utc"] = enc
+
+    # From Unix time.
+    v["encode_unix"] = []
+    for n, length in [(0, 14), (1483228800 * 10**9, 8), (1483228799 * 10**9, 8), (-1, 14),
+                      (1793416380 * 10**9, 8), (-14182940 * 10**9, 8)] + \
+                     [(int(next(rng) % (4 * 10**18)) - 2 * 10**18, 14) for _ in range(20)]:
+        r = encode_ns(n, length)
+        v["encode_unix"].append({"unix_nanos": str(n), "length": length, **r})
+
+    # Converter errors that are not removed time.
+    v["utc_errors"] = [
+        {"utc": "2016-12-30T23:59:60Z", "error": "not_a_leap_second"},
+        {"utc": "2015-12-31T23:59:60Z", "error": "not_a_leap_second"},
+        {"utc": "2016-12-31T23:58:60Z", "error": "not_a_leap_second"},
+        {"utc": "2026-02-29T00:00:00Z", "error": "invalid_date"},
+        {"utc": "2026-04-31T00:00:00Z", "error": "invalid_date"},
+    ]
+
+    # Decoder.
+    stamps = ["00000000", "G0000000", "FZ3BMMKB", "G0FZP0S4", "G0S7", "G0S7G6", "G0S7G6B1G0",
+              "G", "Z", "ZZZZZZZZ", "ZZZZZZZZZZZZZZZZ", "0000000000000000"]
+    for row in leap_utc:
+        stamps.append(row["stamp"])
+    # Units at every boundary: where each row begins, and where inserted time begins.
+    for k in range(len(PERIODS)):
+        for x in [first_tai(k)] + ([left(k)] if k and step(k) != 0 else []):
+            u = (x - TAI_LABEL + BIAS) / UNIT
+            stamps.append(digits(u.numerator // u.denominator, 16))
+    for _ in range(40):
+        u = next(rng) % 2**80
+        length = 1 + next(rng) % 16
+        stamps.append(digits(u >> (5 * (16 - length)), length))
+    seen, dec = set(), []
+    for st in stamps:
+        if st in seen:
+            continue
+        seen.add(st)
+        start, end = stamp_bounds(st)
+        s_text, s_ins = reading_text(start)
+        row = {"stamp": st, "start_units": str(stamp_value(st) << (5 * (16 - len(st)))),
+               "start_utc": s_text, "start_inserted": s_ins}
+        if end + BIAS >= 2**40:
+            row["end_utc"] = None
+        else:
+            e_text, e_ins = reading_text(end)
+            row["end_utc"], row["end_inserted"] = e_text, e_ins
+        dec.append(row)
+    v["decode"] = dec
+
+    # Durations.
+    sec = 2**40
+    v["durations"] = []
+    for units in [0, sec, -sec, 60 * sec, 3600 * sec, 86400 * sec, 604800 * sec, sec // 2, -3 * sec // 2,
+                  1, -1, 2**80 - 1, -(2**80 - 1), 1234567 * sec + 89]:
+        v["durations"].append({"units": str(units), "text": duration(F(units, sec))})
+    for nanos in [1, -1, 7, -7, 500000000, -1500000000, 86400 * 10**9]:
+        units = int(trunc_units(F(nanos, 10**9)) * sec)
+        v["durations"].append({"nanos": str(nanos), "units": str(units), "text": duration(F(units, sec))})
+    for text, code in [("1W", "missing_sign"), ("", "missing_sign"), ("+", "empty"), ("+1.", "empty"),
+                       ("+123456789", "too_long"), ("+1.123456789", "too_long"), ("+1.2.3", "invalid_char"),
+                       ("+U", "invalid_char"), ("+ 1", "invalid_char")]:
+        v["durations"].append({"text": text, "error": code})
+    for text, canonical in [("+o.g", "+0.G"), ("-0", "+0"), ("+00001", "+1"), ("+1.G0", "+1.G")]:
+        v["durations"].append({"text": text, "canonical": canonical})
+    return v
+
+
 if __name__ == "__main__":
     import sys
     failures = 0
@@ -201,7 +458,7 @@ if __name__ == "__main__":
         ("1999-12-31T23:59:28", label(1999, 12, 31, 23, 59, 28), 8, "G0000000"),
         ("1970-01-01T00:00:00", label(1970, 1, 1, 0, 0, 0), 8, "FZ3S5F48"),
         ("1969-07-20T20:17:40", label(1969, 7, 20, 20, 17, 40), 8, "FZ3BMMKB"),
-        ("1966-06-15T12:00:00.123456789", label(1966, 6, 15, 12, 0, 0, "0.123456789"), 16, "FZ0EDKA4VPC2A1FX"),
+        ("1966-06-15T12:00:00.123456789", label(1966, 6, 15, 12, 0, 0, "0.123456789"), 14, "FZ0EDKA4VPC2A1"),
         ("1972-01-01T00:00:00", label(1972, 1, 1, 0, 0, 0), 8, "FZ5NA8WA"),
         ("2016-12-31T23:59:59", label(2016, 12, 31, 23, 59, 59), 8, "G0FZP0S3"),
         ("2017-01-01T00:00:00", label(2017, 1, 1, 0, 0, 0), 8, "G0FZP0S5"),
@@ -261,16 +518,30 @@ if __name__ == "__main__":
     for st, want in [("00000000", -549755813888), ("G0000000", 0), ("G0S7", 846200832), ("FZ3BMMKB", -960867733), ("G0FZP0S4", 536544036)]:
         check(f"TAI start of {st}", v(st) * F(32) ** (8 - len(st)) - BIAS, want)
 
-    # Decoder vectors from SPEC.md ('*' marks inserted time).
+    # Decoder vectors from SPEC.md.
     for st, want in [
-        ("00000000", "-15422-12-06T11:41:52Z .. -15422-12-06T11:41:53Z"),
-        ("FZ3BMMKB", "01969-07-20T20:17:39.425406217Z .. 01969-07-20T20:17:40.425406187Z"),
-        ("G0FZP0S4", "02017-01-01T00:00:00Z* .. 02017-01-01T00:00:00Z"),
-        ("G0S7", "02026-10-24T23:46:35Z .. 02026-11-06T03:02:51Z"),
-        ("G0S7G6", "02026-10-31T03:07:07Z .. 02026-10-31T03:24:11Z"),
+        ("00000000", ("-15422-12-06T11:41:52Z", False, "-15422-12-06T11:41:53Z")),
+        ("FZ3BMMKB", ("1969-07-20T20:17:39.425406217Z", False, "1969-07-20T20:17:40.425406187Z")),
+        ("G0FZP0S4", ("2016-12-31T23:59:60Z", True, "2017-01-01T00:00:00Z")),
+        ("G0S7", ("2026-10-24T23:46:35Z", False, "2026-11-06T03:02:51Z")),
+        ("G0S7G6", ("2026-10-31T03:07:07Z", False, "2026-10-31T03:24:11Z")),
     ]:
-        (a, ma), (b, mb) = decode(st)
-        check(st, f"{iso(a)}{ma} .. {iso(b)}{mb}", want)
+        check(st, decode(st), want)
+
+    if "--write" in sys.argv or "--check" in sys.argv:
+        import json
+        path = sys.argv[-1]
+        text = json.dumps(vectors(), indent=1, ensure_ascii=False) + "\n"
+        if "--write" in sys.argv:
+            with open(path, "w") as f:
+                f.write(text)
+            print(f"wrote {path}")
+        else:
+            with open(path) as f:
+                current = f.read()
+            ok = current == text
+            failures += not ok
+            print(f"{'ok ' if ok else 'BAD'} {path} {'is current' if ok else 'differs: run tools/oracle.py --write ' + path}")
 
     print(f"{failures} failure(s)")
     sys.exit(1 if failures else 0)
