@@ -81,7 +81,7 @@ formatDuration(durationBetween(parse('G0S7'), s));   // '+G6B1' (exact)
 
 ## Using the Rust crate
 
-The [reference crate](https://github.com/oddurs/t32/tree/main/rust) uses only the standard library. Until it is published, depend on it from Git:
+The [reference crate](https://github.com/oddurs/t32/tree/main/rust) has no dependencies and no `unsafe`, and works on Rust 1.70 and later. Until it is published, depend on it from Git:
 
 ```toml
 [dependencies]
@@ -89,15 +89,22 @@ t32 = { git = "https://github.com/oddurs/t32" }
 ```
 
 ```rust
-use t32::{utc_to_fx, unix_ns_to_fx, Duration, Stamp};
+use t32::{Duration, Instant, Stamp, UtcDateTime};
 
-let s = Stamp::from_fx(utc_to_fx(2026, 10, 31, 3, 13, 0, 0)?, 8)?;
-assert_eq!(s.to_string(), "G0S7G6B1");
-assert!(Stamp::parse("G0S7")?.contains(&s));
-assert_eq!(Duration::between(&Stamp::parse("G0S7")?, &s).to_string(), "+G6B1");
+let utc: UtcDateTime = "2026-10-31T03:13:00Z".parse()?;
+let stamp = Stamp::new(Instant::from_utc(utc)?, 8)?;           // "G0S7G6B1"
 
-let now = Stamp::from_fx(unix_ns_to_fx(1_793_416_380_000_000_000)?, 8)?; // from a Unix time
+let fortnight: Stamp = "G0S7".parse()?;
+assert!(fortnight.contains(stamp) && fortnight < stamp);       // Ord is time order
+
+let gap: Duration = stamp.start() - fortnight.start();          // exact
+assert_eq!(gap.to_string(), "+G6B1");
+
+let now = Stamp::now()?;                                        // from the system clock
+let fine = Instant::now()?.stamp(14)?;                          // a nanosecond clock allows 14
 ```
+
+Four types carry everything: `Instant` (a point in time, exact to 2⁻⁴⁰ s), `Stamp`, `Duration` and `UtcDateTime` (RFC 3339 text, leap seconds included). `cargo run --example t32 -- G0S7` prints a stamp's interval.
 
 ## Getting TAI from a system clock
 

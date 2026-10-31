@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
 	parse, format, display, fromFx, truncate, contains, startFx, endFx, utcToFx, parseUtc,
-	fxToUtc, fxToUtcString, fxToUtcStringExact, unixNsToFx, deltaAt, taiNsToFx, STEPS, maxLengthFor,
+	fxToUtc, fxToUtcString, fxToUtcStringExact, fxToTaiNs, unixNsToFx, deltaAt, taiNsToFx, STEPS, maxLengthFor,
 	fromUnixMs, formatDuration, parseDuration, durationFromNs, durationBetween, addDuration, T32Error
 } from './t32.ts';
 
@@ -22,8 +22,8 @@ test('encoding vectors', () => {
 		['2016-12-31T23:59:60', 8, 'G0FZP0S4'],
 		['2017-01-01T00:00:00', 8, 'G0FZP0S5'],
 		['2026-10-31T03:13:00', 8, 'G0S7G6B1'],
-		['2026-10-31T03:13:00.5', 10, 'G0S7G6B1G0'],
-		['2026-10-31T03:13:00.123', 12, 'G0S7G6B13XYE'],
+		['2026-10-31T03:13:00.500', 10, 'G0S7G6B1G0'],
+		['2026-10-31T03:13:00.123000', 12, 'G0S7G6B13XYE'],
 		['1966-06-15T12:00:00.123456789', 16, 'FZ0EDKA4VPC2A1FX'],
 		['1675-08-20T00:00:00', 8, 'FPEY6N00']
 	];
@@ -99,7 +99,7 @@ test('decoding inverts encoding, and inserted time decodes to its end', () => {
 		}
 		const back = fxToUtc(fx);
 		assert.equal(back.insertedNs, null);
-		assert.ok(back.unixNs - u <= 1n && u - back.unixNs <= 1n, String(u));
+		assert.equal(back.unixNs, u);
 	}
 	const midnight1972 = 63_072_000n * NS;
 	const inside = unixNsToFx(midnight1972) - (1n << 40n) / 20n; // 50 ms before, inside the 0.107758 s
@@ -107,6 +107,13 @@ test('decoding inverts encoding, and inserted time decodes to its end', () => {
 	assert.equal(utc.unixNs, midnight1972);
 	assert.ok(utc.insertedNs !== null && !utc.leapSecond);
 	assert.equal(deltaAt(0n).num * 1_000_000n, 8_000_082n * deltaAt(0n).den);
+});
+
+test('nanosecond round trips are exact', () => {
+	for (let n = -2000n; n < 2000n; n++) {
+		assert.equal(fxToUtc(unixNsToFx(n)).unixNs, n);
+		assert.equal(fxToTaiNs(taiNsToFx(n)), n);
+	}
 });
 
 test('truncation equals coarse encoding', () => {

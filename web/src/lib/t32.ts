@@ -293,7 +293,16 @@ function scaledToFx(t: bigint): bigint {
 	return fx;
 }
 
-const fxToScaled = (fx: bigint) => (fx >> FRAC_BITS) * D + (((fx & FRAC_MASK) * D) >> FRAC_BITS) - BIAS_S * D;
+/**
+ * The scaled-TAI value to read an instant by: the last one inside its 2^-40 s
+ * unit. At most one nanosecond encodes to any unit (a unit is narrower than a
+ * nanosecond), so flooring a reading taken here returns that nanosecond when it
+ * exists and the plain floor otherwise: nanosecond round trips are exact.
+ */
+const readingScaled = (fx: bigint) => {
+	const next = fx + 1n;
+	return (next >> FRAC_BITS) * D + floorDiv((next & FRAC_MASK) * D - 1n, 1n << FRAC_BITS) - BIAS_S * D;
+};
 
 /**
  * UTC label (Unix nanoseconds, POSIX) -> biased time. Rejects labels that UTC
@@ -316,7 +325,7 @@ export const taiNsToFx = (taiNs: bigint): bigint =>
 	abs(taiNs) > MAX_LABEL_NS ? fail('out-of-range') : scaledToFx(taiNs * K);
 
 /** Biased time -> TAI nanoseconds since the epoch (floored). */
-export const fxToTaiNs = (fx: bigint): bigint => floorDiv(fxToScaled(fx), K);
+export const fxToTaiNs = (fx: bigint): bigint => floorDiv(readingScaled(fx), K);
 
 export interface Utc {
 	/** The UTC label as Unix nanoseconds (floored). */
@@ -333,7 +342,7 @@ export interface Utc {
 
 /** Biased time -> UTC label. */
 export function fxToUtc(fx: bigint): Utc {
-	const t = fxToScaled(fx);
+	const t = readingScaled(fx);
 	let i = 0;
 	for (let k = PERIODS.length; k >= 1; k--) {
 		if (t >= tai(period(k), period(k).start)) {

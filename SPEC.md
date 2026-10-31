@@ -115,6 +115,7 @@ A stamp of length n and value V denotes the half-open interval of the T32 time s
 - **Containment.** Stamp A contains stamp B exactly when A is a prefix of B.
 - **No partial overlap.** Two stamps are nested or disjoint; there is no third case.
 - **Trailing zeros carry meaning.** `G0S7G6B1` and `G0S7G6B10` are different stamps; the second is one thirty-second of the first.
+- **Nanosecond readings.** An implementation that holds instants more finely than 1 ns SHOULD read one in nanoseconds as the latest nanosecond that encodes, at its full resolution, to no later than the held value. A nanosecond then survives a round trip exactly, and a stamp boundary reads as its floor.
 
 ## Ordering and prefix properties
 
@@ -296,8 +297,8 @@ A conforming implementation reproduces every row for its class. Every row was co
 | After last leap second | 2017-01-01T00:00:00 | 8 | `G0FZP0S5` |
 | Unix 1483228800 | (2017-01-01T00:00:00) | 8 | `G0FZP0S5` |
 | Spec date | 2026-10-31T03:13:00 | 8 | `G0S7G6B1` |
-| Spec date + 0.5 s | 2026-10-31T03:13:00.5 | 10 | `G0S7G6B1G0` |
-| Spec date + 0.123 s | 2026-10-31T03:13:00.123 | 12 | `G0S7G6B13XYE` |
+| Spec date + 0.5 s (ms clock) | 2026-10-31T03:13:00.500 | 10 | `G0S7G6B1G0` |
+| Spec date + 0.123 s (µs clock) | 2026-10-31T03:13:00.123000 | 12 | `G0S7G6B13XYE` |
 | Before 1961, taken as UT | 1675-08-20T00:00:00 | 8 | `FPEY6N00` |
 
 **Converter errors**
