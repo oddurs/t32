@@ -340,9 +340,8 @@ export interface Utc {
 	leapSecond: boolean;
 }
 
-/** Biased time -> UTC label. */
-export function fxToUtc(fx: bigint): Utc {
-	const t = readingScaled(fx);
+/** The UTC reading of a scaled-TAI value. */
+function scaledToUtc(t: bigint): Utc {
 	let i = 0;
 	for (let k = PERIODS.length; k >= 1; k--) {
 		if (t >= tai(period(k), period(k).start)) {
@@ -358,6 +357,25 @@ export function fxToUtc(fx: bigint): Utc {
 	}
 	return { unixNs: label(period(i), t), insertedNs: null, leapSecond: false };
 }
+
+const floorScaled = (fx: bigint) => (fx >> FRAC_BITS) * D + (((fx & FRAC_MASK) * D) >> FRAC_BITS) - BIAS_S * D;
+
+/**
+ * Biased time -> UTC reading (SPEC.md, Decoding and interval semantics). An
+ * instant in inserted time reads as the label where the insertion ends, inside
+ * a leap second as 23:59:60.f; any other instant as the latest nanosecond label
+ * whose instant encodes, at full resolution, no later than it.
+ */
+export function fxToUtc(fx: bigint): Utc {
+	const own = scaledToUtc(floorScaled(fx));
+	const top = scaledToUtc(readingScaled(fx));
+	if (own.insertedNs !== null) return own.leapSecond ? top : own;
+	if (top.insertedNs !== null) return { unixNs: top.unixNs - 1n, insertedNs: null, leapSecond: false };
+	return top;
+}
+
+/** Whether the instant itself lies in inserted time. */
+export const isInserted = (fx: bigint): boolean => scaledToUtc(floorScaled(fx)).insertedNs !== null;
 
 export function daysFromCivil(y: bigint, m: number, d: number): bigint {
 	const yy = m <= 2 ? y - 1n : y;
