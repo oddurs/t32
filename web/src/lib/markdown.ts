@@ -60,7 +60,7 @@ export function renderDoc(src: string, opts: { number?: boolean; base?: string }
 				}
 				if (depth >= 2 && depth <= 3) toc.push({ depth, id, text: plain(text), label });
 
-				const no = label ? `<span class="secno">${label}</span> ` : '';
+				const no = label ? `<span class="secno">${label}</span>` : '';
 				return `<h${depth} id="${id}">${no}${inner}<a class="anchor" href="#${id}" aria-label="Link to this section">#</a></h${depth}>\n`;
 			},
 			link(this: { parser: { parseInline: (t: Tokens.Generic[]) => string } }, { href, title, tokens }: Tokens.Link) {
@@ -94,4 +94,23 @@ export function renderDoc(src: string, opts: { number?: boolean; base?: string }
 export function body(src: string): string {
 	const i = src.search(/^## /m);
 	return i < 0 ? src : src.slice(i);
+}
+
+/** The body of the `## heading` section: up to the next `## ` heading, without its own heading line. */
+export function section(src: string, heading: string): string {
+	const start = src.indexOf(`\n## ${heading}\n`);
+	if (start < 0) throw new Error(`no section "${heading}"`);
+	const from = start + heading.length + 5;
+	const next = src.indexOf('\n## ', from);
+	return src.slice(from, next < 0 ? undefined : next).trim();
+}
+
+/** Everything after the first `# ` title line. */
+export function afterTitle(src: string): string {
+	return src.replace(/^# [^\n]*\n/, '').trim();
+}
+
+/** Lowers every heading by one level, so a document can sit inside a section. */
+export function demote(src: string): string {
+	return src.replace(/^(#{2,5}) /gm, '#$1 ');
 }

@@ -2,8 +2,6 @@
 	import { onMount } from 'svelte';
 	import { fromUnixMs, format, truncate, startFx, endFx, fxToUtcString } from '$lib/t32';
 
-	let { ladder = true }: { ladder?: boolean } = $props();
-
 	let ms: number | null = $state(null);
 
 	onMount(() => {
@@ -12,65 +10,126 @@
 		return () => clearInterval(id);
 	});
 
+	// Date.now() resolves 1 ms: 10 characters is the most it may claim.
 	const full = $derived(ms === null ? null : fromUnixMs(ms, 10));
-	const canonical = $derived(full ? format(truncate(full, 8)) : '········');
-	const sub = $derived(full ? format(full).slice(8) : '··');
+	const text = $derived(full ? format(full) : '··········');
 	const iso = $derived(ms === null ? '' : new Date(ms).toISOString().replace(/\.\d+Z$/, 'Z'));
 
-	const spans = ['≈ 1,089 years', '≈ 34 years', '≈ 388 days', '≈ 12.1 days', '≈ 9.1 hours', '≈ 17.1 minutes', '32 seconds', '1 second'];
+	const spans = ['1,089 y', '34 y', '388 d', '12.1 d', '9.1 h', '17.1 min', '32 s', '1 s', '31 ms', '0.98 ms'];
+	const ladder = $derived(
+		full
+			? Array.from({ length: 8 }, (_, i) => {
+					const p = truncate(full, i + 1);
+					return { text: format(p), from: fxToUtcString(startFx(p)), to: fxToUtcString(endFx(p)) };
+				})
+			: []
+	);
 </script>
 
-<div class="clock">
-	<div class="now" aria-live="off">
-		<span class="mono big">{canonical}</span><span class="mono big frac">{sub}</span>
-	</div>
-	<p class="small muted caption">
-		Now, in T32 (8 characters, plus 2 more for ≈ 1 ms). {#if iso}ISO 8601: <span class="mono">{iso}</span>{/if}
-	</p>
+<figure class="specimen" aria-label="The current time in T32">
+	<ol class="cells">
+		{#each [...text] as ch, i (i)}
+			<li class:frac={i >= 8}>
+				<span class="ch">{ch}</span>
+				<span class="pos">{i + 1}</span>
+				<span class="span">{spans[i]}</span>
+			</li>
+		{/each}
+	</ol>
+	<figcaption>
+		<span class="label">Now</span>
+		<span class="mono">{text.slice(0, 8)}<span class="muted">{text.slice(8)}</span></span>
+		{#if iso}<span class="muted">· {iso}</span>{/if}
+		<span class="muted">· each position divides the one before it by 32</span>
+	</figcaption>
+</figure>
 
-	{#if ladder}
-		<div class="table-wrap">
-			<table>
-				<thead>
-					<tr><th>Prefix</th><th>Span</th><th>Interval (UTC)</th></tr>
-				</thead>
-				<tbody>
-					{#each spans as span, i (i)}
-						{@const p = full ? truncate(full, i + 1) : null}
-						<tr>
-							<td class="mono">{p ? format(p) : canonical.slice(0, i + 1)}</td>
-							<td class="nw">{span}</td>
-							<td class="mono small">
-								{#if p}<span class="nw">{fxToUtcString(startFx(p))}</span> – <span class="nw">{fxToUtcString(endFx(p))}</span>{/if}
-							</td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
-		</div>
-	{/if}
+<div class="table-wrap">
+	<table class="ladder">
+		<thead>
+			<tr><th>Prefix</th><th>Span</th><th>Interval, UTC</th></tr>
+		</thead>
+		<tbody>
+			{#each ladder as row, i (i)}
+				<tr>
+					<td class="mono">{row.text}</td>
+					<td class="nw">{spans[i]}</td>
+					<td class="mono small"><span class="nw">{row.from}</span> – <span class="nw">{row.to}</span></td>
+				</tr>
+			{/each}
+		</tbody>
+	</table>
 </div>
 
 <style>
-	.clock {
-		margin: 0 0 16px;
+	.specimen {
+		margin: 0 0 var(--s5);
 	}
-	.now {
-		margin: 8px 0 4px;
+	.cells {
+		display: grid;
+		grid-template-columns: repeat(10, minmax(0, 1fr));
+		list-style: none;
+		padding: 0;
+		margin: 0 0 var(--s3);
+		border-top: 1px solid var(--rule-strong);
+		border-bottom: 1px solid var(--rule-strong);
 	}
-	.big {
-		font-size: clamp(2.2rem, 9vw, 3.5rem);
-		font-weight: 600;
-		letter-spacing: 0.04em;
+	.cells li {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: var(--s3) 0 var(--s2);
+		margin: 0;
+		border-left: 1px solid var(--rule);
 	}
-	.frac {
-		color: var(--muted);
+	.cells li:first-child {
+		border-left: 0;
+	}
+	.cells li.frac {
+		background: var(--wash);
+	}
+	.cells li:nth-child(9) {
+		border-left: 1px solid var(--rule-strong);
+	}
+	.ch {
+		font-family: var(--mono);
+		font-size: clamp(1.6rem, 5.2vw, 3rem);
+		font-weight: 500;
+		line-height: 1.1;
+	}
+	.frac .ch {
+		color: var(--ink-3);
 		font-weight: 400;
+	}
+	.pos,
+	.span {
+		font-family: var(--mono);
+		font-size: 0.6875rem;
+		color: var(--ink-3);
+		font-variant-numeric: tabular-nums;
+	}
+	.pos {
+		margin-top: var(--s2);
+	}
+	.span {
+		white-space: nowrap;
+	}
+	figcaption {
+		font-size: var(--small);
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--s1) var(--s2);
+		align-items: baseline;
+	}
+	figcaption .label {
+		margin-right: var(--s1);
 	}
 	.nw {
 		white-space: nowrap;
 	}
-	.caption {
-		margin-bottom: 16px;
+	@media (max-width: 600px) {
+		.span {
+			display: none;
+		}
 	}
 </style>

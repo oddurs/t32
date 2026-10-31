@@ -4,45 +4,70 @@
 </script>
 
 <nav class="toc" aria-label={title}>
-	<h2 class="toc-title">{title}</h2>
+	<p class="label">{title}</p>
 	<ol>
 		{#each toc.filter((t) => t.depth === 2) as entry (entry.id)}
-			<li>
+			<li class:appendix={!entry.label}>
 				<span class="no">{entry.label ?? ''}</span>
-				<a href="#{entry.id}">{entry.text}</a>
+				<a href="#{entry.id}">{entry.text.replace(/^Appendix [A-Z]: /, '')}</a>
+				{#if !entry.label}<span class="app">{entry.text.match(/^Appendix ([A-Z])/)?.[1] ?? ''}</span>{/if}
 			</li>
 		{/each}
 	</ol>
 </nav>
 
 <style>
-	.toc {
-		margin: 0 0 24px;
-	}
-	.toc-title {
-		font-size: 1em;
-		border: 0;
-		margin: 0 0 8px;
-		padding: 0;
+	.label {
+		margin: 0 0 var(--s3);
 	}
 	ol {
 		list-style: none;
 		padding: 0;
 		margin: 0;
-		columns: 2 18em;
-		column-gap: 32px;
-		font-size: 14px;
+		font-size: 0.875rem;
+		line-height: 1.35;
 	}
 	li {
-		margin: 0 0 4px;
-		break-inside: avoid;
-		display: flex;
-		gap: 8px;
+		display: grid;
+		grid-template-columns: 1.6rem 1fr;
+		margin: 0 0 var(--s2);
+		padding: 0;
 	}
-	.no {
-		min-width: 1.6em;
-		text-align: right;
-		color: var(--muted);
-		font-variant-numeric: tabular-nums;
+	li.appendix {
+		grid-template-columns: 1.6rem 1fr;
+	}
+	.no,
+	.app {
+		font-family: var(--mono);
+		font-size: 0.75rem;
+		color: var(--ink-3);
+		padding-top: 0.1em;
+	}
+	li.appendix .app {
+		grid-column: 1;
+		grid-row: 1;
+	}
+	li.appendix a {
+		grid-column: 2;
+		grid-row: 1;
+	}
+	li.appendix .no {
+		display: none;
+	}
+	a {
+		color: var(--ink-2);
+		text-decoration: none;
+	}
+	a:hover {
+		color: var(--accent);
+	}
+	@media (max-width: 960px) {
+		ol {
+			columns: 2 14rem;
+			column-gap: var(--s6);
+		}
+		li {
+			break-inside: avoid;
+		}
 	}
 </style>

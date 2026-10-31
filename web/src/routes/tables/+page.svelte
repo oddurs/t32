@@ -114,7 +114,7 @@
 		['Spec date', '2026-10-31T03:13:00', 8],
 		['Spec date + 0.5 s (ms clock)', '2026-10-31T03:13:00.500', 10],
 		['Spec date + 0.123 s (µs clock)', '2026-10-31T03:13:00.123000', 12],
-		['Rubber era, exact', '1966-06-15T12:00:00.123456789', 16],
+		['Rubber era, exact (ns clock)', '1966-06-15T12:00:00.123456789', 14],
 		['Before 1961, taken as UT', '1675-08-20T00:00:00', 8]
 	];
 	const vectorRows = vectors.map(([name, utc, n]) => ({ name, utc, n, stamp: format(fromFx(parseUtc(utc), n)) }));
@@ -138,220 +138,243 @@
 	<meta name="description" content="Reference tables for T32: alphabet, precision, eras, prefixes by year, durations, notable moments, leap seconds and test vectors." />
 </svelte:head>
 
-<div class="titleblock">
-	<div class="docno">T32 · DRAFT 0.2 · REFERENCE TABLES</div>
-	<h1>Tables</h1>
-	<p class="muted small">Every value on this page is computed by the reference TypeScript implementation when the site is built.</p>
-</div>
+<div class="with-rail">
+	<header class="titleblock">
+		<span class="label">T32 · Draft 0.2 · Reference tables</span>
+		<h1>Tables</h1>
+		<p class="lede">Reference values for T32, each computed by the TypeScript implementation when the site is built.</p>
+	</header>
 
-<nav class="toc" aria-label="Tables">
-	<ol>
-		{#each sections as [id, title], i (id)}
-			<li><span class="no">{i + 1}</span> <a href="#{id}">{title}</a></li>
-		{/each}
-	</ol>
-</nav>
+	<aside class="rail">
+		<nav class="toc" aria-label="Tables">
+			<p class="label">Tables</p>
+			<ol>
+				{#each sections as [id, title], i (id)}
+					<li><span class="no">{i + 1}</span><a href="#{id}">{title}</a></li>
+				{/each}
+			</ol>
+		</nav>
+	</aside>
 
-<h2 id="alphabet"><span class="secno">1</span> Alphabet</h2>
-<p>Crockford base32. The letters I, L, O and U are never written; on input, I and L read as 1 and O as 0. U is rejected.</p>
-<div class="table-wrap">
-	<table>
-		<thead><tr><th>Char</th><th class="num">Value</th><th>Bits</th><th>Also accepted</th><th>Char</th><th class="num">Value</th><th>Bits</th><th>Also accepted</th></tr></thead>
-		<tbody>
-			{#each alphabet.slice(0, 16) as a, i (a.c)}
-				{@const b = alphabet[i + 16]}
-				<tr>
-					<td class="mono">{a.c}</td><td class="num">{a.v}</td><td class="mono">{a.bits}</td><td class="mono">{a.alias}</td>
-					<td class="mono">{b.c}</td><td class="num">{b.v}</td><td class="mono">{b.bits}</td><td class="mono">{b.alias}</td>
-				</tr>
-			{/each}
-		</tbody>
-	</table>
-</div>
+	<div class="main">
+		<h2 id="alphabet"><span class="secno">1</span>Alphabet</h2>
+		<p>Crockford base32. The letters I, L, O and U are never written; on input, I and L read as 1 and O as 0. U is rejected.</p>
+		<div class="table-wrap">
+			<table>
+				<thead><tr><th>Char</th><th class="num">Value</th><th>Bits</th><th>Also accepted</th><th>Char</th><th class="num">Value</th><th>Bits</th><th>Also accepted</th></tr></thead>
+				<tbody>
+					{#each alphabet.slice(0, 16) as a, i (a.c)}
+						{@const b = alphabet[i + 16]}
+						<tr>
+							<td class="mono">{a.c}</td><td class="num">{a.v}</td><td class="mono">{a.bits}</td><td class="mono">{a.alias}</td>
+							<td class="mono">{b.c}</td><td class="num">{b.v}</td><td class="mono">{b.bits}</td><td class="mono">{b.alias}</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
 
-<h2 id="precision"><span class="secno">2</span> Length and resolution</h2>
-<p>A stamp's length is the resolution of the record, not the accuracy of the clock.</p>
-<div class="table-wrap">
-	<table>
-		<thead><tr><th class="num">Length</th><th>Unit (exact)</th><th>Unit (approx.)</th><th class="num">Bits</th><th>Binary form</th></tr></thead>
-		<tbody>
-			{#each precision as p (p.n)}
-				<tr class:hl={p.n === CANONICAL_LEN}>
-					<td class="num">{p.n}</td><td class="mono">{p.exact}</td><td>{p.human}</td><td class="num">{p.bits}</td><td class="mono">{p.binary}</td>
-				</tr>
-			{/each}
-		</tbody>
-	</table>
-</div>
-<p>An encoder must not write more characters than its source resolves: at most the length whose unit is nearest the source's resolution.</p>
-<div class="table-wrap">
-	<table>
-		<thead><tr><th>Source resolution</th><th class="num">Maximum length</th><th>Unit at that length</th></tr></thead>
-		<tbody>
-			{#each resolutions as [name, r] (name)}
-				{@const n = maxLengthFor(r)}
-				<tr><td>{name}</td><td class="num">{n}</td><td>{humanSpan(unitSeconds(n))}</td></tr>
-			{/each}
-		</tbody>
-	</table>
-</div>
+		<h2 id="precision"><span class="secno">2</span>Length and resolution</h2>
+		<p>A stamp's length is the resolution of the record, not the accuracy of the clock.</p>
+		<div class="table-wrap">
+			<table>
+				<thead><tr><th class="num">Length</th><th>Unit (exact)</th><th>Unit (approx.)</th><th class="num">Bits</th><th>Binary form</th></tr></thead>
+				<tbody>
+					{#each precision as p (p.n)}
+						<tr class:hl={p.n === CANONICAL_LEN}>
+							<td class="num">{p.n}</td><td class="mono">{p.exact}</td><td>{p.human}</td><td class="num">{p.bits}</td><td class="mono">{p.binary}</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
+		<p>An encoder must not write more characters than its source resolves: at most the length whose unit is nearest the source's resolution.</p>
+		<div class="table-wrap">
+			<table>
+				<thead><tr><th>Source resolution</th><th class="num">Maximum length</th><th>Unit at that length</th></tr></thead>
+				<tbody>
+					{#each resolutions as [name, r] (name)}
+						{@const n = maxLengthFor(r)}
+						<tr><td>{name}</td><td class="num">{n}</td><td>{humanSpan(unitSeconds(n))}</td></tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
 
-<h2 id="eras"><span class="secno">3</span> Eras (first character)</h2>
-<p>Each era is 2^35 seconds, about 1,089 years. Years are proleptic Gregorian.</p>
-<div class="table-wrap">
-	<table>
-		<thead><tr><th>Char</th><th>From</th><th>Until</th><th>Char</th><th>From</th><th>Until</th></tr></thead>
-		<tbody>
-			{#each eras.slice(0, 16) as e, i (e.c)}
-				{@const f = eras[i + 16]}
-				<tr class:hl={e.c === 'G' || f.c === 'G'}>
-					<td class="mono">{e.c}</td><td>{e.from}</td><td>{e.to}</td>
-					<td class="mono">{f.c}</td><td>{f.from}</td><td>{f.to}</td>
-				</tr>
-			{/each}
-		</tbody>
-	</table>
-</div>
+		<h2 id="eras"><span class="secno">3</span>Eras (first character)</h2>
+		<p>Each era is 2^35 seconds, about 1,089 years. Years are proleptic Gregorian.</p>
+		<div class="table-wrap">
+			<table>
+				<thead><tr><th>Char</th><th>From</th><th>Until</th><th>Char</th><th>From</th><th>Until</th></tr></thead>
+				<tbody>
+					{#each eras.slice(0, 16) as e, i (e.c)}
+						{@const f = eras[i + 16]}
+						<tr class:hl={e.c === 'G' || f.c === 'G'}>
+							<td class="mono">{e.c}</td><td>{e.from}</td><td>{e.to}</td>
+							<td class="mono">{f.c}</td><td>{f.from}</td><td>{f.to}</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
 
-<h2 id="generations"><span class="secno">4</span> Two-character prefixes, 1900–2100</h2>
-<p>Each is 2^30 seconds, about 34 years. Boundaries are given to the day.</p>
-<div class="table-wrap">
-	<table>
-		<thead><tr><th>Prefix</th><th>From (UTC)</th><th>Until (UTC)</th></tr></thead>
-		<tbody>
-			{#each generations as g (g.p)}
-				<tr><td class="mono">{g.p}</td><td class="mono">{day(g.from)}</td><td class="mono">{day(g.to)}</td></tr>
-			{/each}
-		</tbody>
-	</table>
-</div>
+		<h2 id="generations"><span class="secno">4</span>Two-character prefixes, 1900–2100</h2>
+		<p>Each is 2^30 seconds, about 34 years. Boundaries are given to the day.</p>
+		<div class="table-wrap">
+			<table>
+				<thead><tr><th>Prefix</th><th>From (UTC)</th><th>Until (UTC)</th></tr></thead>
+				<tbody>
+					{#each generations as g (g.p)}
+						<tr><td class="mono">{g.p}</td><td class="mono">{day(g.from)}</td><td class="mono">{day(g.to)}</td></tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
 
-<h2 id="years"><span class="secno">5</span> Three-character prefixes, 2020–2035</h2>
-<p>Each is 2^25 seconds, about 388 days. Useful as partition keys and for range queries.</p>
-<div class="table-wrap">
-	<table>
-		<thead><tr><th>Prefix</th><th>From (UTC)</th><th>Until (UTC)</th></tr></thead>
-		<tbody>
-			{#each years as y (y.p)}
-				<tr><td class="mono">{y.p}</td><td class="mono">{minute(y.from)}</td><td class="mono">{minute(y.to)}</td></tr>
-			{/each}
-		</tbody>
-	</table>
-</div>
+		<h2 id="years"><span class="secno">5</span>Three-character prefixes, 2020–2035</h2>
+		<p>Each is 2^25 seconds, about 388 days. Useful as partition keys and for range queries.</p>
+		<div class="table-wrap">
+			<table>
+				<thead><tr><th>Prefix</th><th>From (UTC)</th><th>Until (UTC)</th></tr></thead>
+				<tbody>
+					{#each years as y (y.p)}
+						<tr><td class="mono">{y.p}</td><td class="mono">{minute(y.from)}</td><td class="mono">{minute(y.to)}</td></tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
 
-<h2 id="durations"><span class="secno">6</span> Common durations</h2>
-<p>A duration is a signed whole number of 2^−40 s, written exactly. Decimal values that are not are truncated toward zero.</p>
-<div class="table-wrap">
-	<table>
-		<thead><tr><th>Duration</th><th class="num">Seconds</th><th>T32 duration</th></tr></thead>
-		<tbody>
-			{#each durations as [name, ns] (name)}
-				<tr>
-					<td>{name}</td>
-					<td class="num mono">{(Number(ns) / 1e9).toLocaleString('en-US', { maximumFractionDigits: 6 })}</td>
-					<td class="mono">{formatDuration(durationFromNs(ns))}</td>
-				</tr>
-			{/each}
-		</tbody>
-	</table>
-</div>
+		<h2 id="durations"><span class="secno">6</span>Common durations</h2>
+		<p>A duration is a signed whole number of 2^−40 s, written exactly. Decimal values that are not are truncated toward zero.</p>
+		<div class="table-wrap">
+			<table>
+				<thead><tr><th>Duration</th><th class="num">Seconds</th><th>T32 duration</th></tr></thead>
+				<tbody>
+					{#each durations as [name, ns] (name)}
+						<tr>
+							<td>{name}</td>
+							<td class="num mono">{(Number(ns) / 1e9).toLocaleString('en-US', { maximumFractionDigits: 6 })}</td>
+							<td class="mono">{formatDuration(durationFromNs(ns))}</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
 
-<h2 id="moments"><span class="secno">7</span> Notable moments</h2>
-<p>Each moment encoded at length 8. Before 1972, TAI − UTC was fractional, so a one-second stamp starts part-way through a UTC second.</p>
-<div class="table-wrap">
-	<table>
-		<thead><tr><th>Moment</th><th>Stamp starts (UTC)</th><th>T32</th></tr></thead>
-		<tbody>
-			{#each momentRows as m (m.name)}
-				<tr><td>{m.name}</td><td class="mono small">{m.utc}</td><td class="mono">{m.stamp}</td></tr>
-			{/each}
-		</tbody>
-	</table>
-</div>
+		<h2 id="moments"><span class="secno">7</span>Notable moments</h2>
+		<p>Each moment encoded at length 8. Before 1972, TAI − UTC was fractional, so a one-second stamp starts part-way through a UTC second.</p>
+		<div class="table-wrap">
+			<table>
+				<thead><tr><th>Moment</th><th>Stamp starts (UTC)</th><th>T32</th></tr></thead>
+				<tbody>
+					{#each momentRows as m (m.name)}
+						<tr><td>{m.name}</td><td class="mono small">{m.utc}</td><td class="mono">{m.stamp}</td></tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
 
-<h2 id="leap-seconds"><span class="secno">8</span> Leap seconds</h2>
-<p>
-	All 27 inserted leap seconds, each with its own T32 stamp: in T32 they are ordinary seconds. IERS Bulletin C 72
-	announced no leap second for the end of 2026, and the CGPM has made UTC continuous from 2027-05-20, so this list is
-	expected to be complete.
-</p>
-<div class="table-wrap">
-	<table>
-		<thead><tr><th class="num">#</th><th>Inserted second (UTC)</th><th>T32</th><th class="num">TAI − UTC after</th></tr></thead>
-		<tbody>
-			{#each leaps as l, i (l.label)}
-				<tr><td class="num">{i + 1}</td><td class="mono">{l.label}</td><td class="mono">{l.stamp}</td><td class="num">{l.after} s</td></tr>
-			{/each}
-		</tbody>
-	</table>
-</div>
+		<h2 id="leap-seconds"><span class="secno">8</span>Leap seconds</h2>
+		<p>
+			All 27 inserted leap seconds, each with its own T32 stamp: in T32 they are ordinary seconds. IERS Bulletin C 72
+			announced no leap second for the end of 2026, and the CGPM has made UTC continuous from 2027-05-20, so this list is
+			expected to be complete.
+		</p>
+		<div class="table-wrap">
+			<table>
+				<thead><tr><th class="num">#</th><th>Inserted second (UTC)</th><th>T32</th><th class="num">TAI − UTC after</th></tr></thead>
+				<tbody>
+					{#each leaps as l, i (l.label)}
+						<tr><td class="num">{i + 1}</td><td class="mono">{l.label}</td><td class="mono">{l.stamp}</td><td class="num">{l.after} s</td></tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
 
-<h2 id="rubber"><span class="secno">9</span> TAI − UTC, 1961–1971, and its steps</h2>
-<p>Before 1972, UTC ran at an adjusted rate. TAI − UTC = a + (MJD − m) × r seconds, with MJD of the UTC instant. Before 1961 it is defined as 0.</p>
-<div class="table-wrap">
-	<table>
-		<thead><tr><th>From</th><th class="num">a (s)</th><th class="num">m (MJD)</th><th class="num">r (s/day)</th></tr></thead>
-		<tbody>
-			{#each [
-				['1961-01-01', '1.4228180', 37300, '0.0012960'], ['1961-08-01', '1.3728180', 37300, '0.0012960'],
-				['1962-01-01', '1.8458580', 37665, '0.0011232'], ['1963-11-01', '1.9458580', 37665, '0.0011232'],
-				['1964-01-01', '3.2401300', 38761, '0.0012960'], ['1964-04-01', '3.3401300', 38761, '0.0012960'],
-				['1964-09-01', '3.4401300', 38761, '0.0012960'], ['1965-01-01', '3.5401300', 38761, '0.0012960'],
-				['1965-03-01', '3.6401300', 38761, '0.0012960'], ['1965-07-01', '3.7401300', 38761, '0.0012960'],
-				['1965-09-01', '3.8401300', 38761, '0.0012960'], ['1966-01-01', '4.3131700', 39126, '0.0025920'],
-				['1968-02-01', '4.2131700', 39126, '0.0025920']
-			] as row (row[0])}
-				<tr><td class="mono">{row[0]}</td><td class="num mono">{row[1]}</td><td class="num">{row[2]}</td><td class="num mono">{row[3]}</td></tr>
-			{/each}
-		</tbody>
-	</table>
-</div>
-<p>Where the formula changes, TAI − UTC can jump. A rise inserts time that UTC has no ordinary label for; a fall removes labels, which converters must reject. These are every step other than the 27 leap seconds:</p>
-<div class="table-wrap">
-	<table>
-		<thead><tr><th>Boundary (UTC)</th><th class="num">Step (s)</th><th>Effect</th></tr></thead>
-		<tbody>
-			{#each fractional as f (f.date)}
-				<tr><td class="mono">{f.date}</td><td class="num mono">{f.step}</td><td>{f.kind}</td></tr>
-			{/each}
-		</tbody>
-	</table>
-</div>
+		<h2 id="rubber"><span class="secno">9</span>TAI − UTC, 1961–1971, and its steps</h2>
+		<p>Before 1972, UTC ran at an adjusted rate. TAI − UTC = a + (MJD − m) × r seconds, with MJD of the UTC instant. Before 1961 it is defined as 0.</p>
+		<div class="table-wrap">
+			<table>
+				<thead><tr><th>From</th><th class="num">a (s)</th><th class="num">m (MJD)</th><th class="num">r (s/day)</th></tr></thead>
+				<tbody>
+					{#each [
+						['1961-01-01', '1.4228180', 37300, '0.0012960'], ['1961-08-01', '1.3728180', 37300, '0.0012960'],
+						['1962-01-01', '1.8458580', 37665, '0.0011232'], ['1963-11-01', '1.9458580', 37665, '0.0011232'],
+						['1964-01-01', '3.2401300', 38761, '0.0012960'], ['1964-04-01', '3.3401300', 38761, '0.0012960'],
+						['1964-09-01', '3.4401300', 38761, '0.0012960'], ['1965-01-01', '3.5401300', 38761, '0.0012960'],
+						['1965-03-01', '3.6401300', 38761, '0.0012960'], ['1965-07-01', '3.7401300', 38761, '0.0012960'],
+						['1965-09-01', '3.8401300', 38761, '0.0012960'], ['1966-01-01', '4.3131700', 39126, '0.0025920'],
+						['1968-02-01', '4.2131700', 39126, '0.0025920']
+					] as row (row[0])}
+						<tr><td class="mono">{row[0]}</td><td class="num mono">{row[1]}</td><td class="num">{row[2]}</td><td class="num mono">{row[3]}</td></tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
+		<p>Where the formula changes, TAI − UTC can jump. A rise inserts time that UTC has no ordinary label for; a fall removes labels, which converters must reject. These are every step other than the 27 leap seconds:</p>
+		<div class="table-wrap">
+			<table>
+				<thead><tr><th>Boundary (UTC)</th><th class="num">Step (s)</th><th>Effect</th></tr></thead>
+				<tbody>
+					{#each fractional as f (f.date)}
+						<tr><td class="mono">{f.date}</td><td class="num mono">{f.step}</td><td>{f.kind}</td></tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
 
-<h2 id="vectors"><span class="secno">10</span> Test vectors</h2>
-<p>Encoding vectors, recomputed here by the TypeScript implementation. The <a href="../spec/#test-vectors">specification</a> also has decoder, parser, duration and error vectors.</p>
-<div class="table-wrap">
-	<table>
-		<thead><tr><th>Case</th><th>UTC</th><th class="num">Length</th><th>Stamp</th></tr></thead>
-		<tbody>
-			{#each vectorRows as v (v.name)}
-				<tr><td>{v.name}</td><td class="mono small">{v.utc}</td><td class="num">{v.n}</td><td class="mono">{v.stamp}</td></tr>
-			{/each}
-		</tbody>
-	</table>
+		<h2 id="vectors"><span class="secno">10</span>Test vectors</h2>
+		<p>Encoding vectors, recomputed here by the TypeScript implementation. The <a href="../spec/#test-vectors">specification</a> also has decoder, parser, duration and error vectors.</p>
+		<div class="table-wrap">
+			<table>
+				<thead><tr><th>Case</th><th>UTC</th><th class="num">Length</th><th>Stamp</th></tr></thead>
+				<tbody>
+					{#each vectorRows as v (v.name)}
+						<tr><td>{v.name}</td><td class="mono small">{v.utc}</td><td class="num">{v.n}</td><td class="mono">{v.stamp}</td></tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
+	</div>
 </div>
 
 <style>
+	.toc .label {
+		margin: 0 0 var(--s3);
+	}
 	.toc ol {
 		list-style: none;
 		padding: 0;
-		margin: 0 0 24px;
-		columns: 2 16em;
-		column-gap: 32px;
-		font-size: 14px;
+		margin: 0;
+		font-size: 0.875rem;
+		line-height: 1.35;
 	}
 	.toc li {
-		margin: 0 0 4px;
-		break-inside: avoid;
+		display: grid;
+		grid-template-columns: 1.6rem 1fr;
+		margin: 0 0 var(--s2);
+		padding: 0;
 	}
 	.no {
-		display: inline-block;
-		min-width: 1.6em;
-		text-align: right;
-		color: var(--muted);
-		margin-right: 6px;
+		font-family: var(--mono);
+		font-size: 0.75rem;
+		color: var(--ink-3);
+		padding-top: 0.1em;
 	}
-	h2 {
-		scroll-margin-top: 16px;
+	.toc a {
+		color: var(--ink-2);
+		text-decoration: none;
+	}
+	.toc a:hover {
+		color: var(--accent);
+	}
+	@media (max-width: 960px) {
+		.toc ol {
+			columns: 2 14rem;
+			column-gap: var(--s6);
+		}
+		.toc li {
+			break-inside: avoid;
+		}
 	}
 </style>
