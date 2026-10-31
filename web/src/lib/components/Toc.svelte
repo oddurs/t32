@@ -29,19 +29,19 @@
 	}
 	li {
 		display: grid;
-		grid-template-columns: 1.6rem 1fr;
+		grid-template-columns: 1.75rem 1fr;
 		margin: 0 0 var(--s2);
 		padding: 0;
 	}
 	li.appendix {
-		grid-template-columns: 1.6rem 1fr;
+		grid-template-columns: 1.75rem 1fr;
 	}
 	.no,
 	.app {
-		font-family: var(--mono);
-		font-size: 0.75rem;
+		font-size: 0.8125rem;
+		font-weight: var(--w-medium);
+		font-variant-numeric: tabular-nums;
 		color: var(--ink-3);
-		padding-top: 0.1em;
 	}
 	li.appendix .app {
 		grid-column: 1;
