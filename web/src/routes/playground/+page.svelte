@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { exponents } from '$lib/exponents';
 	import { onMount } from 'svelte';
 	import { replaceState } from '$app/navigation';
 	import {
@@ -181,12 +182,14 @@
 				<li><button class="link" onclick={() => setInput(ex.value)}>{ex.label}</button></li>
 			{/each}
 		</ul>
-		<p class="label">Input</p>
-		<p class="hint">
-			A stamp, in either case and with hyphens between groups, or a UTC date in RFC 3339:
-			<span class="data">2016-12-31T23:59:60Z</span>.
-		</p>
-		<p class="hint">Everything runs in your browser. The address keeps your input, so a link shows the same thing.</p>
+		<div class="about">
+			<p class="label">Input</p>
+			<p class="hint">
+				A stamp, in either case and with hyphens between groups, or a UTC date in RFC 3339:
+				<span class="data">2016-12-31T23:59:60Z</span>.
+			</p>
+			<p class="hint">Everything runs in your browser. The address keeps your input, so a link shows the same thing.</p>
+		</div>
 	</aside>
 
 	<div class="main">
@@ -243,7 +246,7 @@
 					<tbody>
 						<tr><th>Canonical</th><td class="data">{d.canonical}</td></tr>
 						<tr><th>Display form</th><td class="data">{d.display}</td></tr>
-						<tr><th>Length · unit</th><td>{d.stamp.len} characters · {d.unitExact} ({d.unitHuman})</td></tr>
+						<tr><th>Length · unit</th><td>{d.stamp.len} characters · {@html exponents(d.unitExact)} ({d.unitHuman})</td></tr>
 						<tr><th>Starts (UTC)</th><td><span class="data">{d.start}</span>{#if d.inserted}<span class="small muted"> · inserted time: UTC has no ordinary label for this instant</span>{/if}</td></tr>
 						<tr><th>Ends, exclusive (UTC)</th><td class="data">{d.end}</td></tr>
 						<tr><th>Midpoint (UTC)</th><td class="data">{d.mid}</td></tr>
@@ -260,15 +263,15 @@
 			<div class="table-wrap">
 				<table class="ladder">
 					<thead>
-						<tr><th class="num">Len</th><th>Stamp</th><th>Unit</th><th>Interval (UTC)</th></tr>
+						<tr><th class="num">Len</th><th>Stamp</th><th class="unit">Unit</th><th>Interval (UTC)</th></tr>
 					</thead>
 					<tbody>
 						{#each ladder as row (row.stamp.len)}
 							<tr class:hl={row.stamp.len === d.stamp.len}>
 								<td class="num"><button class="link" onclick={() => (len = row.stamp.len)} aria-label="Use length {row.stamp.len}">{row.stamp.len}</button></td>
 								<td class="data">{row.canonical}</td>
-								<td class="nowrap">{row.unitHuman}</td>
-								<td class="data small"><span class="nowrap">{row.start}</span> – <span class="nowrap">{row.end}</span></td>
+								<td class="nowrap unit">{row.unitHuman}</td>
+								<td class="data small"><span class="nowrap">{row.start} –</span> <span class="nowrap">{row.end}</span></td>
 							</tr>
 						{/each}
 					</tbody>
@@ -399,11 +402,14 @@
 			flex-wrap: wrap;
 			gap: var(--s1) var(--s4);
 		}
-		.hint {
+		.about {
 			display: none;
 		}
 	}
 	@media (max-width: 600px) {
+		.ladder .unit {
+			display: none;
+		}
 		.controls,
 		.controls.two {
 			grid-template-columns: 1fr;
