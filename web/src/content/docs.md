@@ -1,4 +1,4 @@
-# Docs
+# Guide
 
 ## Quick start
 

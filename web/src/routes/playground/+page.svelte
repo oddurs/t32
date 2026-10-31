@@ -167,156 +167,168 @@
 	<meta name="description" content="Convert between T32 stamps and UTC dates, see the interval a stamp names, and compare two stamps." />
 </svelte:head>
 
-<div class="titleblock">
-	<div class="docno">T32 · DRAFT 0.2 · PLAYGROUND</div>
-	<h1>Playground</h1>
-	<p class="muted small">Type a stamp (<span class="mono">G0S7G6B1</span>) or a UTC date (<span class="mono">2016-12-31T23:59:60</span>). Everything runs in your browser.</p>
-</div>
+<div class="with-rail">
+	<header class="titleblock">
+		<span class="label">T32 · Draft 0.2 · Playground</span>
+		<h1>Playground</h1>
+		<p class="lede">Type a stamp or a UTC date, and see the interval it names.</p>
+	</header>
 
-<h2><span class="secno">1</span> Convert</h2>
+	<aside class="rail">
+		<p class="label">Examples</p>
+		<ul class="examples">
+			{#each examples as ex (ex.value)}
+				<li><button class="link" onclick={() => setInput(ex.value)}>{ex.label}</button></li>
+			{/each}
+		</ul>
+		<p class="label">Input</p>
+		<p class="hint">
+			A stamp, in either case and with hyphens between groups, or a UTC date in RFC 3339:
+			<span class="mono">2016-12-31T23:59:60Z</span>.
+		</p>
+		<p class="hint">Everything runs in your browser. The address keeps your input, so a link shows the same thing.</p>
+	</aside>
 
-<div class="controls">
-	<label class="field">
-		<span class="lbl">Stamp or UTC date</span>
-		<input
-			type="text"
-			value={text}
-			oninput={onType}
-			spellcheck="false"
-			autocomplete="off"
-			autocapitalize="characters"
-			class="mono biginput"
-			aria-describedby="conv-error"
-		/>
-	</label>
+	<div class="main">
+		<h2><span class="secno">1</span>Convert</h2>
 
-	<label class="field len">
-		<span class="lbl">Length <span class="muted">({parsed.ok ? humanSpan(unitSeconds(len)) : '–'} per step)</span></span>
-		<span class="lenrow">
-			<input type="range" min="1" max={parsed.ok ? parsed.maxLen : MAX_LEN} bind:value={len} aria-label="Length" />
-			<input type="number" min="1" max={parsed.ok ? parsed.maxLen : MAX_LEN} bind:value={len} class="mono num" aria-label="Length (number)" />
-		</span>
-	</label>
-</div>
+		<div class="controls">
+			<label class="field">
+				<span class="label">Stamp or UTC date</span>
+				<input
+					type="text"
+					value={text}
+					oninput={onType}
+					spellcheck="false"
+					autocomplete="off"
+					autocapitalize="characters"
+					class="mono biginput"
+					aria-describedby="conv-error"
+				/>
+			</label>
 
-<ul class="examples small" aria-label="Examples">
-	<li class="muted">Try:</li>
-	{#each examples as ex (ex.value)}
-		<li><button class="link" onclick={() => setInput(ex.value)}>{ex.label}</button></li>
-	{/each}
-</ul>
-
-{#if parsed.ok && parsed.maxLen < MAX_LEN}
-	<p class="muted small">
-		{#if parsed.kind === 'stamp'}
-			A stamp can be shortened but not lengthened: resolution that was not recorded cannot be added.
-		{:else if live}
-			Your clock resolves 1 ms, so at most {parsed.maxLen} characters. More would overstate it.
-		{:else}
-			This date is written to {parsed.maxLen === 8 ? 'the second' : 'a fraction of a second'}, so at most {parsed.maxLen} characters. Add fraction digits to go finer.
-		{/if}
-	</p>
-{/if}
-
-{#if !parsed.ok}
-	<p id="conv-error" class="error" role="alert">{parsed.error}</p>
-{:else if d}
-	<div class="result">
-		<div class="mono stamp">{d.canonical}</div>
-		<div class="small muted">
-			{d.unitHuman} wide{live ? ' · live' : ''}{d.provisional ? ' · provisional: beyond the published leap-second table' : ''}
+			<label class="field len">
+				<span class="label">Length <span class="muted">({parsed.ok ? humanSpan(unitSeconds(len)) : '–'} per step)</span></span>
+				<span class="lenrow">
+					<input type="range" min="1" max={parsed.ok ? parsed.maxLen : MAX_LEN} bind:value={len} aria-label="Length" />
+					<input type="number" min="1" max={parsed.ok ? parsed.maxLen : MAX_LEN} bind:value={len} class="mono num" aria-label="Length (number)" />
+				</span>
+			</label>
 		</div>
+
+		{#if parsed.ok && parsed.maxLen < MAX_LEN}
+			<p class="muted small">
+				{#if parsed.kind === 'stamp'}
+					A stamp can be shortened but not lengthened: resolution that was not recorded cannot be added.
+				{:else if live}
+					Your clock resolves 1 ms, so at most {parsed.maxLen} characters. More would overstate it.
+				{:else}
+					This date is written to {parsed.maxLen === 8 ? 'the second' : 'a fraction of a second'}, so at most {parsed.maxLen} characters. Add fraction digits to go finer.
+				{/if}
+			</p>
+		{/if}
+
+		{#if !parsed.ok}
+			<p id="conv-error" class="error" role="alert">{parsed.error}</p>
+		{:else if d}
+			<div class="result">
+				<div class="mono stamp">{d.canonical}</div>
+				<div class="small muted">
+					{d.unitHuman} wide{live ? ' · live' : ''}{d.provisional ? ' · provisional: beyond the published leap-second table' : ''}
+				</div>
+			</div>
+
+			<div class="table-wrap">
+				<table>
+					<tbody>
+						<tr><th>Canonical</th><td class="mono">{d.canonical}</td></tr>
+						<tr><th>Display form</th><td class="mono">{d.display}</td></tr>
+						<tr><th>Length · unit</th><td>{d.stamp.len} characters · {d.unitExact} ({d.unitHuman})</td></tr>
+						<tr><th>Starts (UTC)</th><td><span class="mono">{d.start}</span>{#if d.inserted}<span class="small muted"> · inserted time: UTC has no ordinary label for this instant</span>{/if}</td></tr>
+						<tr><th>Ends, exclusive (UTC)</th><td class="mono">{d.end}</td></tr>
+						<tr><th>Midpoint (UTC)</th><td class="mono">{d.mid}</td></tr>
+						<tr><th>Starts (your time zone)</th><td>{local || '—'}</td></tr>
+						<tr><th>Unix time at start</th><td class="mono">{d.unixStart}</td></tr>
+						<tr><th>TAI − UTC at start</th><td class="mono">{d.taiMinusUtc}</td></tr>
+						<tr><th>Value V</th><td class="mono">{d.valueDec} = {d.valueHex}</td></tr>
+					</tbody>
+				</table>
+			</div>
+
+			<h3>Every prefix</h3>
+			<p class="small muted">Each shorter stamp contains this one. Choose a length to use it.</p>
+			<div class="table-wrap">
+				<table class="ladder">
+					<thead>
+						<tr><th class="num">Len</th><th>Stamp</th><th>Unit</th><th>Interval (UTC)</th></tr>
+					</thead>
+					<tbody>
+						{#each ladder as row (row.stamp.len)}
+							<tr class:hl={row.stamp.len === d.stamp.len}>
+								<td class="num"><button class="link" onclick={() => (len = row.stamp.len)} aria-label="Use length {row.stamp.len}">{row.stamp.len}</button></td>
+								<td class="mono">{row.canonical}</td>
+								<td class="nowrap">{row.unitHuman}</td>
+								<td class="mono small"><span class="nowrap">{row.start}</span> – <span class="nowrap">{row.end}</span></td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+		{/if}
+
+		<h2><span class="secno">2</span>Compare</h2>
+
+		<p class="small muted">Two stamps or dates. A date is encoded at the length its written precision allows (seconds → 8, milliseconds → 10).</p>
+
+		<div class="controls two">
+			<label class="field">
+				<span class="label">A</span>
+				<input type="text" bind:value={aText} spellcheck="false" autocomplete="off" class="mono" />
+			</label>
+			<label class="field">
+				<span class="label">B</span>
+				<input type="text" bind:value={bText} spellcheck="false" autocomplete="off" class="mono" />
+			</label>
+		</div>
+
+		{#if !cmp.ok}
+			<p class="error" role="alert">{cmp.error}</p>
+		{:else}
+			<p><strong>{cmp.relation}</strong></p>
+			<div class="table-wrap">
+				<table>
+					<thead>
+						<tr><th></th><th>A</th><th>B</th></tr>
+					</thead>
+					<tbody>
+						<tr><th>Stamp</th><td class="mono">{cmp.a.canonical}</td><td class="mono">{cmp.b.canonical}</td></tr>
+						<tr><th>Unit</th><td>{cmp.a.unitHuman}</td><td>{cmp.b.unitHuman}</td></tr>
+						<tr><th>Starts (UTC)</th><td class="mono small">{cmp.a.start}</td><td class="mono small">{cmp.b.start}</td></tr>
+						<tr><th>Ends (UTC)</th><td class="mono small">{cmp.a.end}</td><td class="mono small">{cmp.b.end}</td></tr>
+					</tbody>
+				</table>
+			</div>
+			<div class="table-wrap">
+				<table>
+					<tbody>
+						<tr><th>Text order</th><td>{cmp.order}</td></tr>
+						<tr><th>B − A (start to start)</th><td class="mono">{cmp.diff}</td></tr>
+						<tr><th>As a T32 duration</th><td class="mono">{cmp.diffT32}</td></tr>
+						<tr><th>Between the instants</th><td>more than (B − A) − {cmp.uA}, less than (B − A) + {cmp.uB}</td></tr>
+					</tbody>
+				</table>
+			</div>
+		{/if}
 	</div>
-
-	<div class="table-wrap">
-		<table>
-			<tbody>
-				<tr><th>Canonical</th><td class="mono">{d.canonical}</td></tr>
-				<tr><th>Display form</th><td class="mono">{d.display}</td></tr>
-				<tr><th>Length · unit</th><td>{d.stamp.len} characters · {d.unitExact} ({d.unitHuman})</td></tr>
-				<tr><th>Starts (UTC)</th><td><span class="mono">{d.start}</span>{#if d.inserted}<span class="small muted"> · inserted time: UTC has no ordinary label for this instant</span>{/if}</td></tr>
-				<tr><th>Ends, exclusive (UTC)</th><td class="mono">{d.end}</td></tr>
-				<tr><th>Midpoint (UTC)</th><td class="mono">{d.mid}</td></tr>
-				<tr><th>Starts (your time zone)</th><td>{local || '—'}</td></tr>
-				<tr><th>Unix time at start</th><td class="mono">{d.unixStart}</td></tr>
-				<tr><th>TAI − UTC at start</th><td class="mono">{d.taiMinusUtc}</td></tr>
-				<tr><th>Value V</th><td class="mono">{d.valueDec} = {d.valueHex}</td></tr>
-			</tbody>
-		</table>
-	</div>
-
-	<h3>Every prefix</h3>
-	<p class="small muted">Each shorter stamp contains this one. Click a length to use it.</p>
-	<div class="table-wrap">
-		<table class="ladder">
-			<thead>
-				<tr><th class="num">Len</th><th>Stamp</th><th>Unit</th><th>Interval (UTC)</th></tr>
-			</thead>
-			<tbody>
-				{#each ladder as row (row.stamp.len)}
-					<tr class:hl={row.stamp.len === d.stamp.len}>
-						<td class="num"><button class="link" onclick={() => (len = row.stamp.len)} aria-label="Use length {row.stamp.len}">{row.stamp.len}</button></td>
-						<td class="mono">{row.canonical}</td>
-						<td class="nowrap">{row.unitHuman}</td>
-						<td class="mono small"><span class="nowrap">{row.start}</span> – <span class="nowrap">{row.end}</span></td>
-					</tr>
-				{/each}
-			</tbody>
-		</table>
-	</div>
-{/if}
-
-<h2><span class="secno">2</span> Compare</h2>
-
-<p class="small muted">Two stamps or dates. A date is encoded at the length its written precision allows (seconds → 8, milliseconds → 10).</p>
-
-<div class="controls two">
-	<label class="field">
-		<span class="lbl">A</span>
-		<input type="text" bind:value={aText} spellcheck="false" autocomplete="off" class="mono" />
-	</label>
-	<label class="field">
-		<span class="lbl">B</span>
-		<input type="text" bind:value={bText} spellcheck="false" autocomplete="off" class="mono" />
-	</label>
 </div>
-
-{#if !cmp.ok}
-	<p class="error" role="alert">{cmp.error}</p>
-{:else}
-	<p><strong>{cmp.relation}</strong></p>
-	<div class="table-wrap">
-		<table>
-			<thead>
-				<tr><th></th><th>A</th><th>B</th></tr>
-			</thead>
-			<tbody>
-				<tr><th>Stamp</th><td class="mono">{cmp.a.canonical}</td><td class="mono">{cmp.b.canonical}</td></tr>
-				<tr><th>Unit</th><td>{cmp.a.unitHuman}</td><td>{cmp.b.unitHuman}</td></tr>
-				<tr><th>Starts (UTC)</th><td class="mono small">{cmp.a.start}</td><td class="mono small">{cmp.b.start}</td></tr>
-				<tr><th>Ends (UTC)</th><td class="mono small">{cmp.a.end}</td><td class="mono small">{cmp.b.end}</td></tr>
-			</tbody>
-		</table>
-	</div>
-	<div class="table-wrap">
-		<table>
-			<tbody>
-				<tr><th>Text order</th><td>{cmp.order}</td></tr>
-				<tr><th>B − A (start to start)</th><td class="mono">{cmp.diff}</td></tr>
-				<tr><th>As a T32 duration</th><td class="mono">{cmp.diffT32}</td></tr>
-				<tr><th>Between the instants</th><td>more than (B − A) − {cmp.uA}, less than (B − A) + {cmp.uB}</td></tr>
-			</tbody>
-		</table>
-	</div>
-{/if}
 
 <style>
 	.controls {
 		display: grid;
-		grid-template-columns: 1fr 15rem;
-		gap: 12px 16px;
+		grid-template-columns: minmax(0, 1fr) 15rem;
+		gap: var(--s3) var(--s5);
 		align-items: end;
-		margin-bottom: 8px;
+		margin-bottom: var(--s3);
 	}
 	.controls.two {
 		grid-template-columns: 1fr 1fr;
@@ -324,48 +336,54 @@
 	.field {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: var(--s2);
 		min-width: 0;
 	}
-	.lbl {
-		font-size: 14px;
-		font-weight: 600;
+	.field .label .muted {
+		text-transform: none;
+		letter-spacing: 0;
 	}
 	.biginput {
-		font-size: 18px;
-		padding: 8px 12px;
+		font-size: 1.125rem;
+		padding: var(--s2) var(--s3);
 	}
 	.lenrow {
 		display: flex;
-		gap: 8px;
+		gap: var(--s2);
 		align-items: center;
 	}
 	.lenrow input[type='range'] {
 		flex: 1;
 		min-width: 0;
-		accent-color: var(--link);
 	}
 	.num {
 		width: 4.5em;
 	}
 	.examples {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 2px 14px;
 		list-style: none;
-		margin: 0 0 16px;
+		padding: 0;
+		margin: 0 0 var(--s5);
+	}
+	.examples li {
+		margin: 0 0 var(--s1);
 		padding: 0;
 	}
-	.examples li + li {
-		margin-top: 0;
+	.hint {
+		color: var(--ink-2);
+		font-size: 0.875rem;
+		line-height: 1.5;
 	}
 	.result {
-		margin: 8px 0 16px;
+		margin: var(--s5) 0 var(--s4);
+		padding: var(--s4) 0 var(--s3);
+		border-top: 1px solid var(--rule-strong);
+		border-bottom: 1px solid var(--rule);
 	}
 	.stamp {
-		font-size: clamp(1.8rem, 7vw, 2.6rem);
-		font-weight: 600;
-		letter-spacing: 0.04em;
+		font-size: clamp(2rem, 6vw, 2.75rem);
+		font-weight: 500;
+		letter-spacing: 0.06em;
+		line-height: 1.15;
 		word-break: break-all;
 	}
 	th {
@@ -373,6 +391,16 @@
 	}
 	.nowrap {
 		white-space: nowrap;
+	}
+	@media (max-width: 960px) {
+		.examples {
+			display: flex;
+			flex-wrap: wrap;
+			gap: var(--s1) var(--s4);
+		}
+		.hint {
+			display: none;
+		}
 	}
 	@media (max-width: 600px) {
 		.controls,
