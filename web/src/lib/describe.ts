@@ -1,25 +1,77 @@
 // Helpers that turn stamps into human-readable rows for the playground and tables.
 import {
-	CANONICAL_LEN, MAX_LEN, parse, parseUtc, fromFx, format, display, startFx, endFx, fxToUtc,
-	fxToUtcStringExact, deltaAt, unitSeconds, maxLengthFor, isProvisional, T32Error, type Stamp
+	CANONICAL_LEN, MAX_LEN, parse, fromFx, format, display, startFx, endFx, fxToUtc,
+	fxToUtcStringExact, deltaAt, unitSeconds, maxLengthFor, isProvisional, unixNsToFx, utcToFx,
+	daysFromCivil, civilFromDays, T32Error, type Stamp
 } from './t32';
 
-const DATE_RE = /^[+-]?\d{1,6}-\d{2}-\d{2}/;
+// A UTC date, to the day, minute, second or a fraction, with an optional Z or numeric offset.
+const DATE_RE =
+	/^([+-]?\d{1,6})-(\d{2})-(\d{2})(?:[Tt ](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,9}))?)?)?\s*(?:([Zz])|([+-])(\d{2}):?(\d{2}))?$/;
+// Unix time, written as in `date -d @…`: seconds with an optional fraction.
+const UNIX_RE = /^@\s*([+-]?\d{1,16})(?:\.(\d{1,9}))?$/;
 
 export type Input =
 	| { kind: 'stamp'; stamp: Stamp }
-	| { kind: 'date'; fx: bigint; maxLen: number };
+	| { kind: 'date'; fx: bigint; maxLen: number; precision: string; unix: boolean }
+	| { kind: 'now' };
+
+function precisionOf(fractionDigits: number | null, unit: 'day' | 'minute' | 'second') {
+	if (fractionDigits === null) {
+		const seconds = { day: 86400, minute: 60, second: 1 }[unit];
+		return { maxLen: maxLengthFor(seconds), precision: `the ${unit}` };
+	}
+	const name = ['', 'a tenth of a second', 'a hundredth of a second', 'the millisecond', '', '', 'the microsecond', '', '', 'the nanosecond'][fractionDigits];
+	return { maxLen: maxLengthFor(10 ** -fractionDigits), precision: name || `${fractionDigits} fraction digits` };
+}
+
+const fail = (code: 'bad-field'): never => {
+	throw new T32Error(code);
+};
 
 /**
- * Accepts a T32 stamp or a UTC date such as 2016-12-31T23:59:60. Surrounding
- * whitespace is stripped here, by the caller, as the spec asks.
+ * Accepts a T32 stamp; a UTC date such as 2016-12-31T23:59:60Z, to the day,
+ * minute, second or a fraction, with a Z or a numeric offset such as +02:00;
+ * Unix time as @1793416380.5; or "now". Surrounding whitespace is stripped
+ * here, by the caller, as the spec asks.
  */
 export function readInput(text: string): Input {
 	const t = text.trim();
-	if (DATE_RE.test(t)) {
-		const digits = /\.(\d+)/.exec(t)?.[1]?.length ?? 0;
-		return { kind: 'date', fx: parseUtc(t), maxLen: maxLengthFor(10 ** -digits) };
+	if (/^now$/i.test(t)) return { kind: 'now' };
+
+	const u = UNIX_RE.exec(t);
+	if (u) {
+		const [, sec, frac] = u;
+		const ns = BigInt(sec) * 1_000_000_000n + (sec.startsWith('-') ? -1n : 1n) * BigInt((frac ?? '').padEnd(9, '0') || '0');
+		return { kind: 'date', fx: unixNsToFx(ns), unix: true, ...precisionOf(frac ? frac.length : null, 'second') };
 	}
+
+	const m = DATE_RE.exec(t);
+	if (m) {
+		const [, ys, mos, ds, hs, mis, ss, frac, , sign, oh, om] = m;
+		let y = BigInt(ys), mo = +mos, d = +ds, h = hs ? +hs : 0, mi = mis ? +mis : 0;
+		const s = ss ? +ss : 0;
+		if (sign) {
+			// An offset moves the label to UTC. Shift hours and minutes only, so that
+			// second 60 survives the move: 00:59:60+01:00 is 23:59:60Z.
+			if (hs === undefined || +oh > 23 || +om > 59) fail('bad-field');
+			const [cy, cm, cd] = civilFromDays(daysFromCivil(y, mo, d));
+			if (cy !== y || cm !== mo || cd !== d || h > 23 || mi > 59) fail('bad-field');
+			const offset = (sign === '-' ? -1n : 1n) * BigInt(+oh * 60 + +om);
+			const total = daysFromCivil(y, mo, d) * 1440n + BigInt(h * 60 + mi) - offset;
+			const days = total >= 0n ? total / 1440n : -((-total + 1439n) / 1440n);
+			const minute = Number(total - days * 1440n);
+			[y, mo, d] = civilFromDays(days);
+			h = Math.floor(minute / 60);
+			mi = minute % 60;
+		}
+		const fx = utcToFx(y, mo, d, h, mi, s, BigInt((frac ?? '').padEnd(9, '0') || '0'));
+		const unit = hs === undefined ? 'day' : ss === undefined ? 'minute' : 'second';
+		return { kind: 'date', fx, unix: false, ...precisionOf(frac ? frac.length : null, unit) };
+	}
+
+	// Dates that almost match: report a date error rather than a stamp error.
+	if (/^[+-]?\d{1,6}-\d{1,2}-\d/.test(t) || t.startsWith('@')) fail('bad-field');
 	return { kind: 'stamp', stamp: parse(t) };
 }
 
@@ -31,7 +83,7 @@ export function errorText(e: unknown): string {
 		'bad-char': 'Not a valid stamp: use 0–9 and A–Z except U. (A date looks like 2026-10-31T03:13:00.)',
 		'bad-hyphen': 'A hyphen may only stand between two characters, as in G0S7-G6B1.',
 		'out-of-range': 'Outside the range T32 can represent (about 15,420 BCE to 19,420 CE).',
-		'bad-field': 'Not a valid date. Use YYYY-MM-DD, optionally with Thh:mm:ss and a fraction.',
+		'bad-field': 'Not a valid date. Write YYYY-MM-DD, optionally with Thh:mm, seconds, a fraction and Z or an offset such as +02:00; or Unix time as @1793416380.',
 		'not-a-leap-second': 'There was no leap second at that moment, so second 60 does not exist.',
 		'skipped-label': 'UTC skipped that moment: TAI − UTC fell here, so this label never occurred.',
 		'too-fine': 'That length is finer than the source can resolve.'
