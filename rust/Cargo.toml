@@ -1,6 +1,16 @@
 [package]
 name = "t32"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
+rust-version = "1.70"
+description = "T32, a compact universal timestamp: atomic seconds in sortable base32, where a stamp's length is its resolution"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/oddurs/t32"
+homepage = "https://oddurs.github.io/t32/"
+documentation = "https://docs.rs/t32"
+readme = "README.md"
+keywords = ["time", "timestamp", "tai", "utc", "base32"]
+categories = ["date-and-time", "encoding"]
+include = ["src/**/*.rs", "tests/**/*.rs", "examples/**/*.rs", "README.md", "LICENSE-MIT", "LICENSE-APACHE"]
 
 [dependencies]
