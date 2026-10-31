@@ -1,14 +1,18 @@
-// Runs with Node's built-in test runner: `npm test` (tsx --test).
+// Runs with Node's built-in test runner: `npm test`. Mirrors rust/src/lib.rs tests;
+// every vector also comes out of tools/oracle.py (exact rational arithmetic).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-	parse, format, display, fromBiasedFx, truncate, contains, startFx, endFx,
-	utcToFx, parseUtc, fxToUtcString, fxToUnixNs, unixNsToFx, deltaAtNs, taiNsToFx, formatDuration, T32RangeError
+	parse, format, display, fromFx, truncate, contains, startFx, endFx, utcToFx, parseUtc,
+	fxToUtc, fxToUtcString, fxToUtcStringExact, unixNsToFx, deltaAt, taiNsToFx, STEPS, maxLengthFor,
+	fromUnixMs, formatDuration, parseDuration, durationFromNs, durationBetween, addDuration, T32Error
 } from './t32.ts';
 
-const stamp = (utc: string, len: number) => format(fromBiasedFx(parseUtc(utc), len));
+const NS = 1_000_000_000n;
+const code = (c: string) => (e: unknown) => e instanceof T32Error && e.code === c;
+const stamp = (utc: string, len: number) => format(fromFx(parseUtc(utc), len));
 
-test('encoding vectors from SPEC.md', () => {
+test('encoding vectors', () => {
 	const vectors: [string, number, string][] = [
 		['1999-12-31T23:59:28', 8, 'G0000000'],
 		['1970-01-01T00:00:00', 8, 'FZ3S5F48'],
@@ -20,94 +24,159 @@ test('encoding vectors from SPEC.md', () => {
 		['2026-10-31T03:13:00', 8, 'G0S7G6B1'],
 		['2026-10-31T03:13:00.5', 10, 'G0S7G6B1G0'],
 		['2026-10-31T03:13:00.123', 12, 'G0S7G6B13XYE'],
+		['1966-06-15T12:00:00.123456789', 16, 'FZ0EDKA4VPC2A1FX'],
 		['1675-08-20T00:00:00', 8, 'FPEY6N00']
 	];
 	for (const [utc, len, want] of vectors) assert.equal(stamp(utc, len), want, utc);
 });
 
-test('decoding vectors from SPEC.md', () => {
+test('decoding vectors', () => {
 	const vectors: [string, string, string][] = [
 		['00000000', '-15422-12-06T11:41:52Z', '-15422-12-06T11:41:53Z'],
-		['ZZZZZZZZ', '+19421-01-25T12:17:30Z', '+19421-01-25T12:17:31Z'],
-		['G', '1999-12-31T23:59:28Z', '3088-10-25T03:45:31Z'],
+		['FZ3BMMKB', '1969-07-20T20:17:39.425406217Z', '1969-07-20T20:17:40.425406187Z'],
+		['G0FZP0S4', '2016-12-31T23:59:60Z', '2017-01-01T00:00:00Z'],
 		['G0S7', '2026-10-24T23:46:35Z', '2026-11-06T03:02:51Z'],
 		['G0S7G6', '2026-10-31T03:07:07Z', '2026-10-31T03:24:11Z']
 	];
 	for (const [s, start, end] of vectors) {
 		const st = parse(s);
-		assert.equal(fxToUtcString(startFx(st)), start, s);
-		assert.equal(fxToUtcString(endFx(st)), end, s);
+		assert.equal(fxToUtcStringExact(startFx(st)), start, s);
+		assert.equal(fxToUtcStringExact(endFx(st)), end, s);
+	}
+	assert.equal(fxToUtcString(parseUtc('2016-12-31T23:59:60.25'), 2), '2016-12-31T23:59:60.25Z');
+});
+
+test('a Unix value never names the leap second', () => {
+	const midnight = parseUtc('2017-01-01T00:00:00');
+	assert.equal(unixNsToFx(1_483_228_800n * NS), midnight);
+	const u = fxToUtc(parseUtc('2016-12-31T23:59:60.25'));
+	assert.deepEqual(u, { unixNs: 1_483_228_800n * NS, insertedNs: 250_000_000n, leapSecond: true });
+	assert.deepEqual(fxToUtc(midnight), { unixNs: 1_483_228_800n * NS, insertedNs: null, leapSecond: false });
+	assert.throws(() => parseUtc('2016-12-30T23:59:60'), code('not-a-leap-second'));
+});
+
+test('skipped labels are rejected', () => {
+	// Removed labels are those whose TAI instant reaches the next period's start.
+	assert.throws(() => parseUtc('1961-07-31T23:59:59.950000001'), code('skipped-label'));
+	assert.doesNotThrow(() => parseUtc('1961-07-31T23:59:59.95'));
+	assert.throws(() => parseUtc('1968-01-31T23:59:59.900000003'), code('skipped-label'));
+	assert.doesNotThrow(() => parseUtc('1968-01-31T23:59:59.900000002'));
+	// No gap: every TAI instant near the steps decodes to a label that converts back.
+	for (const label of ['1961-08-01T00:00:00', '1968-02-01T00:00:00']) {
+		const fx0 = parseUtc(label);
+		for (let k = -200n; k < 200n; k++) {
+			const u = fxToUtc(fx0 + (k << 40n) / 1_000_000_000n);
+			assert.equal(u.insertedNs, null);
+			assert.doesNotThrow(() => unixNsToFx(u.unixNs), String(k));
+		}
 	}
 });
 
-test('parsing vectors from SPEC.md', () => {
-	assert.equal(format(parse('g0s7-g6bi')), 'G0S7G6B1');
-	assert.equal(format(parse('t32:G0S7G6B1')), 'G0S7G6B1');
-	assert.equal(format(parse('oooo')), '0000');
-	assert.throws(() => parse('G0SU'), (e: T32RangeError) => e.code === 'bad-char');
-	assert.throws(() => parse(''), (e: T32RangeError) => e.code === 'empty');
-	assert.throws(() => parse('-'), (e: T32RangeError) => e.code === 'empty');
-	assert.throws(() => parseUtc('2016-12-30T23:59:60'), (e: T32RangeError) => e.code === 'not-a-leap-second');
-	assert.equal(display(parse('G0S7G6B13XYE')), 'G0S7-G6B1-3XYE');
+test('UTC to TAI is monotonic at every step', () => {
+	assert.equal(STEPS.length, 38); // 1961-01-01, 9 fractional steps to 1968, 0.107758 s at 1972, 27 leap seconds
+	for (const { unixNs: b } of STEPS) {
+		let last: bigint | null = null;
+		for (let u = b - 2n * NS; u <= b + 2n * NS; u += 10_000_000n) {
+			let fx: bigint;
+			try {
+				fx = unixNsToFx(u);
+			} catch {
+				continue;
+			}
+			if (last !== null) assert.ok(fx > last, `boundary ${b}, label ${u}`);
+			last = fx;
+		}
+	}
 });
 
-test('the leap second displays as 23:59:60', () => {
-	const fx = parseUtc('2016-12-31T23:59:60.25');
-	assert.equal(fxToUtcString(fx, 2), '2016-12-31T23:59:60.25Z');
-	assert.equal(fxToUnixNs(fx).leap, true);
+test('decoding inverts encoding, and inserted time decodes to its end', () => {
+	for (let u = -400_000_000n * NS; u < 1_900_000_000n * NS; u += 7_777_777_777_777n) {
+		let fx: bigint;
+		try {
+			fx = unixNsToFx(u);
+		} catch {
+			continue;
+		}
+		const back = fxToUtc(fx);
+		assert.equal(back.insertedNs, null);
+		assert.ok(back.unixNs - u <= 1n && u - back.unixNs <= 1n, String(u));
+	}
+	const midnight1972 = 63_072_000n * NS;
+	const inside = unixNsToFx(midnight1972) - (1n << 40n) / 20n; // 50 ms before, inside the 0.107758 s
+	const utc = fxToUtc(inside);
+	assert.equal(utc.unixNs, midnight1972);
+	assert.ok(utc.insertedNs !== null && !utc.leapSecond);
+	assert.equal(deltaAt(0n).num * 1_000_000n, 8_000_082n * deltaAt(0n).den);
 });
 
 test('truncation equals coarse encoding', () => {
-	const fx = utcToFx(2026n, 10, 31, 3, 13, 0, 123_456_789n);
-	const full = fromBiasedFx(fx, 16);
-	for (let n = 1; n <= 16; n++) assert.deepEqual(truncate(full, n), fromBiasedFx(fx, n));
+	const fx = parseUtc('2026-10-31T03:13:00.123456789');
+	const full = fromFx(fx, 16);
+	for (let n = 1; n <= 16; n++) assert.deepEqual(truncate(full, n), fromFx(fx, n));
+});
+
+test('parsing', () => {
+	assert.equal(format(parse('g0s7-g6bi')), 'G0S7G6B1');
+	assert.equal(format(parse('oooo')), '0000');
+	assert.equal(format(parse('G0S7G6B1-3XYE')), 'G0S7G6B13XYE');
+	assert.throws(() => parse('G0SU'), code('bad-char'));
+	assert.throws(() => parse(''), code('empty'));
+	assert.throws(() => parse('-1W'), code('bad-hyphen'));
+	assert.throws(() => parse('1W-'), code('bad-hyphen'));
+	assert.throws(() => parse('G0S7--G6B1'), code('bad-hyphen'));
+	assert.throws(() => parse(' G0S7'), code('bad-char'));
+	assert.throws(() => parse('ı'), code('bad-char'));
+	assert.throws(() => parse('ſ'), code('bad-char'));
+	assert.throws(() => parse('G0S7G6B13XYE00000'), code('too-long'));
+	assert.throws(() => parse('t32:G0S7'), code('bad-char'));
+	assert.equal(display(parse('G0S7G6B13XYE')), 'G0S7-G6B1-3XYE');
+});
+
+test('resolution limits', () => {
+	assert.equal(maxLengthFor(1), 8);
+	assert.equal(maxLengthFor(1e-3), 10);
+	assert.equal(maxLengthFor(1e-6), 12);
+	assert.equal(maxLengthFor(1e-9), 14);
+	assert.equal(maxLengthFor(0.1), 9);
+	assert.throws(() => fromUnixMs(0, 11), code('too-fine'));
+});
+
+test('durations are exact', () => {
+	const s = (x: bigint) => formatDuration(durationFromNs(x * NS));
+	assert.equal(s(60n), '+1W');
+	assert.equal(s(3600n), '+3GG');
+	assert.equal(s(86_400n), '+2MC0');
+	assert.equal(s(604_800n), '+JEM0');
+	assert.equal(formatDuration(durationFromNs(NS / 2n)), '+0.G');
+	assert.equal(formatDuration(durationFromNs((-3n * NS) / 2n)), '-1.G');
+	assert.equal(formatDuration(0n), '+0');
+	assert.equal(formatDuration(durationFromNs(-1n)), '-0.0000012B');
+	for (const t of ['+0', '+2MC0', '-1.G', '+0.0000012B', '+ZZZZZZZZ.ZZZZZZZZ']) assert.equal(formatDuration(parseDuration(t)), t);
+	assert.throws(() => parseDuration('1W'), code('bad-field'));
+	const a = parse('G0S7');
+	const b = parse('G0S7G6B1');
+	assert.equal(formatDuration(durationBetween(a, b)), '+G6B1');
+	assert.equal(format(addDuration(a, parseDuration('+10000'))), 'G0S8');
+	assert.throws(() => addDuration(parse('ZZZZZZZZ'), parseDuration('+1')), code('out-of-range'));
 });
 
 test('text order is time order', () => {
 	const items = Array.from({ length: 2000 }, (_, i) => {
-		const fx = taiNsToFx(BigInt(i - 1000) * 977_000_000_123n);
-		const s = fromBiasedFx(fx, (i % 16) + 1);
+		const s = fromFx(taiNsToFx(BigInt(i - 1000) * 977_000_000_123n), (i % 16) + 1);
 		return { key: startFx(s) * 32n + BigInt(s.len), text: format(s) };
 	});
 	const byTime = [...items].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0)).map((x) => x.text);
-	const byText = [...items].map((x) => x.text).sort();
-	assert.deepEqual(byText, byTime);
+	assert.deepEqual([...items].map((x) => x.text).sort(), byTime);
 });
 
-test('containment is prefix', () => {
+test('containment is prefix; range limits', () => {
 	assert.ok(contains(parse('G0S7'), parse('G0S7G6B1')));
 	assert.ok(!contains(parse('G0S7'), parse('G0S8')));
-});
-
-test('unix round trip, including the rubber era', () => {
-	assert.equal(deltaAtNs(0n), 8_000_082_000n);
-	for (const u of [-5_000_000_000n, -300_000_000n, 0n, 63_071_999n, 63_072_000n, 1_483_228_799n, 1_483_228_800n, 1_793_416_380n]) {
-		const back = fxToUnixNs(unixNsToFx(u * 1_000_000_000n)).unixNs;
-		assert.ok(back - u * 1_000_000_000n <= 1n && u * 1_000_000_000n - back <= 1n, String(u));
-	}
-});
-
-test('duration vectors from SPEC.md', () => {
-	const s = 1_000_000_000n;
-	assert.equal(formatDuration(60n * s), '+1W');
-	assert.equal(formatDuration(3600n * s), '+3GG');
-	assert.equal(formatDuration(86_400n * s), '+2MC0');
-	assert.equal(formatDuration(604_800n * s), '+JEM0');
-	assert.equal(formatDuration(s / 2n), '+0.G');
-	assert.equal(formatDuration(0n), '+0');
-	assert.equal(formatDuration(-3600n * s), '-3GG');
-});
-
-test('range limits', () => {
-	assert.equal(format(fromBiasedFx(0n, 8)), '00000000');
-	assert.throws(() => fromBiasedFx(1n << 80n, 8));
-	assert.throws(() => taiNsToFx(-(1n << 39n) * 1_000_000_000n - 1n));
-});
-
-test('rubber-era boundaries are shown exactly', async () => {
-	const { fxToUtcStringExact } = await import('./t32.ts');
-	const s = parse('FZ3BMMKB');
-	assert.equal(fxToUtcStringExact(startFx(s)), '1969-07-20T20:17:39.425406218Z');
-	assert.equal(fxToUtcStringExact(startFx(parse('G0S7G6B1'))), '2026-10-31T03:13:00Z');
-	assert.equal(fxToUtcStringExact(startFx(parse('G0S7G6B1G0')), 3), '2026-10-31T03:13:00.500Z');
+	assert.equal(format(fromFx(0n, 8)), '00000000');
+	assert.throws(() => fromFx(1n << 80n, 8), code('out-of-range'));
+	assert.throws(() => taiNsToFx(-(1n << 39n) * NS - 1n), code('out-of-range'));
+	assert.throws(() => utcToFx(5_443_752_762_932_606n, 1, 1, 0, 0, 0), code('out-of-range'));
+	assert.throws(() => unixNsToFx(1n << 120n), code('out-of-range'));
+	assert.throws(() => durationFromNs(1n << 100n), code('out-of-range'));
+	assert.throws(() => formatDuration(1n << 81n), code('out-of-range'));
 });
