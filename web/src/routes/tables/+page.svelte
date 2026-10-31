@@ -166,8 +166,8 @@
 					{#each alphabet.slice(0, 16) as a, i (a.c)}
 						{@const b = alphabet[i + 16]}
 						<tr>
-							<td class="mono">{a.c}</td><td class="num">{a.v}</td><td class="mono">{a.bits}</td><td class="mono">{a.alias}</td>
-							<td class="mono">{b.c}</td><td class="num">{b.v}</td><td class="mono">{b.bits}</td><td class="mono">{b.alias}</td>
+							<td class="data">{a.c}</td><td class="num">{a.v}</td><td class="data">{a.bits}</td><td class="data">{a.alias}</td>
+							<td class="data">{b.c}</td><td class="num">{b.v}</td><td class="data">{b.bits}</td><td class="data">{b.alias}</td>
 						</tr>
 					{/each}
 				</tbody>
@@ -182,7 +182,7 @@
 				<tbody>
 					{#each precision as p (p.n)}
 						<tr class:hl={p.n === CANONICAL_LEN}>
-							<td class="num">{p.n}</td><td class="mono">{p.exact}</td><td>{p.human}</td><td class="num">{p.bits}</td><td class="mono">{p.binary}</td>
+							<td class="num">{p.n}</td><td class="data">{p.exact}</td><td>{p.human}</td><td class="num">{p.bits}</td><td class="data">{p.binary}</td>
 						</tr>
 					{/each}
 				</tbody>
@@ -210,8 +210,8 @@
 					{#each eras.slice(0, 16) as e, i (e.c)}
 						{@const f = eras[i + 16]}
 						<tr class:hl={e.c === 'G' || f.c === 'G'}>
-							<td class="mono">{e.c}</td><td>{e.from}</td><td>{e.to}</td>
-							<td class="mono">{f.c}</td><td>{f.from}</td><td>{f.to}</td>
+							<td class="data">{e.c}</td><td>{e.from}</td><td>{e.to}</td>
+							<td class="data">{f.c}</td><td>{f.from}</td><td>{f.to}</td>
 						</tr>
 					{/each}
 				</tbody>
@@ -225,7 +225,7 @@
 				<thead><tr><th>Prefix</th><th>From (UTC)</th><th>Until (UTC)</th></tr></thead>
 				<tbody>
 					{#each generations as g (g.p)}
-						<tr><td class="mono">{g.p}</td><td class="mono">{day(g.from)}</td><td class="mono">{day(g.to)}</td></tr>
+						<tr><td class="data">{g.p}</td><td class="data">{day(g.from)}</td><td class="data">{day(g.to)}</td></tr>
 					{/each}
 				</tbody>
 			</table>
@@ -238,7 +238,7 @@
 				<thead><tr><th>Prefix</th><th>From (UTC)</th><th>Until (UTC)</th></tr></thead>
 				<tbody>
 					{#each years as y (y.p)}
-						<tr><td class="mono">{y.p}</td><td class="mono">{minute(y.from)}</td><td class="mono">{minute(y.to)}</td></tr>
+						<tr><td class="data">{y.p}</td><td class="data">{minute(y.from)}</td><td class="data">{minute(y.to)}</td></tr>
 					{/each}
 				</tbody>
 			</table>
@@ -253,8 +253,8 @@
 					{#each durations as [name, ns] (name)}
 						<tr>
 							<td>{name}</td>
-							<td class="num mono">{(Number(ns) / 1e9).toLocaleString('en-US', { maximumFractionDigits: 6 })}</td>
-							<td class="mono">{formatDuration(durationFromNs(ns))}</td>
+							<td class="num data">{(Number(ns) / 1e9).toLocaleString('en-US', { maximumFractionDigits: 6 })}</td>
+							<td class="data">{formatDuration(durationFromNs(ns))}</td>
 						</tr>
 					{/each}
 				</tbody>
@@ -268,7 +268,7 @@
 				<thead><tr><th>Moment</th><th>Stamp starts (UTC)</th><th>T32</th></tr></thead>
 				<tbody>
 					{#each momentRows as m (m.name)}
-						<tr><td>{m.name}</td><td class="mono small">{m.utc}</td><td class="mono">{m.stamp}</td></tr>
+						<tr><td>{m.name}</td><td class="data small">{m.utc}</td><td class="data">{m.stamp}</td></tr>
 					{/each}
 				</tbody>
 			</table>
@@ -285,7 +285,7 @@
 				<thead><tr><th class="num">#</th><th>Inserted second (UTC)</th><th>T32</th><th class="num">TAI − UTC after</th></tr></thead>
 				<tbody>
 					{#each leaps as l, i (l.label)}
-						<tr><td class="num">{i + 1}</td><td class="mono">{l.label}</td><td class="mono">{l.stamp}</td><td class="num">{l.after} s</td></tr>
+						<tr><td class="num">{i + 1}</td><td class="data">{l.label}</td><td class="data">{l.stamp}</td><td class="num">{l.after} s</td></tr>
 					{/each}
 				</tbody>
 			</table>
@@ -306,7 +306,7 @@
 						['1965-09-01', '3.8401300', 38761, '0.0012960'], ['1966-01-01', '4.3131700', 39126, '0.0025920'],
 						['1968-02-01', '4.2131700', 39126, '0.0025920']
 					] as row (row[0])}
-						<tr><td class="mono">{row[0]}</td><td class="num mono">{row[1]}</td><td class="num">{row[2]}</td><td class="num mono">{row[3]}</td></tr>
+						<tr><td class="data">{row[0]}</td><td class="num data">{row[1]}</td><td class="num">{row[2]}</td><td class="num data">{row[3]}</td></tr>
 					{/each}
 				</tbody>
 			</table>
@@ -317,7 +317,7 @@
 				<thead><tr><th>Boundary (UTC)</th><th class="num">Step (s)</th><th>Effect</th></tr></thead>
 				<tbody>
 					{#each fractional as f (f.date)}
-						<tr><td class="mono">{f.date}</td><td class="num mono">{f.step}</td><td>{f.kind}</td></tr>
+						<tr><td class="data">{f.date}</td><td class="num data">{f.step}</td><td>{f.kind}</td></tr>
 					{/each}
 				</tbody>
 			</table>
@@ -330,7 +330,7 @@
 				<thead><tr><th>Case</th><th>UTC</th><th class="num">Length</th><th>Stamp</th></tr></thead>
 				<tbody>
 					{#each vectorRows as v (v.name)}
-						<tr><td>{v.name}</td><td class="mono small">{v.utc}</td><td class="num">{v.n}</td><td class="mono">{v.stamp}</td></tr>
+						<tr><td>{v.name}</td><td class="data small">{v.utc}</td><td class="num">{v.n}</td><td class="data">{v.stamp}</td></tr>
 					{/each}
 				</tbody>
 			</table>
@@ -351,15 +351,15 @@
 	}
 	.toc li {
 		display: grid;
-		grid-template-columns: 1.6rem 1fr;
+		grid-template-columns: 1.75rem 1fr;
 		margin: 0 0 var(--s2);
 		padding: 0;
 	}
 	.no {
-		font-family: var(--mono);
-		font-size: 0.75rem;
+		font-size: 0.8125rem;
+		font-weight: var(--w-medium);
+		font-variant-numeric: tabular-nums;
 		color: var(--ink-3);
-		padding-top: 0.1em;
 	}
 	.toc a {
 		color: var(--ink-2);

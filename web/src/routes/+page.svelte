@@ -55,11 +55,11 @@
 					<tr><th>Format</th><th>One second</th><th class="num">Chars</th><th>Sorts as text</th><th>States resolution</th><th>Leap seconds</th></tr>
 				</thead>
 				<tbody>
-					<tr><td>ISO 8601, UTC</td><td class="mono">2026-10-31T03:13:00Z</td><td class="num">20</td><td>Within one format and zone</td><td>Partly</td><td>Has 23:59:60</td></tr>
-					<tr><td>Unix time</td><td class="mono">1793416380</td><td class="num">10</td><td>When zero-padded</td><td>No</td><td>Repeats a second</td></tr>
-					<tr><td>TAI64 label</td><td class="mono">@400000006ae55ce1</td><td class="num">17</td><td>Yes</td><td>Fixed per variant</td><td>None</td></tr>
-					<tr><td>ULID, time part</td><td class="mono">01M67Z4FK0</td><td class="num">10</td><td>Yes</td><td>No, always ms</td><td>Follows Unix time</td></tr>
-					<tr class="hl"><td><strong>T32</strong></td><td class="mono">G0S7G6B1</td><td class="num">8</td><td>Yes</td><td>Yes, by length</td><td>None</td></tr>
+					<tr><td>ISO 8601, UTC</td><td class="data">2026-10-31T03:13:00Z</td><td class="num">20</td><td>Within one format and zone</td><td>Partly</td><td>Has 23:59:60</td></tr>
+					<tr><td>Unix time</td><td class="data">1793416380</td><td class="num">10</td><td>When zero-padded</td><td>No</td><td>Repeats a second</td></tr>
+					<tr><td>TAI64 label</td><td class="data">@400000006ae55ce1</td><td class="num">17</td><td>Yes</td><td>Fixed per variant</td><td>None</td></tr>
+					<tr><td>ULID, time part</td><td class="data">01M67Z4FK0</td><td class="num">10</td><td>Yes</td><td>No, always ms</td><td>Follows Unix time</td></tr>
+					<tr class="hl"><td><strong>T32</strong></td><td class="data">G0S7G6B1</td><td class="num">8</td><td>Yes</td><td>Yes, by length</td><td>None</td></tr>
 				</tbody>
 			</table>
 		</div>
@@ -105,7 +105,7 @@
 		border-bottom: 1px solid var(--rule);
 	}
 	.principles dt {
-		font-weight: 600;
+		font-weight: var(--w-strong);
 		padding-right: var(--s4);
 	}
 	.principles dd {

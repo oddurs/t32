@@ -184,7 +184,7 @@
 		<p class="label">Input</p>
 		<p class="hint">
 			A stamp, in either case and with hyphens between groups, or a UTC date in RFC 3339:
-			<span class="mono">2016-12-31T23:59:60Z</span>.
+			<span class="data">2016-12-31T23:59:60Z</span>.
 		</p>
 		<p class="hint">Everything runs in your browser. The address keeps your input, so a link shows the same thing.</p>
 	</aside>
@@ -202,7 +202,7 @@
 					spellcheck="false"
 					autocomplete="off"
 					autocapitalize="characters"
-					class="mono biginput"
+					class="data biginput"
 					aria-describedby="conv-error"
 				/>
 			</label>
@@ -211,7 +211,7 @@
 				<span class="label">Length <span class="muted">({parsed.ok ? humanSpan(unitSeconds(len)) : '–'} per step)</span></span>
 				<span class="lenrow">
 					<input type="range" min="1" max={parsed.ok ? parsed.maxLen : MAX_LEN} bind:value={len} aria-label="Length" />
-					<input type="number" min="1" max={parsed.ok ? parsed.maxLen : MAX_LEN} bind:value={len} class="mono num" aria-label="Length (number)" />
+					<input type="number" min="1" max={parsed.ok ? parsed.maxLen : MAX_LEN} bind:value={len} class="data num" aria-label="Length (number)" />
 				</span>
 			</label>
 		</div>
@@ -232,7 +232,7 @@
 			<p id="conv-error" class="error" role="alert">{parsed.error}</p>
 		{:else if d}
 			<div class="result">
-				<div class="mono stamp">{d.canonical}</div>
+				<div class="data stamp">{d.canonical}</div>
 				<div class="small muted">
 					{d.unitHuman} wide{live ? ' · live' : ''}{d.provisional ? ' · provisional: beyond the published leap-second table' : ''}
 				</div>
@@ -241,16 +241,16 @@
 			<div class="table-wrap">
 				<table>
 					<tbody>
-						<tr><th>Canonical</th><td class="mono">{d.canonical}</td></tr>
-						<tr><th>Display form</th><td class="mono">{d.display}</td></tr>
+						<tr><th>Canonical</th><td class="data">{d.canonical}</td></tr>
+						<tr><th>Display form</th><td class="data">{d.display}</td></tr>
 						<tr><th>Length · unit</th><td>{d.stamp.len} characters · {d.unitExact} ({d.unitHuman})</td></tr>
-						<tr><th>Starts (UTC)</th><td><span class="mono">{d.start}</span>{#if d.inserted}<span class="small muted"> · inserted time: UTC has no ordinary label for this instant</span>{/if}</td></tr>
-						<tr><th>Ends, exclusive (UTC)</th><td class="mono">{d.end}</td></tr>
-						<tr><th>Midpoint (UTC)</th><td class="mono">{d.mid}</td></tr>
+						<tr><th>Starts (UTC)</th><td><span class="data">{d.start}</span>{#if d.inserted}<span class="small muted"> · inserted time: UTC has no ordinary label for this instant</span>{/if}</td></tr>
+						<tr><th>Ends, exclusive (UTC)</th><td class="data">{d.end}</td></tr>
+						<tr><th>Midpoint (UTC)</th><td class="data">{d.mid}</td></tr>
 						<tr><th>Starts (your time zone)</th><td>{local || '—'}</td></tr>
-						<tr><th>Unix time at start</th><td class="mono">{d.unixStart}</td></tr>
-						<tr><th>TAI − UTC at start</th><td class="mono">{d.taiMinusUtc}</td></tr>
-						<tr><th>Value V</th><td class="mono">{d.valueDec} = {d.valueHex}</td></tr>
+						<tr><th>Unix time at start</th><td class="data">{d.unixStart}</td></tr>
+						<tr><th>TAI − UTC at start</th><td class="data">{d.taiMinusUtc}</td></tr>
+						<tr><th>Value V</th><td class="data">{d.valueDec} = {d.valueHex}</td></tr>
 					</tbody>
 				</table>
 			</div>
@@ -266,9 +266,9 @@
 						{#each ladder as row (row.stamp.len)}
 							<tr class:hl={row.stamp.len === d.stamp.len}>
 								<td class="num"><button class="link" onclick={() => (len = row.stamp.len)} aria-label="Use length {row.stamp.len}">{row.stamp.len}</button></td>
-								<td class="mono">{row.canonical}</td>
+								<td class="data">{row.canonical}</td>
 								<td class="nowrap">{row.unitHuman}</td>
-								<td class="mono small"><span class="nowrap">{row.start}</span> – <span class="nowrap">{row.end}</span></td>
+								<td class="data small"><span class="nowrap">{row.start}</span> – <span class="nowrap">{row.end}</span></td>
 							</tr>
 						{/each}
 					</tbody>
@@ -283,11 +283,11 @@
 		<div class="controls two">
 			<label class="field">
 				<span class="label">A</span>
-				<input type="text" bind:value={aText} spellcheck="false" autocomplete="off" class="mono" />
+				<input type="text" bind:value={aText} spellcheck="false" autocomplete="off" class="data" />
 			</label>
 			<label class="field">
 				<span class="label">B</span>
-				<input type="text" bind:value={bText} spellcheck="false" autocomplete="off" class="mono" />
+				<input type="text" bind:value={bText} spellcheck="false" autocomplete="off" class="data" />
 			</label>
 		</div>
 
@@ -301,10 +301,10 @@
 						<tr><th></th><th>A</th><th>B</th></tr>
 					</thead>
 					<tbody>
-						<tr><th>Stamp</th><td class="mono">{cmp.a.canonical}</td><td class="mono">{cmp.b.canonical}</td></tr>
+						<tr><th>Stamp</th><td class="data">{cmp.a.canonical}</td><td class="data">{cmp.b.canonical}</td></tr>
 						<tr><th>Unit</th><td>{cmp.a.unitHuman}</td><td>{cmp.b.unitHuman}</td></tr>
-						<tr><th>Starts (UTC)</th><td class="mono small">{cmp.a.start}</td><td class="mono small">{cmp.b.start}</td></tr>
-						<tr><th>Ends (UTC)</th><td class="mono small">{cmp.a.end}</td><td class="mono small">{cmp.b.end}</td></tr>
+						<tr><th>Starts (UTC)</th><td class="data small">{cmp.a.start}</td><td class="data small">{cmp.b.start}</td></tr>
+						<tr><th>Ends (UTC)</th><td class="data small">{cmp.a.end}</td><td class="data small">{cmp.b.end}</td></tr>
 					</tbody>
 				</table>
 			</div>
@@ -312,8 +312,8 @@
 				<table>
 					<tbody>
 						<tr><th>Text order</th><td>{cmp.order}</td></tr>
-						<tr><th>B − A (start to start)</th><td class="mono">{cmp.diff}</td></tr>
-						<tr><th>As a T32 duration</th><td class="mono">{cmp.diffT32}</td></tr>
+						<tr><th>B − A (start to start)</th><td class="data">{cmp.diff}</td></tr>
+						<tr><th>As a T32 duration</th><td class="data">{cmp.diffT32}</td></tr>
 						<tr><th>Between the instants</th><td>more than (B − A) − {cmp.uA}, less than (B − A) + {cmp.uB}</td></tr>
 					</tbody>
 				</table>
@@ -380,9 +380,10 @@
 		border-bottom: 1px solid var(--rule);
 	}
 	.stamp {
-		font-size: clamp(2rem, 6vw, 2.75rem);
-		font-weight: 500;
-		letter-spacing: 0.06em;
+		font-size: clamp(2rem, 6vw, 2.875rem);
+		font-weight: var(--w-head);
+		font-variant-numeric: tabular-nums lining-nums;
+		letter-spacing: 0.02em;
 		line-height: 1.15;
 		word-break: break-all;
 	}
