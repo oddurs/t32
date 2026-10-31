@@ -54,7 +54,7 @@
 				<tr>
 					<td class="data">{row.text}</td>
 					<td class="nw">{spans[i]}</td>
-					<td class="data small"><span class="nw">{row.from}</span> – <span class="nw">{row.to}</span></td>
+					<td class="data small"><span class="nw">{row.from} –</span> <span class="nw">{row.to}</span></td>
 				</tr>
 			{/each}
 		</tbody>

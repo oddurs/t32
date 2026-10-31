@@ -1,6 +1,7 @@
 // Renders a GFM document with GitHub-style heading ids, optional ISO-style
 // section numbers, and a table of contents. Runs at build time only.
 import { Marked, type Tokens } from 'marked';
+import { exponents } from './exponents';
 
 export interface TocEntry {
 	depth: number;
@@ -27,6 +28,7 @@ function slug(text: string): string {
 }
 
 const plain = (s: string) => s.replace(/[`*_]/g, '');
+
 const escapeAttr = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
 
 export function renderDoc(src: string, opts: { number?: boolean; base?: string } = {}): RenderedDoc {
@@ -70,7 +72,7 @@ export function renderDoc(src: string, opts: { number?: boolean; base?: string }
 					? (opts.base ?? '') + href
 					: /^(https?:|mailto:|#)/.test(href)
 						? href
-						: REPO_BLOB + href;
+						: REPO_BLOB.replace('/blob/', href.endsWith('/') ? '/tree/' : '/blob/') + href;
 				const t = title ? ` title="${escapeAttr(title)}"` : '';
 				return `<a href="${escapeAttr(abs)}"${t}>${inner}</a>`;
 			},
@@ -87,7 +89,7 @@ export function renderDoc(src: string, opts: { number?: boolean; base?: string }
 		}
 	});
 
-	return { html: md.parse(src) as string, toc };
+	return { html: exponents(md.parse(src) as string), toc };
 }
 
 /** Drop everything before the first `## ` heading (the title block the page draws itself). */
