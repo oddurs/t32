@@ -10,6 +10,7 @@
 
 	const MS_LEN = maxLengthFor(1e-3); // Date.now() resolves 1 ms: at most 10 characters
 
+	// Examples marked expert are shown in the advanced view only.
 	const examples = [
 		{ label: 'Now', value: 'now' },
 		{ label: 'Apollo 11 landing', value: '1969-07-20T20:17:40' },
@@ -19,9 +20,9 @@
 		{ label: 'Unix epoch', value: '1970-01-01T00:00:00' },
 		{ label: 'A day', value: '2026-10-31' },
 		{ label: 'Local time', value: '2026-10-30T23:13:00-04:00' },
-		{ label: 'Unix time', value: '@1793416380.250' },
+		{ label: 'Unix time', value: '@1793416380.250', expert: true },
 		{ label: 'A coarse stamp', value: 'G0S7' },
-		{ label: 'Earliest', value: '00000000' }
+		{ label: 'Earliest', value: '00000000', expert: true }
 	];
 
 	// ---- converter state ----
@@ -32,43 +33,51 @@
 	let mounted = $state(false);
 	let copied: string | null = $state(null);
 
-	type Parsed =
-		| { ok: true; stamp: Stamp; maxLen: number; kind: 'stamp' | 'date' | 'now'; precision: string; unix: boolean }
+	// The input at the longest length it supports. The chosen length only shortens
+	// it, so the digit-by-digit table can always show every row the input has.
+	type Source =
+		| { ok: true; full: Stamp; maxLen: number; kind: 'stamp' | 'date' | 'now'; precision: string; unix: boolean }
 		| { ok: false; error: string };
+	type Shown = Extract<Source, { ok: true }> & { stamp: Stamp };
 
-	const parsed: Parsed = $derived.by(() => {
+	const source: Source = $derived.by(() => {
 		if (live) {
-			const s = fromUnixMs(nowMs || 0, MS_LEN);
-			return { ok: true, stamp: truncate(s, Math.min(len, MS_LEN)), maxLen: MS_LEN, kind: 'now', precision: 'the millisecond', unix: false };
+			return { ok: true, full: fromUnixMs(nowMs || 0, MS_LEN), maxLen: MS_LEN, kind: 'now', precision: 'the millisecond', unix: false };
 		}
 		try {
 			const input = readInput(text);
 			if (input.kind === 'now') return { ok: false, error: '' };
 			if (input.kind === 'stamp') {
-				const n = Math.min(len, input.stamp.len);
-				return { ok: true, stamp: truncate(input.stamp, n), maxLen: input.stamp.len, kind: 'stamp', precision: '', unix: false };
+				return { ok: true, full: input.stamp, maxLen: input.stamp.len, kind: 'stamp', precision: '', unix: false };
 			}
-			return {
-				ok: true,
-				stamp: encode(input.fx, Math.min(len, input.maxLen)),
-				maxLen: input.maxLen,
-				kind: 'date',
-				precision: input.precision,
-				unix: input.unix
-			};
+			return { ok: true, full: encode(input.fx, input.maxLen), maxLen: input.maxLen, kind: 'date', precision: input.precision, unix: input.unix };
 		} catch (e) {
 			return { ok: false, error: errorText(e) };
 		}
 	});
 
-	const d = $derived(parsed.ok ? describe(parsed.stamp) : null);
+	const current: Shown | null = $derived(
+		source.ok ? { ...source, stamp: truncate(source.full, Math.max(1, Math.min(len, source.full.len))) } : null
+	);
+
+	// While the input is mid-edit and does not parse, keep showing the last good
+	// result, dimmed, rather than collapsing the page under the cursor.
+	let lastGood: Shown | null = $state(null);
+	$effect(() => {
+		if (current) lastGood = current;
+	});
+	const shown = $derived(current ?? lastGood);
+	const stale = $derived(!current);
+	const error = $derived(source.ok ? '' : source.error);
+
+	const d = $derived(shown ? describe(shown.stamp) : null);
 
 	// Digits alone are a valid stamp, but they are often meant as Unix time.
-	const looksUnix = $derived(parsed.ok && parsed.kind === 'stamp' && /^\d{9,13}$/.test(text.trim()));
+	const looksUnix = $derived(current?.kind === 'stamp' && /^\d{9,13}$/.test(text.trim()));
 
 	const ladder = $derived.by(() => {
-		if (!parsed.ok) return [];
-		const full = parsed.stamp;
+		if (!shown) return [];
+		const full = shown.full;
 		return Array.from({ length: full.len }, (_, i) => {
 			const row = describe(truncate(full, i + 1));
 			return { ...row, head: row.canonical.slice(0, -1), last: row.canonical.slice(-1), part: Number(row.stamp.value % 32n) };
@@ -111,17 +120,35 @@
 
 	const onType = (e: Event) => setInput((e.currentTarget as HTMLInputElement).value);
 
+	// Up and down step through time, as in a number field.
+	function onKey(e: KeyboardEvent) {
+		if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+		e.preventDefault();
+		step(e.key === 'ArrowUp' ? 1 : -1);
+	}
+
 	/** The stamp `delta` units from the current one, at the same length, if it exists. */
 	function neighbour(delta: number): Stamp | null {
-		if (!parsed.ok) return null;
-		const { value, len: n } = parsed.stamp;
+		if (!current) return null;
+		const { value, len: n } = current.stamp;
 		const v = value + BigInt(delta);
 		return v >= 0n && v < 32n ** BigInt(n) ? { value: v, len: n } : null;
 	}
 
 	function step(delta: number) {
 		const s = neighbour(delta);
-		if (s) setInput(format(s));
+		if (!s) return;
+		// A date stays a date when the next stamp starts on a whole second, which
+		// is every stamp of up to 8 characters since 1972. Otherwise, the stamp.
+		if ((current?.kind === 'date' && !current.unix) || current?.kind === 'now') {
+			const start = describe(s).start;
+			if (s.len <= 8 && !start.includes('.')) {
+				setInput(start);
+				len = s.len;
+				return;
+			}
+		}
+		setInput(format(s));
 	}
 
 	/** Stops the live clock, keeping the instant it showed, to the millisecond. */
@@ -142,6 +169,68 @@
 			copied = null;
 		}
 	}
+
+	// ---- simple and advanced views ----
+	type Mode = 'simple' | 'advanced';
+	let mode: Mode = $state('simple');
+
+	function setMode(m: Mode) {
+		mode = m;
+		try {
+			localStorage.setItem('t32-playground-mode', m);
+		} catch {
+			/* storage unavailable: the choice lasts for this visit */
+		}
+	}
+
+	const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+	/**
+	 * "2026-10-31T03:13:00.5Z" → { date: "31 October 2026", time: "03:13:00.5" }, years
+	 * before 1 CE as BCE. Fractions are cut to `maxFrac` digits for reading.
+	 */
+	function parts(iso: string, short = false, maxFrac = 9) {
+		const m = /^([+-]?\d+)-(\d\d)-(\d\d)T(\d\d:\d\d:\d\d)(?:\.(\d+))?Z$/.exec(iso);
+		if (!m) return { date: iso, time: '' };
+		const y = Number(m[1]);
+		const month = MONTHS[+m[2] - 1];
+		const frac = (m[5] ?? '').slice(0, maxFrac);
+		return {
+			date: `${+m[3]} ${short ? month.slice(0, 3) : month} ${y > 0 ? y : `${1 - y} BCE`}`,
+			time: m[4] + (frac ? '.' + frac : '')
+		};
+	}
+	const friendly = (iso: string, short = false, maxFrac = 9) => {
+		const p = parts(iso, short, maxFrac);
+		return p.time ? `${p.date}, ${p.time}` : p.date;
+	};
+
+	/** The stamp's meaning in one plain sentence, naming the date once when it does not change. */
+	const meaning = $derived.by(() => {
+		if (!d) return '';
+		const span = d.unitHuman.replace('≈ ', 'about ');
+		const what = span.startsWith('1 ') ? `one ${span.slice(2)}` : `a span of ${span}`;
+		// Enough fraction digits to tell the ends apart, and no more.
+		const frac = Math.max(2, Math.min(9, Math.ceil((d.stamp.len - 8) * 1.5052) + 1));
+		const a = parts(d.start, false, frac);
+		const b = parts(d.end, false, frac);
+		const range = a.date === b.date ? `on ${a.date}, from ${a.time} to ${b.time}` : `from ${a.date}, ${a.time} to ${b.date}, ${b.time}`;
+		return `${what}, ${range} UTC`;
+	});
+
+	// Precision in everyday words. Each step is 32 times finer than the one before.
+	const PRECISIONS = [
+		{ len: 3, label: 'A year' },
+		{ len: 4, label: '12 days' },
+		{ len: 5, label: '9 hours' },
+		{ len: 6, label: '17 minutes' },
+		{ len: 7, label: '32 seconds' },
+		{ len: 8, label: 'A second' },
+		{ len: 10, label: 'A millisecond' },
+		{ len: 12, label: 'A microsecond' },
+		{ len: 14, label: 'A nanosecond' }
+	];
+	const precisions = $derived(PRECISIONS.filter((p) => !shown || p.len <= shown.maxLen));
 
 	// ---- compare state ----
 	let aText = $state('G0S7');
@@ -194,6 +283,14 @@
 		if (n >= 1 && n <= MAX_LEN) len = n;
 		if (q.get('a')) aText = q.get('a')!;
 		if (q.get('b')) bText = q.get('b')!;
+		let saved: string | null = null;
+		try {
+			saved = localStorage.getItem('t32-playground-mode');
+		} catch {
+			/* storage unavailable */
+		}
+		const m = q.get('mode') ?? saved;
+		if (m === 'simple' || m === 'advanced') mode = m;
 		const id = setInterval(() => {
 			if (live) nowMs = Date.now();
 		}, 100);
@@ -207,6 +304,7 @@
 		q.set('n', String(len));
 		q.set('a', aText);
 		q.set('b', bText);
+		if (mode === 'advanced') q.set('mode', 'advanced');
 		try {
 			replaceState('?' + q.toString(), {});
 		} catch {
@@ -224,18 +322,32 @@
 	<header class="titleblock">
 		<span class="label">T32 · Draft 0.2 · Playground</span>
 		<h1>Playground</h1>
-		<p class="lede">Type a stamp, a date or a Unix time, and see the interval it names.</p>
+		<p class="lede">Type a date or a T32 stamp, and see the span of time it stands for.</p>
 	</header>
 
 	<aside class="rail">
 		<p class="label">Examples</p>
 		<ul class="examples">
-			{#each examples as ex (ex.value)}
+			{#each examples.filter((ex) => mode === 'advanced' || !('expert' in ex)) as ex (ex.value)}
 				<li><button class="link" onclick={() => setInput(ex.value)}>{ex.label}</button></li>
 			{/each}
 		</ul>
 		<div class="about">
-			<p class="label">Accepted input</p>
+			<p class="label">{mode === 'simple' ? 'You can type' : 'Accepted input'}</p>
+			{#if mode === 'simple'}
+			<dl class="forms">
+				<dt>A date</dt>
+				<dd><span class="data">2026-10-31</span></dd>
+				<dt>A date and time, in UTC</dt>
+				<dd><span class="data">2026-10-31 15:30</span></dd>
+				<dt>Your local time</dt>
+				<dd>Add your offset: <span class="data">2026-10-31 11:30-04:00</span></dd>
+				<dt>A T32 stamp</dt>
+				<dd><span class="data">G0S7G6B1</span></dd>
+				<dt>The time right now</dt>
+				<dd><span class="data">now</span></dd>
+			</dl>
+			{:else}
 			<dl class="forms">
 				<dt>A stamp</dt>
 				<dd>Either case, hyphens between characters: <span class="data">g0s7-g6b1</span></dd>
@@ -248,93 +360,144 @@
 				<dt>The clock</dt>
 				<dd><span class="data">now</span></dd>
 			</dl>
+			{/if}
 			<p class="hint">
-				Everything runs in your browser. The address keeps your input, so a link shows the same thing.
+				In the box, ↑ and ↓ step to the next and previous stamp. Everything runs in your browser. The address keeps your input, so a link shows the same thing.
 				<button class="link" onclick={() => copy('link', location.href)}>{copied === 'link' ? 'Link copied' : 'Copy link'}</button>
 			</p>
 		</div>
 	</aside>
 
 	<div class="main">
-		<h2><span class="secno">1</span>Convert</h2>
+		<div class="modes" role="group" aria-label="View">
+			<button class="mode" aria-pressed={mode === 'simple'} onclick={() => setMode('simple')}>Simple</button>
+			<button class="mode" aria-pressed={mode === 'advanced'} onclick={() => setMode('advanced')}>Advanced</button>
+		</div>
 
-		<div class="controls">
+		{#if mode === 'advanced'}<h2><span class="secno">1</span>Convert</h2>{/if}
+
+		<div class="controls" class:simple={mode === 'simple'}>
 			<label class="field">
-				<span class="label">Stamp, date or Unix time</span>
+				<span class="label">{mode === 'simple' ? 'A date, a time or a stamp' : 'Stamp, date or Unix time'}</span>
 				<input
 					type="text"
 					value={text}
 					oninput={onType}
+					onkeydown={onKey}
 					spellcheck="false"
 					autocomplete="off"
 					autocapitalize="characters"
 					class="data biginput"
 					aria-describedby="conv-note"
+					placeholder={mode === 'simple' ? 'e.g. 2026-10-31 15:30, or G0S7G6B1' : 'Stamp, date, @unix or now'}
 				/>
 			</label>
 
+			{#if mode === 'advanced'}
 			<label class="field len">
-				<span class="label">Length <span class="muted">({parsed.ok ? humanSpan(unitSeconds(len)) : '–'} per step)</span></span>
+				<span class="label lenlabel">Length <span class="unitnow">{humanSpan(unitSeconds(len))}</span></span>
 				<span class="lenrow">
-					<input type="range" min="1" max={parsed.ok ? parsed.maxLen : MAX_LEN} bind:value={len} aria-label="Length" />
-					<input type="number" min="1" max={parsed.ok ? parsed.maxLen : MAX_LEN} bind:value={len} class="data num" aria-label="Length (number)" />
+					<input type="range" min="1" max={shown ? shown.maxLen : MAX_LEN} bind:value={len} aria-label="Length" />
+					<input type="number" min="1" max={shown ? shown.maxLen : MAX_LEN} bind:value={len} class="data num" aria-label="Length (number)" />
 				</span>
 			</label>
+			{/if}
 		</div>
 
 		<div id="conv-note">
-			{#if !parsed.ok}
-				{#if parsed.error}<p class="error" role="alert">{parsed.error}</p>{/if}
+			{#if !current}
+				{#if error}<p class="error" role="alert">{error}</p>{/if}
 			{:else if looksUnix}
 				<p class="muted small">Read as a stamp, since digits are valid characters. For Unix time, write <span class="data">@{text.trim()}</span>.</p>
-			{:else if parsed.maxLen < MAX_LEN}
+			{:else if mode === 'simple'}
+				{#if current.maxLen < 8}
+					<p class="muted small">
+						{#if current.kind === 'stamp'}
+							A short stamp names a long span. It can be made less precise, but not more: detail that was never recorded cannot be added.
+						{:else}
+							This is given to {current.precision}, so the stamp is no more precise than that. {current.precision === 'the day' ? 'Add a time, such as 15:30,' : 'Add seconds'} for more.
+						{/if}
+					</p>
+				{/if}
+			{:else if current.maxLen < MAX_LEN}
 				<p class="muted small">
-					{#if parsed.kind === 'stamp'}
+					{#if current.kind === 'stamp'}
 						A stamp can be shortened but not lengthened: resolution that was not recorded cannot be added.
-					{:else if parsed.kind === 'now'}
-						Your clock resolves 1 ms, so at most {parsed.maxLen} characters. More would overstate it.
+					{:else if current.kind === 'now'}
+						Your clock resolves 1 ms, so at most {current.maxLen} characters. More would overstate it.
 					{:else}
-						This {parsed.unix ? 'Unix time' : 'date'} is written to {parsed.precision}, so at most {parsed.maxLen} characters. Write it more finely to go further.
+						This {current.unix ? 'Unix time' : 'date'} is written to {current.precision}, so at most {current.maxLen} characters. Write it more finely to go further.
 					{/if}
 				</p>
 			{/if}
 		</div>
 
-		{#if parsed.ok && d}
+		{#if shown && d}
+			<div class="output" class:stale aria-busy={stale}>
 			<div class="result">
 				<div class="stamprow">
 					<div class="data stamp">{d.canonical}</div>
 					<div class="actions">
-						<button class="btn" onclick={() => step(-1)} disabled={!neighbour(-1)} title="The {d.unitHuman.replace('≈ ', '')} before">← Earlier</button>
-						<button class="btn" onclick={() => step(1)} disabled={!neighbour(1)} title="The {d.unitHuman.replace('≈ ', '')} after">Later →</button>
+						<button class="btn" onclick={() => step(-1)} disabled={!neighbour(-1)} title="The stamp before (↓ in the box)">← Earlier</button>
+						<button class="btn" onclick={() => step(1)} disabled={!neighbour(1)} title="The stamp after (↑ in the box)">Later →</button>
 						{#if live}<button class="btn" onclick={pause}>Pause</button>{/if}
-						<button class="btn" onclick={() => copy('stamp', d.canonical)}>{copied === 'stamp' ? 'Copied' : 'Copy'}</button>
+						<button class="btn copy" onclick={() => copy('stamp', d.canonical)} disabled={stale}>{copied === 'stamp' ? 'Copied' : 'Copy'}</button>
 					</div>
 				</div>
-				<div class="small muted">
-					{d.unitHuman} wide{#if live}<span class="live"> · live</span>{/if}{d.provisional ? ' · provisional: beyond the published leap-second table' : ''}
-				</div>
+				{#if mode === 'simple'}
+					<p class="meaning"><span class="data">{d.canonical}</span> stands for {meaning}.{#if live}<span class="live"> Live.</span>{/if}</p>
+					{#if local}<p class="small muted local">In your time zone, it starts {local}.</p>{/if}
+				{:else}
+					<div class="small muted">
+						{d.unitHuman} wide{#if live}<span class="live"> · live</span>{/if}{d.provisional ? ' · provisional: beyond the published leap-second table' : ''}
+					</div>
+				{/if}
 			</div>
+
+			{#if mode === 'simple'}
+				<div class="precision">
+					<span class="label" id="precision-label">How precise</span>
+					<div class="chips" role="group" aria-labelledby="precision-label">
+						{#each precisions as p (p.len)}
+							<button class="chip" aria-pressed={len === p.len} onclick={() => (len = p.len)} title="{p.len} characters">{p.label}</button>
+						{/each}
+					</div>
+					<p class="small muted">Each character is 32 times finer than the one before it, so a shorter stamp names a longer span.</p>
+				</div>
+
+				<h3>How to read it</h3>
+				<p class="small muted">Read a stamp from the left. Each character picks one of 32 equal parts of the span before it; the bar shows which.</p>
+				<ol class="reading">
+					{#each ladder.slice(0, shown.stamp.len) as row (row.stamp.len)}
+						<li>
+							<span class="data prefix"><span class="head">{row.head}</span>{row.last}</span>
+							<span class="strip" role="img" aria-label="Part {row.part + 1} of 32">
+								{#each { length: 32 } as _, k (k)}<i class:on={k === row.part}></i>{/each}
+							</span>
+							<span class="span-text"><span class="nowrap">{friendly(row.start, true)}</span> to <span class="nowrap">{friendly(row.end, true)}</span></span>
+						</li>
+					{/each}
+				</ol>
+			{:else}
 
 			<div class="table-wrap">
 				<table class="facts">
 					<tbody>
-						<tr><th>Canonical</th><td class="data">{d.canonical}</td></tr>
-						<tr><th>Display form</th><td class="data">{d.display}</td></tr>
-						<tr><th>Length · unit</th><td>{d.stamp.len} characters · {@html exponents(d.unitExact)} ({d.unitHuman})</td></tr>
 						<tr><th>Starts (UTC)</th><td><span class="data">{d.start}</span>{#if d.inserted}<span class="small muted"> · inserted time: UTC has no ordinary label for this instant</span>{/if}</td></tr>
 						<tr><th>Ends, exclusive (UTC)</th><td class="data">{d.end}</td></tr>
 						<tr><th>Midpoint (UTC)</th><td class="data">{d.mid}</td></tr>
 						<tr><th>Starts (your time zone)</th><td>{local || '—'}</td></tr>
 						<tr><th>Unix time at start</th><td class="data">{d.unixStart}</td></tr>
 						<tr><th>TAI − UTC at start</th><td class="data">{d.taiMinusUtc}</td></tr>
+						<tr class="group"><th>Display form</th><td class="data">{d.display}</td></tr>
+						<tr><th>Length · unit</th><td>{d.stamp.len} characters · {@html exponents(d.unitExact)} ({d.unitHuman})</td></tr>
 						<tr><th>Value V</th><td class="data">{d.valueDec} = {d.valueHex}</td></tr>
 					</tbody>
 				</table>
 			</div>
 
 			<h3>Digit by digit</h3>
-			<p class="small muted">Each character picks one of 32 equal parts of the span before it; the bar shows which. Choose a length to use it.</p>
+			<p class="small muted">Each character picks one of 32 equal parts of the span before it; the bar shows which. Choose a row to use that length.</p>
 			<div class="table-wrap">
 				<table class="ladder">
 					<thead>
@@ -342,8 +505,10 @@
 					</thead>
 					<tbody>
 						{#each ladder as row (row.stamp.len)}
-							<tr class:hl={row.stamp.len === d.stamp.len}>
-								<td class="num"><button class="link" onclick={() => (len = row.stamp.len)} aria-label="Use length {row.stamp.len}">{row.stamp.len}</button></td>
+							<!-- The whole row is a target for the pointer; the button in it serves the keyboard. -->
+							<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
+							<tr class="pick" class:hl={row.stamp.len === d.stamp.len} class:finer={row.stamp.len > d.stamp.len} onclick={() => (len = row.stamp.len)}>
+								<td class="num"><button class="link" aria-pressed={row.stamp.len === d.stamp.len} aria-label="Use length {row.stamp.len}">{row.stamp.len}</button></td>
 								<td>
 									<span class="data prefix"><span class="head">{row.head}</span>{row.last}</span>
 									<span class="strip" role="img" aria-label="Part {row.part + 1} of 32">
@@ -357,8 +522,11 @@
 					</tbody>
 				</table>
 			</div>
+			{/if}
+			</div>
 		{/if}
 
+		{#if mode === 'advanced'}
 		<h2><span class="secno">2</span>Compare</h2>
 
 		<p class="small muted">Two stamps, dates or Unix times. A date is encoded at the length its written precision allows (seconds → 8, milliseconds → 10).</p>
@@ -403,6 +571,7 @@
 				</table>
 			</div>
 		{/if}
+		{/if}
 	</div>
 </div>
 
@@ -422,10 +591,6 @@
 		flex-direction: column;
 		gap: var(--s2);
 		min-width: 0;
-	}
-	.field .label .muted {
-		text-transform: none;
-		letter-spacing: 0;
 	}
 	.biginput {
 		font-size: 1.125rem;
@@ -477,6 +642,123 @@
 	}
 	.live {
 		color: var(--accent);
+	}
+	/* View switch: a two-part segmented control. */
+	.modes {
+		display: inline-flex;
+		margin: 0 0 var(--s5);
+		border: 1px solid var(--rule-strong);
+		border-radius: 3px;
+		padding: 2px;
+		gap: 2px;
+	}
+	.mode {
+		font-size: var(--small);
+		font-weight: var(--w-medium);
+		padding: 0.3rem 0.9rem;
+		border: 0;
+		border-radius: 2px;
+		background: none;
+		color: var(--ink-2);
+	}
+	.mode:hover {
+		color: var(--ink);
+	}
+	.mode[aria-pressed='true'] {
+		background: var(--ink);
+		color: var(--paper);
+	}
+	.controls.simple {
+		grid-template-columns: minmax(0, 1fr);
+		max-width: 34rem;
+	}
+
+	/* Simple view */
+	.meaning {
+		font-size: 1.125rem;
+		line-height: 1.5;
+		margin: var(--s3) 0 var(--s1);
+		max-width: var(--measure);
+	}
+	.local {
+		margin: 0;
+	}
+	.precision {
+		margin: 0 0 var(--s5);
+	}
+	.precision .label {
+		display: block;
+		margin-bottom: var(--s2);
+	}
+	.chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--s2);
+		margin-bottom: var(--s2);
+	}
+	.chip {
+		font-size: var(--small);
+		padding: 0.3rem 0.75rem;
+		border: 1px solid var(--rule-strong);
+		border-radius: 999px;
+		background: var(--paper);
+		color: var(--ink-2);
+	}
+	.chip:hover {
+		color: var(--ink);
+		border-color: var(--ink-3);
+	}
+	.chip[aria-pressed='true'] {
+		background: var(--accent);
+		border-color: var(--accent);
+		color: var(--paper);
+	}
+	.reading {
+		list-style: none;
+		padding: 0;
+		margin: 0 0 var(--s5);
+		border-top: 1px solid var(--rule-strong);
+	}
+	.reading li {
+		display: grid;
+		grid-template-columns: 9rem 10rem minmax(0, 1fr);
+		gap: var(--s4);
+		align-items: center;
+		margin: 0;
+		padding: var(--s2) 0;
+		border-bottom: 1px solid var(--rule);
+		font-size: var(--small);
+	}
+	.reading .strip {
+		margin: 0;
+	}
+	.span-text {
+		color: var(--ink-2);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.output {
+		transition: opacity 120ms ease;
+	}
+	.output.stale {
+		opacity: 0.38;
+	}
+	.lenlabel {
+		display: flex;
+		justify-content: space-between;
+		gap: var(--s3);
+	}
+	.unitnow {
+		text-transform: none;
+		letter-spacing: 0;
+		font-weight: var(--w-text);
+		color: var(--ink-2);
+		font-size: var(--small);
+		line-height: 1;
+	}
+	.facts tr.group th,
+	.facts tr.group td {
+		border-top: 1px solid var(--rule-strong);
 	}
 	#conv-note {
 		min-height: 1.6rem;
@@ -530,6 +812,29 @@
 	tr.hl .strip i:not(.on) {
 		background: color-mix(in srgb, var(--rule-strong) 55%, var(--mark));
 	}
+	tr.pick {
+		cursor: pointer;
+	}
+	tr.pick:hover:not(.hl) td {
+		background: var(--wash);
+	}
+	tr.pick button.link {
+		text-decoration-color: transparent;
+	}
+	tr.pick:hover button.link,
+	tr.hl button.link {
+		text-decoration-color: currentColor;
+	}
+	/* Rows finer than the chosen length: available, but not in use. */
+	tr.finer td {
+		color: var(--ink-3);
+	}
+	tr.finer .prefix .head {
+		color: var(--rule-strong);
+	}
+	tr.finer .strip i.on {
+		background: var(--ink-3);
+	}
 	.stamp {
 		font-size: clamp(2rem, 6vw, 2.875rem);
 		font-weight: var(--w-head);
@@ -557,6 +862,13 @@
 	@media (max-width: 600px) {
 		.ladder .unit {
 			display: none;
+		}
+		.reading li {
+			grid-template-columns: minmax(0, 1fr) 8rem;
+			gap: var(--s1) var(--s3);
+		}
+		.reading .span-text {
+			grid-column: 1 / -1;
 		}
 		.strip {
 			width: 8rem;
