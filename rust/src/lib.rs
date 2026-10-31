@@ -7,6 +7,8 @@ mod civil;
 mod duration;
 mod error;
 mod instant;
+#[cfg(feature = "serde")]
+pub mod serde;
 mod stamp;
 mod utc;
 
