@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you refer to T32 in your work, please cite the specification as below."
+title: "T32: A Compact Universal Timestamp"
+abstract: >-
+  T32 writes any moment as 8 base32 characters: a count of atomic (TAI)
+  seconds since the start of 2000, offset so the past encodes too. A stamp's
+  length is its resolution, every stamp names an interval, text order is time
+  order, and a prefix is a range query.
+type: software
+version: "draft 0.2"
+date-released: "2026-10-31"
+authors:
+  - given-names: Oddur
+    family-names: Sigurdsson
+    alias: oddurs
+repository-code: "https://github.com/oddurs/t32"
+url: "https://oddurs.github.io/t32/"
+license:
+  - MIT
+  - Apache-2.0
+keywords:
+  - timestamp
+  - TAI
+  - UTC
+  - leap seconds
+  - base32
+  - time scale

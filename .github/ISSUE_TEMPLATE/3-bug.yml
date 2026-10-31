@@ -1,0 +1,33 @@
+name: Bug in the crate, the TypeScript port or the site
+description: Something in the code behaves differently from the specification or its documentation.
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Rust crate (t32)
+        - TypeScript implementation (t32.ts)
+        - Site or playground
+        - Oracle or vectors
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: To reproduce
+      description: The smallest input that shows it, ideally a stamp, a UTC time or a short snippet.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual
+    validations:
+      required: true

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Propose a change, or discuss an open question
+    url: https://github.com/oddurs/t32/discussions
+    about: Substantive changes start as a discussion. Appendix C of the specification lists the open questions.
+  - name: Report a vulnerability
+    url: https://github.com/oddurs/t32/security/advisories/new
+    about: Please report security issues privately.
