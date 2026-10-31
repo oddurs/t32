@@ -1,0 +1,36 @@
+name: Specification erratum
+description: Something in SPEC.md is wrong, ambiguous, or disagrees with the vectors or an implementation.
+title: "Erratum: "
+labels: ["spec", "erratum"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reading closely. Reports of a sentence that can be read two ways are as welcome as reports of outright errors.
+  - type: input
+    id: section
+    attributes:
+      label: Section
+      description: The section heading or appendix, for example "Converting from UTC, Steps in ΔAT".
+    validations:
+      required: true
+  - type: textarea
+    id: text
+    attributes:
+      label: The text as it stands
+      description: Quote the sentence or rule.
+      render: markdown
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What is wrong or unclear, and how two careful readers could disagree about it.
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: A suggested fix
+      description: Optional. Replacement wording, or a vector that would settle it.
