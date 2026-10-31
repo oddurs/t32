@@ -14,9 +14,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: cargo fmt --check
-      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo clippy --all-targets --all-features -- -D warnings
       - run: cargo test                      # unit, integration and doc tests
-      - run: cargo doc --no-deps
+      - run: cargo test --all-features       # and the serde support
+      - run: cargo doc --no-deps --all-features
         env:
           RUSTDOCFLAGS: -D warnings
       - run: cargo run --quiet --example vectors
@@ -30,7 +31,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: rustup toolchain install 1.70 --profile minimal
-      - run: cargo +1.70 test
+      # The library's MSRV; the test suite's dev-dependencies need newer Rust.
+      - run: cargo +1.70 check --lib
+      - run: cargo +1.70 check --lib --all-features
 
   oracle:
     runs-on: ubuntu-latest

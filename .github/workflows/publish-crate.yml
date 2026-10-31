@@ -1,0 +1,48 @@
+name: Publish crate
+
+# Publishes the t32 crate to crates.io, then tags the commit t32-v<version>.
+# Run it from the Actions tab (or the API) on main. It needs the repository
+# secret CARGO_REGISTRY_TOKEN: a crates.io token scoped to publish t32.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write # to push the release tag
+
+concurrency:
+  group: publish-crate
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the version
+        id: version
+        run: echo "version=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')" >> "$GITHUB_OUTPUT"
+
+      - name: Refuse to publish a version twice
+        run: |
+          if git ls-remote --exit-code --tags origin "t32-v${{ steps.version.outputs.version }}" >/dev/null; then
+            echo "t32-v${{ steps.version.outputs.version }} is already tagged; bump the version first." >&2
+            exit 1
+          fi
+
+      - run: cargo test
+      - run: cargo test --all-features
+
+      - name: Publish to crates.io
+        run: cargo publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+      - name: Tag the release
+        run: |
+          git tag "t32-v${{ steps.version.outputs.version }}"
+          git push origin "t32-v${{ steps.version.outputs.version }}"
