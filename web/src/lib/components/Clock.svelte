@@ -38,7 +38,7 @@
 	</ol>
 	<figcaption>
 		<span class="label">Now</span>
-		<span class="mono">{text.slice(0, 8)}<span class="muted">{text.slice(8)}</span></span>
+		<span class="data">{text.slice(0, 8)}<span class="muted">{text.slice(8)}</span></span>
 		{#if iso}<span class="muted">· {iso}</span>{/if}
 		<span class="muted">· each position divides the one before it by 32</span>
 	</figcaption>
@@ -52,9 +52,9 @@
 		<tbody>
 			{#each ladder as row, i (i)}
 				<tr>
-					<td class="mono">{row.text}</td>
+					<td class="data">{row.text}</td>
 					<td class="nw">{spans[i]}</td>
-					<td class="mono small"><span class="nw">{row.from}</span> – <span class="nw">{row.to}</span></td>
+					<td class="data small"><span class="nw">{row.from}</span> – <span class="nw">{row.to}</span></td>
 				</tr>
 			{/each}
 		</tbody>
@@ -92,21 +92,24 @@
 		border-left: 1px solid var(--rule-strong);
 	}
 	.ch {
-		font-family: var(--mono);
 		font-size: clamp(1.6rem, 5.2vw, 3rem);
-		font-weight: 500;
+		font-weight: var(--w-head);
+		font-variant-numeric: tabular-nums lining-nums;
+		letter-spacing: -0.01em;
 		line-height: 1.1;
 	}
 	.frac .ch {
 		color: var(--ink-3);
-		font-weight: 400;
+		font-weight: var(--w-text);
 	}
 	.pos,
 	.span {
-		font-family: var(--mono);
 		font-size: 0.6875rem;
 		color: var(--ink-3);
 		font-variant-numeric: tabular-nums;
+	}
+	.pos {
+		font-weight: var(--w-strong);
 	}
 	.pos {
 		margin-top: var(--s2);

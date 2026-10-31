@@ -1,20 +1,19 @@
 /*
  * T32 — a quiet documentary style.
- * Serif for reading, monospace for anything that is a stamp, a number or a label.
+ * One family, Public Sans (a descendant of Franklin Gothic), in a few weights.
+ * Tabular figures wherever a stamp or a number sits in a column.
  * Hairline rules instead of boxes; one accent; a 4px spacing grid.
+ * Code blocks alone use the reader's own fixed-width face, because code needs columns.
  */
 
-@import '@fontsource-variable/source-serif-4/opsz.css';
-@import '@fontsource-variable/source-serif-4/opsz-italic.css';
-@import '@fontsource/ibm-plex-mono/400.css';
-@import '@fontsource/ibm-plex-mono/500.css';
-@import '@fontsource/ibm-plex-mono/600.css';
+@import '@fontsource-variable/public-sans/wght.css';
+@import '@fontsource-variable/public-sans/wght-italic.css';
 
 :root {
 	/* Colour */
 	--paper: #fbfaf6;
 	--ink: #1b1b19;
-	--ink-2: #57554f;
+	--ink-2: #55534d;
 	--ink-3: #85827a;
 	--rule: #e1ddd3;
 	--rule-strong: #bdb7aa;
@@ -25,15 +24,22 @@
 	--err: #a3261d;
 
 	/* Type */
-	--serif: 'Source Serif 4 Variable', 'Source Serif 4', Charter, 'Iowan Old Style', Georgia, serif;
-	--mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-	--text: 1.0625rem; /* 17px */
-	--small: 0.9375rem; /* 15px */
-	--label: 0.71875rem; /* 11.5px */
-	--h1: 2.25rem;
-	--h2: 1.375rem;
+	--sans: 'Public Sans Variable', 'Public Sans', 'Libre Franklin', 'Franklin Gothic Book', 'Helvetica Neue', Arial, sans-serif;
+	--code: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+	--text: 1rem; /* 16px */
+	--small: 0.875rem; /* 14px */
+	--label: 0.6875rem; /* 11px */
+	--h1: 2.5rem;
+	--h2: 1.3125rem;
 	--h3: 1.0625rem;
-	--measure: 44rem;
+	--measure: 39rem;
+
+	/* Weights: text, medium, strong, heading, display */
+	--w-text: 400;
+	--w-medium: 500;
+	--w-strong: 620;
+	--w-head: 660;
+	--w-display: 700;
 
 	/* Space: 4px grid */
 	--s1: 0.25rem;
@@ -61,6 +67,11 @@
 		--accent-rule: #3d5674;
 		--mark: #2d2919;
 		--err: #e5786d;
+		/* Light type on dark reads heavier; take a little weight off. */
+		--w-text: 370;
+		--w-strong: 600;
+		--w-head: 630;
+		--w-display: 670;
 	}
 }
 
@@ -77,11 +88,12 @@ body {
 	margin: 0;
 	background: var(--paper);
 	color: var(--ink);
-	font-family: var(--serif);
+	font-family: var(--sans);
 	font-size: var(--text);
-	font-optical-sizing: auto;
-	line-height: 1.6;
-	font-variant-numeric: oldstyle-nums proportional-nums;
+	font-weight: var(--w-text);
+	line-height: 1.625;
+	font-kerning: normal;
+	font-variant-numeric: lining-nums proportional-nums;
 	-webkit-font-smoothing: antialiased;
 }
 
@@ -122,13 +134,13 @@ body {
 	align-self: start;
 	max-height: calc(100vh - 4rem);
 	overflow-y: auto;
-	padding-top: 0.4rem;
+	padding-top: 0.5rem;
 	font-size: var(--small);
 }
 
 .main {
 	min-width: 0;
-	max-width: 50rem;
+	max-width: 48rem;
 }
 .main > :first-child,
 .main > .doc:first-child > :first-child {
@@ -176,21 +188,23 @@ h1,
 h2,
 h3,
 h4 {
-	font-weight: 600;
-	line-height: 1.2;
-	letter-spacing: -0.005em;
-	font-variant-numeric: lining-nums;
+	font-weight: var(--w-head);
+	line-height: 1.25;
+	letter-spacing: -0.008em;
+	font-variant-numeric: lining-nums tabular-nums;
 }
 
 h1 {
 	font-size: var(--h1);
-	line-height: 1.12;
-	letter-spacing: -0.015em;
+	font-weight: var(--w-display);
+	line-height: 1.08;
+	letter-spacing: -0.026em;
 	margin: 0 0 var(--s4);
 }
 
 h2 {
 	font-size: var(--h2);
+	letter-spacing: -0.014em;
 	margin: var(--s7) 0 var(--s4);
 	padding-top: var(--s4);
 	border-top: 1px solid var(--rule);
@@ -203,8 +217,8 @@ h3 {
 
 h4 {
 	font-size: var(--text);
-	font-style: italic;
-	font-weight: 500;
+	font-weight: var(--w-strong);
+	color: var(--ink-2);
 	margin: var(--s5) 0 var(--s2);
 }
 
@@ -213,21 +227,19 @@ h3[id] {
 	scroll-margin-top: var(--s5);
 }
 
+/* Section numbers sit in a hanging column, at the heading's own size. */
 .secno {
-	font-family: var(--mono);
-	font-size: 0.72em;
-	font-weight: 500;
+	display: inline-block;
+	min-width: 1.55em;
+	margin-right: 0.4em;
 	color: var(--ink-3);
-	margin-right: 0.6em;
+	font-weight: var(--w-medium);
 	letter-spacing: 0;
-	vertical-align: 0.1em;
 }
 
 .anchor {
-	margin-left: 0.4em;
-	font-family: var(--mono);
-	font-size: 0.7em;
-	font-weight: 400;
+	margin-left: 0.35em;
+	font-weight: var(--w-text);
 	color: var(--ink-3);
 	text-decoration: none;
 	opacity: 0;
@@ -255,16 +267,15 @@ ol {
 }
 li {
 	margin: 0 0 var(--s1);
-	padding-left: 0.15em;
+	padding-left: 0.2em;
 }
 li::marker {
 	color: var(--ink-3);
-	font-family: var(--mono);
-	font-size: 0.85em;
+	font-variant-numeric: tabular-nums;
 }
 
 strong {
-	font-weight: 600;
+	font-weight: var(--w-strong);
 }
 
 blockquote {
@@ -285,7 +296,7 @@ a {
 	text-decoration: underline;
 	text-decoration-color: var(--accent-rule);
 	text-decoration-thickness: 1px;
-	text-underline-offset: 0.18em;
+	text-underline-offset: 0.2em;
 }
 a:hover {
 	text-decoration-color: currentColor;
@@ -296,22 +307,23 @@ a:hover {
 	border-radius: 1px;
 }
 
-/* A small uppercase label: eyebrows, table heads, metadata. */
+/* A small capitalised label: eyebrows, table heads, metadata. */
 .label,
 th {
-	font-family: var(--mono);
 	font-size: var(--label);
-	font-weight: 500;
+	font-weight: var(--w-strong);
 	letter-spacing: 0.08em;
+	line-height: 1.4;
 	text-transform: uppercase;
 	color: var(--ink-3);
 }
 
 .lede {
 	font-size: 1.1875rem;
-	line-height: 1.55;
+	line-height: 1.5;
+	letter-spacing: -0.006em;
 	color: var(--ink-2);
-	max-width: 40rem;
+	max-width: 37rem;
 }
 
 .muted {
@@ -324,27 +336,30 @@ th {
 	color: var(--err);
 }
 
-/* ------------------------------------------------------------------ code */
+/* ------------------------------------------------------------------ code and data */
 
+/* Stamps, values and identifiers stay in the text face, with tabular figures. */
 code,
 kbd,
-pre,
-.mono {
-	font-family: var(--mono);
+.data {
+	font-family: inherit;
 	font-variant-numeric: tabular-nums lining-nums;
+	letter-spacing: 0.015em;
 }
 
 code {
-	font-size: 0.84em;
-	padding: 0.08em 0.3em;
+	font-size: 0.9375em;
+	padding: 0.06em 0.32em;
 	background: var(--wash);
 	border-radius: 2px;
 	white-space: break-spaces;
 }
 
+/* Code blocks need columns, so they alone use the reader's fixed-width face. */
 pre {
-	font-size: 0.84rem;
-	line-height: 1.55;
+	font-family: var(--code);
+	font-size: 0.8125rem;
+	line-height: 1.6;
 	padding: var(--s4) var(--s5);
 	overflow-x: auto;
 	background: var(--wash);
@@ -352,13 +367,11 @@ pre {
 }
 pre code {
 	padding: 0;
+	font-family: inherit;
 	font-size: inherit;
+	letter-spacing: 0;
 	white-space: pre;
 	background: none;
-}
-
-.mono {
-	font-size: 0.9em;
 }
 
 /* ------------------------------------------------------------------ tables */
@@ -400,15 +413,18 @@ tbody th {
 tbody th {
 	text-transform: none;
 	letter-spacing: 0;
-	font-family: var(--serif);
 	font-size: var(--small);
-	font-weight: 600;
+	font-weight: var(--w-strong);
 	color: var(--ink);
 	white-space: nowrap;
 }
-td code,
-td .mono {
-	font-size: 0.86em;
+td code {
+	font-size: 1em;
+	padding: 0;
+	background: none;
+}
+td.data {
+	white-space: nowrap;
 }
 td.num,
 th.num {
@@ -430,7 +446,7 @@ tr.hl th {
 	margin-bottom: var(--s3);
 }
 .titleblock h1 {
-	margin-bottom: var(--s3);
+	margin-bottom: var(--s4);
 }
 
 /* Document metadata, as on the cover of a standard. */
@@ -440,16 +456,15 @@ tr.hl th {
 	gap: var(--s2) var(--s4);
 	margin: 0;
 	font-size: var(--small);
-	line-height: 1.4;
+	line-height: 1.45;
 }
 .meta dt {
-	font-family: var(--mono);
 	font-size: var(--label);
-	font-weight: 500;
+	font-weight: var(--w-strong);
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: var(--ink-3);
-	padding-top: 0.2em;
+	padding-top: 0.22em;
 }
 .meta dd {
 	margin: 0;
@@ -485,8 +500,9 @@ button {
 input[type='text'],
 input[type='number'],
 select {
-	font-family: var(--mono);
 	font-size: var(--small);
+	font-variant-numeric: tabular-nums lining-nums;
+	letter-spacing: 0.015em;
 	padding: var(--s2) var(--s3);
 	background: var(--paper);
 	border: 1px solid var(--rule-strong);
@@ -512,7 +528,7 @@ button.link {
 	color: var(--accent);
 	text-decoration: underline;
 	text-decoration-color: var(--accent-rule);
-	text-underline-offset: 0.18em;
+	text-underline-offset: 0.2em;
 }
 button.link:hover {
 	text-decoration-color: currentColor;
@@ -520,10 +536,9 @@ button.link:hover {
 
 @media (max-width: 600px) {
 	:root {
-		--text: 1rem;
-		--small: 0.875rem;
-		--h1: 1.875rem;
-		--h2: 1.25rem;
+		--small: 0.8125rem;
+		--h1: 2rem;
+		--h2: 1.1875rem;
 	}
 	.page {
 		padding: var(--s5) var(--s4) var(--s7);

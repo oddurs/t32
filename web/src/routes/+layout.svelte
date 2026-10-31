@@ -99,21 +99,22 @@
 		color: var(--ink);
 	}
 	.mark {
-		font-family: var(--mono);
-		font-weight: 600;
-		font-size: 1.0625rem;
-		letter-spacing: 0.04em;
-	}
-	.edition,
-	nav a {
-		font-family: var(--mono);
-		font-size: var(--label);
-		font-weight: 500;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
+		font-weight: 760;
+		font-size: 1.1875rem;
+		letter-spacing: -0.02em;
+		line-height: 1;
 	}
 	.edition {
+		font-size: var(--label);
+		font-weight: var(--w-strong);
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
 		color: var(--ink-3);
+	}
+	nav a {
+		font-size: var(--small);
+		font-weight: var(--w-medium);
+		letter-spacing: 0.005em;
 	}
 	nav {
 		display: flex;
@@ -132,6 +133,9 @@
 	nav a[aria-current='page'] {
 		color: var(--ink);
 		border-bottom-color: var(--ink);
+	}
+	nav a {
+		padding-bottom: 3px;
 	}
 	.ext::after {
 		content: ' ↗';

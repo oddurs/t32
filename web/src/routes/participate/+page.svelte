@@ -62,7 +62,7 @@
 				<li class={step.state}>
 					<span class="dot" aria-hidden="true"></span>
 					<span class="label">{step.name}</span>
-					<span class="when mono">{step.when}{step.state === 'current' ? ' · now' : ''}</span>
+					<span class="when data">{step.when}{step.state === 'current' ? ' · now' : ''}</span>
 					<span class="what">{step.what}</span>
 				</li>
 			{/each}
@@ -138,7 +138,7 @@
 	}
 	.toc li {
 		display: grid;
-		grid-template-columns: 1.6rem 1fr;
+		grid-template-columns: 1.75rem 1fr;
 		margin: 0 0 var(--s2);
 		padding: 0;
 	}
@@ -147,10 +147,10 @@
 		padding: 0;
 	}
 	.no {
-		font-family: var(--mono);
-		font-size: 0.75rem;
+		font-size: 0.8125rem;
+		font-weight: var(--w-medium);
+		font-variant-numeric: tabular-nums;
 		color: var(--ink-3);
-		padding-top: 0.1em;
 	}
 	.toc a {
 		color: var(--ink-2);
@@ -231,7 +231,7 @@
 		border-bottom: 1px solid var(--rule);
 	}
 	.ways dt {
-		font-weight: 600;
+		font-weight: var(--w-strong);
 	}
 	.ways dd {
 		color: var(--ink-2);
