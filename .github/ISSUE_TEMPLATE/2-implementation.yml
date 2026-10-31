@@ -1,0 +1,43 @@
+name: Implementation report
+description: You wrote an implementation, partial or complete. Tell us how it went against the vectors.
+title: "Implementation: "
+labels: ["implementation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Independent implementations are the best test the specification can have, and three of them are a condition of version 1.0. Disagreements with the vectors are as useful as agreement.
+  - type: input
+    id: where
+    attributes:
+      label: Where it lives
+      description: A link to the source.
+    validations:
+      required: true
+  - type: input
+    id: language
+    attributes:
+      label: Language
+    validations:
+      required: true
+  - type: checkboxes
+    id: classes
+    attributes:
+      label: Conformance classes covered
+      options:
+        - label: Parser
+        - label: Encoder
+        - label: Decoder
+        - label: Converter (UTC and Unix time)
+  - type: textarea
+    id: results
+    attributes:
+      label: Results against vectors/t32-vectors.json
+      description: Which sections pass, and any vectors that fail, with what you expected.
+    validations:
+      required: true
+  - type: textarea
+    id: friction
+    attributes:
+      label: What was hard
+      description: Optional. Places where the text left you guessing are the most valuable thing to report.
