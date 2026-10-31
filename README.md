@@ -8,20 +8,21 @@ G0S7G6B1G0      … to about a millisecond
 G0S7            the 12-day span that contains it
 ```
 
-- **Length is precision.** Drop characters for a coarser span, append them for finer time. Every stamp names an interval.
+- **Length is resolution.** Drop characters for a coarser span, append them for finer time. Every stamp names an interval.
 - **Text order is time order.** Byte-wise sorting is chronological, and a prefix is a range query.
-- **Uniform seconds.** TAI has no leap seconds, so subtracting two stamps gives true elapsed time.
+- **Uniform seconds.** TAI has no leap seconds, so from 1961 on, subtracting two stamps gives true elapsed time.
 
 **Site:** https://oddurs.github.io/t32/ (playground, docs, reference tables)
-**Specification:** [SPEC.md](SPEC.md) (draft 0.1)
+**Specification:** [SPEC.md](SPEC.md) (draft 0.2)
 
 ## Repository
 
 | Path | What |
 | --- | --- |
 | [`SPEC.md`](SPEC.md) | The specification, with test vectors and the TAI − UTC table |
-| [`rust/`](rust) | Reference implementation (normative), standard library only |
+| [`rust/`](rust) | Reference implementation, standard library only |
 | [`web/`](web) | The site (SvelteKit, static) and a single-file TypeScript implementation, [`web/src/lib/t32.ts`](web/src/lib/t32.ts) |
+| [`tools/oracle.py`](tools/oracle.py) | An independent check in exact rational arithmetic, written from the spec |
 
 ## Development
 
@@ -29,9 +30,10 @@ G0S7            the 12-day span that contains it
 cd rust && cargo test                      # reference implementation
 cd web && npm ci && npm test               # TypeScript implementation
 cd web && npm run dev                      # site at http://localhost:5173
+python3 tools/oracle.py                    # recompute the spec's vectors exactly
 ```
 
-Both implementations are tested against the same vectors from the specification. Pushes to `main` deploy the site to the `gh-pages` branch.
+The specification's text and test vectors are normative. Both implementations and the oracle reproduce every vector. Pushes to `main` deploy the site to the `gh-pages` branch.
 
 ## Status
 
