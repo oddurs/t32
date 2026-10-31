@@ -12,8 +12,13 @@ G0S7            the 12-day span that contains it
 - **Text order is time order.** Byte-wise sorting is chronological, and a prefix is a range query.
 - **Uniform seconds.** TAI has no leap seconds, so from 1961 on, subtracting two stamps gives true elapsed time.
 
+[![crates.io](https://img.shields.io/crates/v/t32.svg)](https://crates.io/crates/t32)
+[![docs.rs](https://img.shields.io/docsrs/t32)](https://docs.rs/t32)
+[![CI](https://github.com/oddurs/t32/actions/workflows/ci.yml/badge.svg)](https://github.com/oddurs/t32/actions/workflows/ci.yml)
+
 **Site:** https://oddurs.github.io/t32/ (playground, docs, reference tables)
 **Specification:** [SPEC.md](SPEC.md) (draft 0.2)
+**Rust:** `cargo add t32` ([docs](https://docs.rs/t32))
 
 ## Repository
 

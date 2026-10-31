@@ -15,7 +15,7 @@
 		<dt>Status</dt><dd>Draft proposal, open for comment</dd>
 		<dt>Date</dt><dd>2026-10-31</dd>
 		<dt>Timescale</dt><dd>TAI (International Atomic Time)</dd>
-		<dt>Reference</dt><dd><a href="{base}/spec/">Specification</a> · <a href="https://github.com/oddurs/t32/tree/main/rust">Rust</a> · <a href="https://github.com/oddurs/t32/blob/main/web/src/lib/t32.ts">TypeScript</a></dd>
+		<dt>Reference</dt><dd><a href="{base}/spec/">Specification</a> · <a href="https://crates.io/crates/t32">Rust (crates.io)</a> · <a href="https://github.com/oddurs/t32/blob/main/web/src/lib/t32.ts">TypeScript</a></dd>
 	</dl>
 </div>
 
