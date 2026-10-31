@@ -16,13 +16,14 @@
 	const iso = $derived(ms === null ? '' : new Date(ms).toISOString().replace(/\.\d+Z$/, 'Z'));
 
 	const spans = ['1,089 y', '34 y', '388 d', '12.1 d', '9.1 h', '17.1 min', '32 s', '1 s', '31 ms', '0.98 ms'];
+	// Before the clock starts, placeholder rows hold the table's height, so nothing moves when it fills in.
+	const blank = '0000-00-00T00:00:00Z';
 	const ladder = $derived(
-		full
-			? Array.from({ length: 8 }, (_, i) => {
-					const p = truncate(full, i + 1);
-					return { text: format(p), from: fxToUtcString(startFx(p)), to: fxToUtcString(endFx(p)) };
-				})
-			: []
+		Array.from({ length: 8 }, (_, i) => {
+			if (!full) return { text: '·'.repeat(i + 1), from: blank, to: blank };
+			const p = truncate(full, i + 1);
+			return { text: format(p), from: fxToUtcString(startFx(p)), to: fxToUtcString(endFx(p)) };
+		})
 	);
 </script>
 
@@ -38,7 +39,7 @@
 	</ol>
 	<figcaption>
 		<span class="label">Now</span>
-		<span class="data">{text.slice(0, 8)}<span class="muted">{text.slice(8)}</span></span>
+		<span class="data now">{text.slice(0, 8)}<span class="muted">{text.slice(8)}</span></span>
 		{#if iso}<span class="muted">· {iso}</span>{/if}
 		<span class="muted">· each position divides the one before it by 32</span>
 	</figcaption>
@@ -46,12 +47,13 @@
 
 <div class="table-wrap">
 	<table class="ladder">
+		<colgroup><col class="c-prefix" /><col class="c-span" /><col /></colgroup>
 		<thead>
 			<tr><th>Prefix</th><th>Span</th><th>Interval, UTC</th></tr>
 		</thead>
 		<tbody>
 			{#each ladder as row, i (i)}
-				<tr>
+				<tr class:pending={!full}>
 					<td class="data">{row.text}</td>
 					<td class="nw">{spans[i]}</td>
 					<td class="data small"><span class="nw">{row.from} –</span> <span class="nw">{row.to}</span></td>
@@ -117,12 +119,33 @@
 	.span {
 		white-space: nowrap;
 	}
+	tr.pending td {
+		color: var(--rule-strong);
+	}
 	figcaption {
+		font-variant-numeric: tabular-nums lining-nums;
 		font-size: var(--small);
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--s1) var(--s2);
 		align-items: baseline;
+	}
+	/* Letters differ in width, so the stamp gets a fixed slot and the text after it stays put. */
+	.now {
+		display: inline-block;
+		min-width: 6.75rem;
+	}
+	/* Fixed column widths: the table keeps its shape as the stamp's letters change. */
+	.ladder {
+		table-layout: fixed;
+		width: 100%;
+		max-width: 36rem;
+	}
+	.c-prefix {
+		width: 7.5rem;
+	}
+	.c-span {
+		width: 5.5rem;
 	}
 	figcaption .label {
 		margin-right: var(--s1);
@@ -131,6 +154,12 @@
 		white-space: nowrap;
 	}
 	@media (max-width: 600px) {
+		.c-prefix {
+			width: 6.25rem;
+		}
+		.c-span {
+			width: 4.5rem;
+		}
 		.span {
 			display: none;
 		}
