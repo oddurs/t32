@@ -1,7 +1,8 @@
 <script lang="ts">
 	import {
-		ALPHABET, MAX_LEN, CANONICAL_LEN, LEAP_TABLE, parse, format, fromBiasedFx, startFx, endFx,
-		fxToUtcString, fxToUtcStringExact, parseUtc, formatDuration, unitSeconds, civilFromDays
+		ALPHABET, MAX_LEN, CANONICAL_LEN, STEPS, parse, format, fromFx, startFx, endFx, deltaAt,
+		fxToUtcString, fxToUtcStringExact, parseUtc, formatDuration, durationFromNs, unitSeconds,
+		civilFromDays, maxLengthFor
 	} from '$lib/t32';
 	import { humanSpan, exactUnit } from '$lib/describe';
 
@@ -20,7 +21,7 @@
 	const alphabet = [...ALPHABET].map((c, v) => ({ c, v, bits: v.toString(2).padStart(5, '0'), alias: aliases[c] ?? '' }));
 
 	// 2. Precision
-	const binary: Record<number, string> = { 8: 'T32/40', 12: 'T32/64', 16: 'T32/80' };
+	const binary: Record<number, string> = { 8: 'T32-8', 10: 'T32-10', 12: 'T32-12', 14: 'T32-14', 16: 'T32-16' };
 	const precision = Array.from({ length: MAX_LEN }, (_, i) => {
 		const n = i + 1;
 		return { n, exact: exactUnit(n), human: humanSpan(unitSeconds(n)), bits: 5 * n, binary: binary[n] ?? '' };
@@ -35,7 +36,7 @@
 	// 4. Generations, 1900–2100
 	const prefixesBetween = (from: string, to: string, len: number) => {
 		const out: { p: string; from: bigint; to: bigint }[] = [];
-		let s = fromBiasedFx(parseUtc(from), len);
+		let s = fromFx(parseUtc(from), len);
 		const stop = parseUtc(to);
 		while (startFx(s) < stop) {
 			out.push({ p: format(s), from: startFx(s), to: endFx(s) });
@@ -56,9 +57,9 @@
 		['30 days', 2_592_000n * NS],
 		['365 days', 31_536_000n * NS],
 		['Julian year (365.25 d)', 31_557_600n * NS],
-		['1 millisecond', 1_000_000n],
 		['1/32 second', NS / 32n],
-		['1/1024 second', NS / 1024n]
+		['1/1024 second', NS / 1024n],
+		['1 millisecond (truncated)', 1_000_000n]
 	];
 
 	// 7. Notable moments
@@ -76,16 +77,30 @@
 		['End of range', 'ZZZZZZZZ']
 	];
 	const momentRows = moments.map(([name, v]) => {
-		const s = /^\d|^[+-]/.test(v) && v.includes('-') && v.length > 9 ? fromBiasedFx(parseUtc(v), CANONICAL_LEN) : parse(v);
+		const s = /^\d|^[+-]/.test(v) && v.includes('-') && v.length > 9 ? fromFx(parseUtc(v), CANONICAL_LEN) : parse(v);
 		return { name, stamp: format(s), utc: fxToUtcStringExact(startFx(s)) };
 	});
 
-	// 8. Leap seconds: the inserted second before each step after 1972-01-01.
-	const leaps = LEAP_TABLE.slice(1).map(([t, d]) => {
-		const [y, m, dd] = civilFromDays(t / 86400n - 1n);
-		const label = `${y}-${String(m).padStart(2, '0')}-${String(dd).padStart(2, '0')}T23:59:60`;
-		return { label: label.replace('T', ' '), stamp: format(fromBiasedFx(parseUtc(label), CANONICAL_LEN)), after: Number(d) };
+	// 8. Leap seconds: every whole-second insertion; 9. every other step.
+	const dateOf = (unixNs: bigint, dayOffset = 0n) => {
+		const [y, m, d] = civilFromDays(unixNs / (86_400n * NS) + dayOffset);
+		return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+	};
+	const leaps = STEPS.filter((x) => x.wholeSecond).map((x) => {
+		const label = `${dateOf(x.unixNs, -1n)}T23:59:60`;
+		const dat = deltaAt(x.unixNs);
+		return {
+			label: label.replace('T', ' '),
+			stamp: format(fromFx(parseUtc(label), CANONICAL_LEN)),
+			after: Number(dat.num / dat.den)
+		};
 	});
+	const fractional = STEPS.filter((x) => !x.wholeSecond).map((x) => ({
+		date: dateOf(x.unixNs),
+		step: (x.seconds > 0 ? '+' : '−') + Math.abs(x.seconds).toFixed(7).replace(/0+$/, ''),
+		kind: x.seconds > 0 ? 'Inserted' : 'Removed: labels in the last ' + Math.abs(x.seconds) + ' s of the day before never occurred'
+	}));
+	const resolutions: [string, number][] = [['1 second', 1], ['100 ms', 0.1], ['10 ms', 0.01], ['1 ms', 1e-3], ['1 µs', 1e-6], ['1 ns', 1e-9], ['1 ps', 1e-12]];
 
 	// 10. Test vectors
 	const vectors: [string, string, number][] = [
@@ -99,20 +114,21 @@
 		['Spec date', '2026-10-31T03:13:00', 8],
 		['Spec date + 0.5 s', '2026-10-31T03:13:00.5', 10],
 		['Spec date + 0.123 s', '2026-10-31T03:13:00.123', 12],
-		['Pre-1961, taken as is', '1675-08-20T00:00:00', 8]
+		['Rubber era, exact', '1966-06-15T12:00:00.123456789', 16],
+		['Before 1961, taken as UT', '1675-08-20T00:00:00', 8]
 	];
-	const vectorRows = vectors.map(([name, utc, n]) => ({ name, utc, n, stamp: format(fromBiasedFx(parseUtc(utc), n)) }));
+	const vectorRows = vectors.map(([name, utc, n]) => ({ name, utc, n, stamp: format(fromFx(parseUtc(utc), n)) }));
 
 	const sections = [
 		['alphabet', 'Alphabet'],
-		['precision', 'Precision by length'],
+		['precision', 'Length and resolution'],
 		['eras', 'Eras (first character)'],
 		['generations', 'Two-character prefixes, 1900–2100'],
 		['years', 'Three-character prefixes, 2020–2035'],
 		['durations', 'Common durations'],
 		['moments', 'Notable moments'],
 		['leap-seconds', 'Leap seconds'],
-		['rubber', 'TAI − UTC, 1961–1971'],
+		['rubber', 'TAI − UTC, 1961–1971, and its steps'],
 		['vectors', 'Test vectors']
 	];
 </script>
@@ -123,7 +139,7 @@
 </svelte:head>
 
 <div class="titleblock">
-	<div class="docno">T32 · DRAFT 0.1 · REFERENCE TABLES</div>
+	<div class="docno">T32 · DRAFT 0.2 · REFERENCE TABLES</div>
 	<h1>Tables</h1>
 	<p class="muted small">Every value on this page is computed by the reference TypeScript implementation when the site is built.</p>
 </div>
@@ -153,7 +169,8 @@
 	</table>
 </div>
 
-<h2 id="precision"><span class="secno">2</span> Precision by length</h2>
+<h2 id="precision"><span class="secno">2</span> Length and resolution</h2>
+<p>A stamp's length is the resolution of the record, not the accuracy of the clock.</p>
 <div class="table-wrap">
 	<table>
 		<thead><tr><th class="num">Length</th><th>Unit (exact)</th><th>Unit (approx.)</th><th class="num">Bits</th><th>Binary form</th></tr></thead>
@@ -162,6 +179,18 @@
 				<tr class:hl={p.n === CANONICAL_LEN}>
 					<td class="num">{p.n}</td><td class="mono">{p.exact}</td><td>{p.human}</td><td class="num">{p.bits}</td><td class="mono">{p.binary}</td>
 				</tr>
+			{/each}
+		</tbody>
+	</table>
+</div>
+<p>An encoder must not write more characters than its source resolves: at most the length whose unit is nearest the source's resolution.</p>
+<div class="table-wrap">
+	<table>
+		<thead><tr><th>Source resolution</th><th class="num">Maximum length</th><th>Unit at that length</th></tr></thead>
+		<tbody>
+			{#each resolutions as [name, r] (name)}
+				{@const n = maxLengthFor(r)}
+				<tr><td>{name}</td><td class="num">{n}</td><td>{humanSpan(unitSeconds(n))}</td></tr>
 			{/each}
 		</tbody>
 	</table>
@@ -211,7 +240,7 @@
 </div>
 
 <h2 id="durations"><span class="secno">6</span> Common durations</h2>
-<p>Durations are SI seconds with a mandatory sign. Fractions are truncated to four base32 digits.</p>
+<p>A duration is a signed whole number of 2^−40 s, written exactly. Decimal values that are not are truncated toward zero.</p>
 <div class="table-wrap">
 	<table>
 		<thead><tr><th>Duration</th><th class="num">Seconds</th><th>T32 duration</th></tr></thead>
@@ -220,7 +249,7 @@
 				<tr>
 					<td>{name}</td>
 					<td class="num mono">{(Number(ns) / 1e9).toLocaleString('en-US', { maximumFractionDigits: 6 })}</td>
-					<td class="mono">{formatDuration(ns, 4)}</td>
+					<td class="mono">{formatDuration(durationFromNs(ns))}</td>
 				</tr>
 			{/each}
 		</tbody>
@@ -242,8 +271,9 @@
 
 <h2 id="leap-seconds"><span class="secno">8</span> Leap seconds</h2>
 <p>
-	All 27 inserted leap seconds, each with its own T32 stamp: in T32 they are ordinary seconds. The table is
-	valid until 2027-06-28; IERS Bulletin C 72 announced no leap second for the end of 2026.
+	All 27 inserted leap seconds, each with its own T32 stamp: in T32 they are ordinary seconds. IERS Bulletin C 72
+	announced no leap second for the end of 2026, and the CGPM has made UTC continuous from 2027-05-20, so this list is
+	expected to be complete.
 </p>
 <div class="table-wrap">
 	<table>
@@ -256,7 +286,7 @@
 	</table>
 </div>
 
-<h2 id="rubber"><span class="secno">9</span> TAI − UTC, 1961–1971</h2>
+<h2 id="rubber"><span class="secno">9</span> TAI − UTC, 1961–1971, and its steps</h2>
 <p>Before 1972, UTC ran at an adjusted rate. TAI − UTC = a + (MJD − m) × r seconds, with MJD of the UTC instant. Before 1961 it is defined as 0.</p>
 <div class="table-wrap">
 	<table>
@@ -276,9 +306,20 @@
 		</tbody>
 	</table>
 </div>
+<p>Where the formula changes, TAI − UTC can jump. A rise inserts time that UTC has no ordinary label for; a fall removes labels, which converters must reject. These are every step other than the 27 leap seconds:</p>
+<div class="table-wrap">
+	<table>
+		<thead><tr><th>Boundary (UTC)</th><th class="num">Step (s)</th><th>Effect</th></tr></thead>
+		<tbody>
+			{#each fractional as f (f.date)}
+				<tr><td class="mono">{f.date}</td><td class="num mono">{f.step}</td><td>{f.kind}</td></tr>
+			{/each}
+		</tbody>
+	</table>
+</div>
 
 <h2 id="vectors"><span class="secno">10</span> Test vectors</h2>
-<p>An implementation is conforming when it reproduces these (and the decoding and parsing vectors in the <a href="../spec/#test-vectors">specification</a>).</p>
+<p>Encoding vectors, recomputed here by the TypeScript implementation. The <a href="../spec/#test-vectors">specification</a> also has decoder, parser, duration and error vectors.</p>
 <div class="table-wrap">
 	<table>
 		<thead><tr><th>Case</th><th>UTC</th><th class="num">Length</th><th>Stamp</th></tr></thead>

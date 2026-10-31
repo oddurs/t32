@@ -9,7 +9,7 @@
 </svelte:head>
 
 <div class="titleblock">
-	<div class="docno">T32 · DRAFT 0.1 · GUIDE (INFORMATIVE)</div>
+	<div class="docno">T32 · DRAFT 0.2 · GUIDE (INFORMATIVE)</div>
 	<h1>Docs</h1>
 	<p class="muted small">
 		Informative guidance. Where this page and the <a href="../spec/">specification</a> differ, the specification wins.
