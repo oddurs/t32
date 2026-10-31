@@ -1,13 +1,11 @@
 <script lang="ts">
+	import Head from '$lib/components/Head.svelte';
 	import Toc from '$lib/components/Toc.svelte';
 	import { base } from '$app/paths';
 	let { data } = $props();
 </script>
 
-<svelte:head>
-	<title>T32 specification, draft 0.2</title>
-	<meta name="description" content="The T32 specification: definitions, encoding, interval semantics, conversion from UTC, test vectors, open questions and the TAI − UTC table." />
-</svelte:head>
+<Head title="Specification" description="The T32 specification, draft 0.2: definitions, grammar, encoding, interval semantics, conversion from UTC, test vectors and the TAI − UTC table." path="/spec/" />
 
 <div class="with-rail">
 	<header class="titleblock">
