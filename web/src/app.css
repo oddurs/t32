@@ -231,7 +231,7 @@ h3[id] {
 /* Section numbers sit in a hanging column, at the heading's own size. */
 .secno {
 	display: inline-block;
-	min-width: 1.55em;
+	min-width: 1.75em;
 	margin-right: 0.4em;
 	color: var(--ink-3);
 	font-weight: var(--w-medium);
@@ -277,6 +277,19 @@ li::marker {
 
 strong {
 	font-weight: var(--w-strong);
+}
+
+sup,
+sub {
+	font-size: 0.72em;
+	line-height: 0;
+	position: relative;
+	vertical-align: baseline;
+	font-variant-numeric: lining-nums;
+}
+sup {
+	top: -0.5em;
+	margin-left: 0.04em;
 }
 
 blockquote {
@@ -423,12 +436,18 @@ tbody th {
 	white-space: nowrap;
 }
 td code {
-	font-size: 0.9em;
+	font-size: 0.93em;
 	padding: 0;
 	background: none;
 }
 td.data {
 	white-space: nowrap;
+}
+@media (max-width: 600px) {
+	td.data {
+		white-space: normal;
+		overflow-wrap: break-word;
+	}
 }
 td.num,
 th.num {
