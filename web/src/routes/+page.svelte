@@ -9,11 +9,11 @@
 </svelte:head>
 
 <div class="titleblock">
-	<div class="docno">T32 · DRAFT 0.1</div>
+	<div class="docno">T32 · DRAFT 0.2</div>
 	<h1>T32: a compact universal timestamp</h1>
 	<dl>
 		<dt>Status</dt><dd>Draft proposal, open for comment</dd>
-		<dt>Date</dt><dd>2026-10-30</dd>
+		<dt>Date</dt><dd>2026-10-31</dd>
 		<dt>Timescale</dt><dd>TAI (International Atomic Time)</dd>
 		<dt>Reference</dt><dd><a href="{base}/spec/">Specification</a> · <a href="https://github.com/oddurs/t32/tree/main/rust">Rust</a> · <a href="https://github.com/oddurs/t32/blob/main/web/src/lib/t32.ts">TypeScript</a></dd>
 	</dl>
@@ -30,10 +30,10 @@
 </p>
 
 <ul>
-	<li><strong>Length is precision.</strong> Drop characters for a coarser span, append them for finer time. Every stamp names an interval, never a false instant.</li>
+	<li><strong>Length is resolution.</strong> Drop characters for a coarser span, append them for finer time. Every stamp names an interval, never a false instant.</li>
 	<li><strong>Text order is time order.</strong> Sort the strings byte-wise and they are in chronological order; a prefix is a range query.</li>
-	<li><strong>Uniform seconds.</strong> T32 counts TAI, so there are no leap seconds inside it. Subtracting two stamps gives true elapsed time.</li>
-	<li><strong>Human-safe.</strong> Crockford base32: no I, L, O or U, case-insensitive on input.</li>
+	<li><strong>Uniform seconds.</strong> T32 counts TAI, so there are no leap seconds inside it. From 1961 on, subtracting two stamps gives true elapsed time.</li>
+	<li><strong>Human-safe.</strong> Crockford base32: no I, L, O or U, case-insensitive on input, ASCII only.</li>
 </ul>
 
 <h2>Compared</h2>
@@ -41,11 +41,12 @@
 <div class="table-wrap">
 	<table>
 		<thead>
-			<tr><th>Format</th><th>Example (1 s)</th><th class="num">Length</th><th>Sortable as text</th><th>Precision stated</th><th>Leap seconds</th></tr>
+			<tr><th>Format</th><th>Example (1 s)</th><th class="num">Length</th><th>Sortable as text</th><th>Resolution stated</th><th>Leap seconds</th></tr>
 		</thead>
 		<tbody>
 			<tr><td>ISO 8601 (UTC)</td><td class="mono">2026-10-31T03:13:00Z</td><td class="num">20</td><td>If same format and zone</td><td>Partly (by truncation)</td><td>Has 23:59:60</td></tr>
 			<tr><td>Unix time</td><td class="mono">1793416380</td><td class="num">10</td><td>Only if zero-padded</td><td>No</td><td>Repeats a second</td></tr>
+			<tr><td>TAI64 (external form)</td><td class="mono">@400000006ae55ce1</td><td class="num">17</td><td>Yes</td><td>No (fixed per variant)</td><td>None (TAI)</td></tr>
 			<tr><td>ULID (time part)</td><td class="mono">01M67Z4FK0</td><td class="num">10</td><td>Yes</td><td>No (ms)</td><td>Follows Unix time</td></tr>
 			<tr class="hl"><td><strong>T32</strong></td><td class="mono">G0S7G6B1</td><td class="num">8</td><td>Yes</td><td>Yes, by length</td><td>None (TAI)</td></tr>
 		</tbody>
