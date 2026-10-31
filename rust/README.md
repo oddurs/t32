@@ -5,8 +5,9 @@ prefix is a range query.
 
 This crate is the reference implementation of the
 [T32 specification](https://github.com/oddurs/t32/blob/main/SPEC.md) (draft 0.2).
-It has no dependencies, uses no `unsafe`, and does all of its arithmetic exactly
-in integers, rounding once, where the spec says to.
+It has no required dependencies, uses no `unsafe`, builds on Rust 1.70 and
+later, and does all of its arithmetic exactly in integers, rounding once,
+where the spec says to.
 
 ```rust
 use t32::{Instant, Stamp, UtcDateTime};
@@ -45,6 +46,18 @@ The types:
 | [`Duration`](https://docs.rs/t32/latest/t32/struct.Duration.html) | A signed span of SI seconds, exact to 2⁻⁴⁰ s, with an exact text form (`+2MC0` is a day). |
 | [`UtcDateTime`](https://docs.rs/t32/latest/t32/struct.UtcDateTime.html) | A UTC label that actually occurred, leap seconds included, in RFC 3339 text. |
 | [`Error`](https://docs.rs/t32/latest/t32/enum.Error.html) | The one error type. |
+
+With the `serde` feature, every type serializes: human-readable formats get
+the exact, sortable text forms, and compact formats get integers.
+
+```toml
+[dependencies]
+t32 = { version = "0.2", features = ["serde"] }
+```
+
+```json
+{ "logged": "G0S7G6B13XYE", "at": "G0S7G6B13XYEW4F0", "took": "+0.G" }
+```
 
 Converting between UTC and TAI uses the full TAI − UTC history from 1961,
 including the drifting "rubber seconds" of 1961–1971. With UTC continuous from
