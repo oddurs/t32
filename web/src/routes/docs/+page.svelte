@@ -1,13 +1,11 @@
 <script lang="ts">
+	import Head from '$lib/components/Head.svelte';
 	import Toc from '$lib/components/Toc.svelte';
 	import { base } from '$app/paths';
 	let { data } = $props();
 </script>
 
-<svelte:head>
-	<title>T32 guide</title>
-	<meta name="description" content="Using T32 in practice: reading stamps, choosing a length, storing and querying in SQL, TypeScript and Rust, and the questions people ask." />
-</svelte:head>
+<Head title="Guide" description="Using T32 in practice: reading stamps, choosing a length, storing and querying them in SQL, the Rust and TypeScript libraries, and common questions." path="/docs/" />
 
 <div class="with-rail">
 	<header class="titleblock">

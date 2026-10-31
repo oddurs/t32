@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Head from '$lib/components/Head.svelte';
 	import { exponents } from '$lib/exponents';
 	import {
 		ALPHABET, MAX_LEN, CANONICAL_LEN, STEPS, parse, format, fromFx, startFx, endFx, deltaAt,
@@ -134,10 +135,7 @@
 	];
 </script>
 
-<svelte:head>
-	<title>T32 tables</title>
-	<meta name="description" content="Reference tables for T32: alphabet, precision, eras, prefixes by year, durations, notable moments, leap seconds and test vectors." />
-</svelte:head>
+<Head title="Tables" description="Reference tables for T32: the alphabet, length and resolution, eras, prefixes by year, durations, notable moments, leap seconds and test vectors." path="/tables/" />
 
 <div class="with-rail">
 	<header class="titleblock">
@@ -263,7 +261,7 @@
 		</div>
 
 		<h2 id="moments"><span class="secno">7</span>Notable moments</h2>
-		<p>Each moment encoded at length 8. Before 1972, TAI − UTC was fractional, so a one-second stamp starts part-way through a UTC second.</p>
+		<p>Each moment is encoded at length 8. Before 1972, TAI − UTC was fractional, so a one-second stamp starts part-way through a UTC second.</p>
 		<div class="table-wrap">
 			<table>
 				<thead><tr><th>Moment</th><th>Stamp starts (UTC)</th><th>T32</th></tr></thead>

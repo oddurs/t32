@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Head from '$lib/components/Head.svelte';
 	import { exponents } from '$lib/exponents';
 	import { onMount } from 'svelte';
 	import { replaceState } from '$app/navigation';
@@ -313,10 +314,7 @@
 	});
 </script>
 
-<svelte:head>
-	<title>T32 playground</title>
-	<meta name="description" content="Convert between T32 stamps, UTC dates and Unix time, see the interval a stamp names digit by digit, and compare two stamps." />
-</svelte:head>
+<Head title="Playground" description="Type a date or a T32 stamp and see the span of time it stands for, character by character. Converts UTC, local time and Unix time, and compares stamps." path="/playground/" />
 
 <div class="with-rail">
 	<header class="titleblock">
