@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "test": "tsx --test src/lib/t32.test.ts"
+    "test": "tsx --test src/lib/t32.test.ts src/lib/describe.test.ts"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.8",
