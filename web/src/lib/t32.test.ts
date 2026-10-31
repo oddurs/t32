@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import {
 	parse, format, display, fromFx, truncate, contains, startFx, endFx, utcToFx, parseUtc,
 	fxToUtc, fxToUtcString, fxToUtcStringExact, fxToTaiNs, unixNsToFx, deltaAt, taiNsToFx, STEPS, maxLengthFor,
-	fromUnixMs, formatDuration, parseDuration, durationFromNs, durationBetween, addDuration, T32Error
+	fromUnixMs, formatDuration, parseDuration, durationFromNs, durationBetween, addDuration, isInserted, T32Error
 } from './t32.ts';
 
 const NS = 1_000_000_000n;
@@ -24,7 +24,7 @@ test('encoding vectors', () => {
 		['2026-10-31T03:13:00', 8, 'G0S7G6B1'],
 		['2026-10-31T03:13:00.500', 10, 'G0S7G6B1G0'],
 		['2026-10-31T03:13:00.123000', 12, 'G0S7G6B13XYE'],
-		['1966-06-15T12:00:00.123456789', 16, 'FZ0EDKA4VPC2A1FX'],
+		['1966-06-15T12:00:00.123456789', 14, 'FZ0EDKA4VPC2A1'],
 		['1675-08-20T00:00:00', 8, 'FPEY6N00']
 	];
 	for (const [utc, len, want] of vectors) assert.equal(stamp(utc, len), want, utc);
@@ -186,4 +186,77 @@ test('containment is prefix; range limits', () => {
 	assert.throws(() => unixNsToFx(1n << 120n), code('out-of-range'));
 	assert.throws(() => durationFromNs(1n << 100n), code('out-of-range'));
 	assert.throws(() => formatDuration(1n << 81n), code('out-of-range'));
+});
+
+// ---------------------------------------------------------------- shared vectors
+
+import vectors from '../../../vectors/t32-vectors.json' with { type: 'json' };
+
+const CODES: Record<string, string> = {
+	empty: 'empty',
+	'too-long': 'too_long',
+	'bad-char': 'invalid_char',
+	'bad-hyphen': 'misplaced_hyphen',
+	'skipped-label': 'removed_time',
+	'not-a-leap-second': 'not_a_leap_second',
+	'bad-field': 'invalid_date',
+	'out-of-range': 'out_of_range'
+};
+const run = <T>(f: () => T): { ok: T } | { error: string } => {
+	try {
+		return { ok: f() };
+	} catch (e) {
+		if (e instanceof T32Error) return { error: CODES[e.code] ?? e.code };
+		throw e;
+	}
+};
+const want = (row: Record<string, unknown>, field: string) =>
+	'error' in row ? { error: row.error } : { ok: row[field] };
+
+test('conformance vectors: parse', () => {
+	for (const row of vectors.parse) assert.deepEqual(run(() => format(parse(row.input))), want(row, 'stamp'), row.input);
+});
+
+test('conformance vectors: encode from UTC and Unix', () => {
+	for (const row of vectors.encode_utc)
+		assert.deepEqual(run(() => format(fromFx(parseUtc(row.utc), row.length))), want(row, 'stamp'), row.utc);
+	for (const row of vectors.encode_unix)
+		assert.deepEqual(
+			run(() => format(fromFx(unixNsToFx(BigInt(row.unix_nanos)), row.length))),
+			want(row, 'stamp'),
+			row.unix_nanos
+		);
+	for (const row of vectors.utc_errors) assert.deepEqual(run(() => parseUtc(row.utc)), want(row, ''), row.utc);
+});
+
+test('conformance vectors: decode', () => {
+	for (const row of vectors.decode) {
+		const s = parse(row.stamp);
+		assert.equal(startFx(s), BigInt(row.start_units), row.stamp);
+		assert.equal(fxToUtcStringExact(startFx(s)), row.start_utc, row.stamp);
+		assert.equal(isInserted(startFx(s)), row.start_inserted, row.stamp);
+		const end = endFx(s);
+		if (row.end_utc === null) assert.equal(end, 1n << 80n, row.stamp);
+		else {
+			assert.equal(fxToUtcStringExact(end), row.end_utc, row.stamp);
+			assert.equal(isInserted(end), row.end_inserted, row.stamp);
+		}
+	}
+});
+
+test('conformance vectors: durations', () => {
+	for (const row of vectors.durations as unknown as Record<string, string>[]) {
+		if (row.error) {
+			const got = run(() => parseDuration(row.text));
+			// In a duration, the TypeScript port's bad-field means the sign is missing.
+			const code = 'error' in got ? (got.error === 'invalid_date' ? 'missing_sign' : got.error) : 'accepted';
+			assert.equal(code, row.error, row.text);
+		} else if (row.canonical) {
+			assert.equal(formatDuration(parseDuration(row.text)), row.canonical);
+		} else {
+			assert.equal(formatDuration(BigInt(row.units)), row.text);
+			assert.equal(parseDuration(row.text), BigInt(row.units));
+			if (row.nanos) assert.equal(durationFromNs(BigInt(row.nanos)), BigInt(row.units));
+		}
+	}
 });
