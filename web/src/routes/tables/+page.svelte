@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { exponents } from '$lib/exponents';
 	import {
 		ALPHABET, MAX_LEN, CANONICAL_LEN, STEPS, parse, format, fromFx, startFx, endFx, deltaAt,
 		fxToUtcString, fxToUtcStringExact, parseUtc, formatDuration, durationFromNs, unitSeconds,
@@ -182,7 +183,7 @@
 				<tbody>
 					{#each precision as p (p.n)}
 						<tr class:hl={p.n === CANONICAL_LEN}>
-							<td class="num">{p.n}</td><td class="data">{p.exact}</td><td>{p.human}</td><td class="num">{p.bits}</td><td class="data">{p.binary}</td>
+							<td class="num">{p.n}</td><td class="data">{@html exponents(p.exact)}</td><td>{p.human}</td><td class="num">{p.bits}</td><td class="data">{p.binary}</td>
 						</tr>
 					{/each}
 				</tbody>
@@ -202,7 +203,7 @@
 		</div>
 
 		<h2 id="eras"><span class="secno">3</span>Eras (first character)</h2>
-		<p>Each era is 2^35 seconds, about 1,089 years. Years are proleptic Gregorian.</p>
+		<p>Each era is 2<sup>35</sup> seconds, about 1,089 years. Years are proleptic Gregorian.</p>
 		<div class="table-wrap">
 			<table>
 				<thead><tr><th>Char</th><th>From</th><th>Until</th><th>Char</th><th>From</th><th>Until</th></tr></thead>
@@ -219,7 +220,7 @@
 		</div>
 
 		<h2 id="generations"><span class="secno">4</span>Two-character prefixes, 1900–2100</h2>
-		<p>Each is 2^30 seconds, about 34 years. Boundaries are given to the day.</p>
+		<p>Each is 2<sup>30</sup> seconds, about 34 years. Boundaries are given to the day.</p>
 		<div class="table-wrap">
 			<table>
 				<thead><tr><th>Prefix</th><th>From (UTC)</th><th>Until (UTC)</th></tr></thead>
@@ -232,7 +233,7 @@
 		</div>
 
 		<h2 id="years"><span class="secno">5</span>Three-character prefixes, 2020–2035</h2>
-		<p>Each is 2^25 seconds, about 388 days. Useful as partition keys and for range queries.</p>
+		<p>Each is 2<sup>25</sup> seconds, about 388 days. Useful as partition keys and for range queries.</p>
 		<div class="table-wrap">
 			<table>
 				<thead><tr><th>Prefix</th><th>From (UTC)</th><th>Until (UTC)</th></tr></thead>
@@ -245,7 +246,7 @@
 		</div>
 
 		<h2 id="durations"><span class="secno">6</span>Common durations</h2>
-		<p>A duration is a signed whole number of 2^−40 s, written exactly. Decimal values that are not are truncated toward zero.</p>
+		<p>A duration is a signed whole number of 2<sup>−40</sup> s, written exactly. A decimal value that is not a whole number of these units is truncated toward zero.</p>
 		<div class="table-wrap">
 			<table>
 				<thead><tr><th>Duration</th><th class="num">Seconds</th><th>T32 duration</th></tr></thead>
