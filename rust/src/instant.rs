@@ -137,7 +137,7 @@ impl Instant {
     /// ```
     #[must_use]
     pub fn unix_nanos(self) -> i128 {
-        utc::scaled_to_reading(self.reading_scaled()).unix_ns
+        self.reading().unix_ns
     }
 
     /// The instant of a UTC date-time.
@@ -164,7 +164,7 @@ impl Instant {
     /// reads as the label at its end, and [`Instant::in_inserted_time`] is true.
     #[must_use]
     pub fn to_utc(self) -> UtcDateTime {
-        UtcDateTime::from_reading(&utc::scaled_to_reading(self.reading_scaled()))
+        UtcDateTime::from_reading(&self.reading())
     }
 
     /// Whether this instant falls in time UTC inserted: a leap second, or one
@@ -179,7 +179,8 @@ impl Instant {
     /// ```
     #[must_use]
     pub fn in_inserted_time(self) -> bool {
-        utc::scaled_to_reading(self.reading_scaled())
+        // The instant itself decides, not the end of its unit.
+        utc::scaled_to_reading(self.floor_scaled())
             .inserted_ns
             .is_some()
     }
@@ -249,18 +250,43 @@ impl Instant {
         Self::from_units((q << FRAC_BITS) + (r << FRAC_BITS) / D as u128)
     }
 
-    /// The scaled-TAI value to read this instant by: the last one inside its
-    /// 2⁻⁴⁰ s unit, that is, the largest integer below the start of the next.
-    ///
-    /// A nanosecond n encodes to this instant exactly when its scaled TAI lies
-    /// in this unit, and a unit (about 7.9 × 10⁸ scaled) is narrower than a
-    /// nanosecond (K ≈ 8.6 × 10¹¹), so at most one does. Flooring a reading
-    /// taken here therefore returns that nanosecond when it exists, and the
-    /// plain floor otherwise.
+    /// This instant in scaled TAI, floored.
+    fn floor_scaled(self) -> i128 {
+        let (q, r) = ((self.0 >> FRAC_BITS) as i128, (self.0 & FRAC_MASK) as i128);
+        q * D + ((r * D) >> FRAC_BITS) - BIAS_S * D
+    }
+
+    /// The last scaled-TAI value inside this instant's 2⁻⁴⁰ s unit: the largest
+    /// integer below the start of the next unit.
     fn reading_scaled(self) -> i128 {
         let next = self.0 + 1;
         let (q, r) = ((next >> FRAC_BITS) as i128, (next & FRAC_MASK) as i128);
         q * D + (r * D - 1).div_euclid(1 << FRAC_BITS) - BIAS_S * D
+    }
+
+    /// The UTC reading (SPEC.md, Decoding and interval semantics).
+    ///
+    /// An instant in inserted time reads as the label where the insertion ends,
+    /// and inside a leap second as 23:59:60.f. Any other instant reads as the
+    /// latest nanosecond label whose instant encodes, at full resolution, no
+    /// later than this one: the floor of the reading at the end of its unit.
+    /// A unit is narrower than a nanosecond, so at most one label encodes to
+    /// it, and nanosecond round trips are exact.
+    fn reading(self) -> utc::Reading {
+        let own = utc::scaled_to_reading(self.floor_scaled());
+        let top = utc::scaled_to_reading(self.reading_scaled());
+        match (own.inserted_ns, top.inserted_ns) {
+            // A leap second is whole TAI seconds, so its units never straddle its ends.
+            (Some(_), _) if own.leap_second => top,
+            (Some(_), _) => own,
+            // The unit runs into inserted time: the last label before it.
+            (None, Some(_)) => utc::Reading {
+                unix_ns: top.unix_ns - 1,
+                inserted_ns: None,
+                leap_second: false,
+            },
+            (None, None) => top,
+        }
     }
 }
 
@@ -367,6 +393,26 @@ mod tests {
         for u in -2_000..2_000 {
             assert_eq!(Instant::from_unix_nanos(u).unwrap().unix_nanos(), u);
             assert_eq!(Instant::from_tai_nanos(u).unwrap().tai_nanos(), u);
+        }
+    }
+
+    #[test]
+    fn round_trips_are_exact_at_every_boundary() {
+        // Every row of Appendix A starts at a midnight; sweep 50 ns either side.
+        let midnights = (37_300i128..=57_754).map(|mjd| (mjd - 40_587) * 86_400 * NS);
+        for b in midnights.filter(|&b| {
+            let t = |u| Instant::from_unix_nanos(u).map(|i| i.tai_nanos());
+            // Only days where TAI − UTC changes, to keep the sweep quick.
+            matches!((t(b - NS), t(b)), (Ok(x), Ok(y)) if y - x != NS)
+        }) {
+            for u in b - 50..b + 50 {
+                if let Ok(t) = Instant::from_unix_nanos(u) {
+                    // (The unit may begin inside inserted time just before the
+                    // label, as at 1961-01-01; the label still reads back.)
+                    assert_eq!(t.unix_nanos(), u, "label {u}");
+                    assert_eq!(Instant::from_utc(t.to_utc()).unwrap(), t, "label {u}");
+                }
+            }
         }
     }
 
