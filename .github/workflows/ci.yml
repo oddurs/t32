@@ -13,8 +13,16 @@ jobs:
         working-directory: rust
     steps:
       - uses: actions/checkout@v4
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test --all-targets
       - run: cargo run --quiet --example vectors
+
+  oracle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/oracle.py
 
   web:
     runs-on: ubuntu-latest
