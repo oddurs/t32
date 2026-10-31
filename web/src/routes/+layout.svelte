@@ -7,9 +7,9 @@
 
 	const nav = [
 		{ href: '/', label: 'Overview' },
-		{ href: '/spec/', label: 'Specification' },
 		{ href: '/playground/', label: 'Playground' },
 		{ href: '/docs/', label: 'Guide' },
+		{ href: '/spec/', label: 'Specification' },
 		{ href: '/tables/', label: 'Tables' },
 		{ href: '/participate/', label: 'Participate' }
 	];
