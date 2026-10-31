@@ -1,6 +1,13 @@
 # T32: A Compact Universal Timestamp
 
-Draft 0.2, 2026-10-31.
+| | |
+| --- | --- |
+| Document | T32 specification, draft 0.2 |
+| Date | 2026-10-31 |
+| Editor | Oddur Sigurdsson ([@oddurs](https://github.com/oddurs)) |
+| Latest version | https://oddurs.github.io/t32/spec/ |
+| Source and history | https://github.com/oddurs/t32 |
+| Comments | [Issues](https://github.com/oddurs/t32/issues) for errata and questions; [Discussions](https://github.com/oddurs/t32/discussions) for proposals |
 
 ## Abstract
 
@@ -9,6 +16,12 @@ T32 writes any moment as 8 base32 characters: a count of atomic (TAI) seconds si
 A stamp's length is its resolution. Drop characters for a coarser span, append characters for finer time; every stamp names an interval, never a false instant. Byte-wise sorting is time order, and a prefix is a range query.
 
 The canonical 8-character form covers roughly 15,420 BCE to 19,420 CE at one-second resolution.
+
+## Status of this document
+
+This is draft 0.2 of the T32 specification, published for public review. It is complete enough to implement and to test against, and it is not yet frozen: any part may change before version 1.0. Changes are made in the open, each with its reason, and are listed in Appendix D.
+
+Comments are welcome from anyone. They are most useful when specific: a sentence that can be read two ways, a vector that seems wrong, a use the format serves badly. Appendix C lists the questions the editor considers open; views on them are particularly sought. How comments become changes, and the path from this draft to version 1.0 and to a working group, is set out in [GOVERNANCE.md](GOVERNANCE.md).
 
 ## Conventions and conformance
 
@@ -281,7 +294,22 @@ These limits are deliberate; removing any of them would cost a goal.
 
 ## Test vectors
 
-A conforming implementation reproduces every row for its class. Every row was computed three ways, by the two implementations and by an exact rational-arithmetic oracle written directly from this text (Appendix B), and the three agree.
+A conforming implementation reproduces every vector for its class. The tables below are a readable selection. The complete set, about 600 vectors including both sides of every boundary in Appendix A, is [`vectors/t32-vectors.json`](vectors/t32-vectors.json), in a form any implementation can load. Both are normative.
+
+Every vector was computed by an exact rational-arithmetic oracle written directly from this text (Appendix B), and is reproduced by both implementations. A disagreement between this text, the vectors and an implementation is a defect, and reports of one are especially welcome.
+
+Errors in the vectors file are named by code:
+
+| Code | Condition |
+| --- | --- |
+| `empty` | No digits |
+| `too_long` | More than 16 digits in a stamp, or 8 in either part of a duration |
+| `invalid_char` | A character outside the input grammar |
+| `misplaced_hyphen` | A hyphen not between two digits |
+| `missing_sign` | A duration without `+` or `-` |
+| `removed_time` | A UTC label in removed time |
+| `not_a_leap_second` | Second 60 where no leap second was inserted |
+| `invalid_date` | A day the month does not have |
 
 **Encoder and converter (UTC labels)**
 
@@ -290,7 +318,7 @@ A conforming implementation reproduces every row for its class. Every row was co
 | T32 epoch | 1999-12-31T23:59:28 | 8 | `G0000000` |
 | Unix epoch (ΔAT = 8.000082 s) | 1970-01-01T00:00:00 | 8 | `FZ3S5F48` |
 | Apollo 11 landing | 1969-07-20T20:17:40 | 8 | `FZ3BMMKB` |
-| Rubber era, exact | 1966-06-15T12:00:00.123456789 | 16 | `FZ0EDKA4VPC2A1FX` |
+| Rubber era, exact (ns clock) | 1966-06-15T12:00:00.123456789 | 14 | `FZ0EDKA4VPC2A1` |
 | UTC becomes integer | 1972-01-01T00:00:00 | 8 | `FZ5NA8WA` |
 | Before last leap second | 2016-12-31T23:59:59 | 8 | `G0FZP0S3` |
 | Last leap second | 2016-12-31T23:59:60 | 8 | `G0FZP0S4` |
@@ -439,8 +467,45 @@ The boundaries 1962-01-01, 1964-01-01 and 1966-01-01 change the formula but not 
 
 ## Appendix B: Implementations (informative)
 
-- [`rust/`](rust/src/lib.rs): reference implementation in Rust. Standard library and integer arithmetic only.
+Known implementations, with their conformance, are listed in [IMPLEMENTATIONS.md](IMPLEMENTATIONS.md). Additions are welcome. Those maintained in the specification's repository:
+
+- [`rust/`](rust/src/lib.rs): the reference implementation, published as the [`t32`](https://crates.io/crates/t32) crate. Integer arithmetic only, no required dependencies.
 - [`web/src/lib/t32.ts`](web/src/lib/t32.ts): the same algorithm in one TypeScript file, using BigInt.
 - [`tools/oracle.py`](tools/oracle.py): an independent check in exact rational arithmetic, written from this text and sharing no code with the implementations.
 
 Both implementations hold biased time as fixed point in units of 2^−40 s, and hold TAI − UTC as exact multiples of 1/(10^7 × 86,400 × 10^9) s, the finest step any coefficient in Appendix A needs. Converting a label is then exact, and inverting it is a single exact division per period.
+
+## Appendix C: Open questions
+
+These are the questions the editor considers open before version 1.0. Each states the current position and the kind of evidence that would change it. Discussion of any of them is welcome, in the [Discussions](https://github.com/oddurs/t32/discussions) of the specification's repository.
+
+**C.1 The name.** "T32" is also the name of Arm's 32-bit Thumb instruction set and the common name of Lauterbach's TRACE32 debugger. The current position is to keep the name, since the contexts rarely meet and the name says what the format is: T for time, 32 for its radix. Evidence of real confusion, or a better name, would reopen it.
+
+**C.2 The epoch.** T32 counts from 2000-01-01T00:00:00 TAI. Alternatives considered were J2000 (2000-01-01T12:00:00 TT), which suits astronomy, and 1972-01-01, when UTC's offset from TAI became whole seconds. The current position favours a round instant in the scale T32 counts. Since the epoch fixes every stamp, this question closes at version 1.0.
+
+**C.3 Before 1961.** Labels before 1961 are read as Universal Time, which keeps stamps stable but makes elapsed time non-physical across centuries. The alternative is to apply a ΔT model, which is physical but changes stamps whenever the model is revised. The current position favours stability. Users of historical or astronomical data are invited to say which they would rather have.
+
+**C.4 The resolution rule.** An encoder may use the length whose unit is nearest its source's resolution on a logarithmic scale, so a stamp can claim up to √32 (about 5.7) times more resolution than its source has. The stricter alternative is the longest length whose unit is no finer than the source, which gives 9 for a millisecond clock instead of 10. The current position prefers the familiar lengths 8, 10, 12 and 14 for seconds, milliseconds, microseconds and nanoseconds.
+
+**C.5 Letter case.** Canonical stamps are uppercase. Lowercase reads better in URLs and file names, and some systems fold case. Since parsing is case-insensitive, the question is only which form is canonical. The current position is uppercase, as in Crockford base32.
+
+**C.6 A human rendering.** The specification defines a display form for stamps, but not how to show a stamp's interval to people in their own calendar and time zone. A recommended rendering could make stamps easier to adopt in interfaces. The question is whether it belongs in this document or in a companion one.
+
+**C.7 Identifiers and registration.** T32 defines no URI scheme, media type or registered tag. Candidates include a suffix tag under RFC 9557 and a URN namespace. Registration would follow version 1.0, and only if implementers ask for it.
+
+**C.8 Other time scales.** TAI suits clocks on Earth. Lunar and Martian time scales are being defined, and a T32 profile for one of them would need its own epoch and conversion. The current position is to leave the format TAI-only and to define profiles, if any, in separate documents.
+
+## Appendix D: Change history
+
+**Draft 0.2, 2026-10-31.**
+- Added BCP 14 conformance language, an ABNF grammar, conformance classes, versioning, security and privacy considerations, prior art and references.
+- Scoped the goals: TAI from 1961, Universal Time before.
+- Defined removed and inserted time at every step in TAI − UTC, including the fractional steps of 1961–1972.
+- A Unix value never names 23:59:60.
+- Added the resolution rule and binary field types T32-n.
+- Durations became exact, in units of 2⁻⁴⁰ s.
+- Parsing became ASCII-only, with hyphens only between digits.
+- Noted continuous UTC from 2027-05-20.
+- Added the nanosecond reading rule, the vectors file and Appendices C and D.
+
+**Draft 0.1, 2026-10-30.** First public draft.
