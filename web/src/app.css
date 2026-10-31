@@ -544,6 +544,24 @@ input[type='range'] {
 button {
 	cursor: pointer;
 }
+button.btn {
+	font-size: var(--small);
+	font-weight: var(--w-medium);
+	line-height: 1.3;
+	padding: 0.35rem 0.75rem;
+	color: var(--ink-2);
+	background: var(--paper);
+	border: 1px solid var(--rule-strong);
+	border-radius: 2px;
+}
+button.btn:hover:not(:disabled) {
+	color: var(--ink);
+	border-color: var(--ink-3);
+}
+button.btn:disabled {
+	opacity: 0.4;
+	cursor: default;
+}
 button.link {
 	padding: 0;
 	background: none;
