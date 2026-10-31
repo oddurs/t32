@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Head from '$lib/components/Head.svelte';
 	import { base } from '$app/paths';
 	let { data } = $props();
 
@@ -21,10 +22,7 @@
 	const discussions = 'https://github.com/oddurs/t32/discussions';
 </script>
 
-<svelte:head>
-	<title>Participate in T32</title>
-	<meta name="description" content="How T32 becomes a standard: where the draft stands, the open questions, implementations, and the path to version 1.0 and a working group." />
-</svelte:head>
+<Head title="Participate" description="How T32 becomes a standard: where the draft stands, ways to take part, the open questions, implementations, and how decisions are made." path="/participate/" />
 
 <div class="with-rail">
 	<header class="titleblock">
