@@ -20,7 +20,7 @@ G0S7            the 12-day span that contains it
 | Path | What |
 | --- | --- |
 | [`SPEC.md`](SPEC.md) | The specification, with test vectors and the TAI − UTC table |
-| [`rust/`](rust) | Reference implementation, standard library only |
+| [`rust/`](rust) | Reference implementation: the `t32` crate, no dependencies, Rust 1.70+ ([README](rust/README.md)) |
 | [`web/`](web) | The site (SvelteKit, static) and a single-file TypeScript implementation, [`web/src/lib/t32.ts`](web/src/lib/t32.ts) |
 | [`tools/oracle.py`](tools/oracle.py) | An independent check in exact rational arithmetic, written from the spec |
 
@@ -28,6 +28,7 @@ G0S7            the 12-day span that contains it
 
 ```sh
 cd rust && cargo test                      # reference implementation
+cd rust && cargo run --example t32 -- G0S7 # a stamp's interval, from the command line
 cd web && npm ci && npm test               # TypeScript implementation
 cd web && npm run dev                      # site at http://localhost:5173
 python3 tools/oracle.py                    # recompute the spec's vectors exactly
@@ -38,3 +39,7 @@ The specification's text and test vectors are normative. Both implementations an
 ## Status
 
 T32 is a draft proposal, not an adopted standard. Objections, edge cases and prior art are welcome as [issues](https://github.com/oddurs/t32/issues).
+
+## License
+
+Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or [MIT license](LICENSE-MIT), at your option. Unless you state otherwise, any contribution you submit for inclusion in this work, as defined in the Apache-2.0 license, is dual licensed as above, without any additional terms or conditions.
