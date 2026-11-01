@@ -1,10 +1,10 @@
-use std::fmt;
+use std::fmt::{self, Write};
 use std::iter::Sum;
 use std::ops::{Add, Neg, Sub};
 use std::str::FromStr;
 
 use crate::instant::FRAC_BITS;
-use crate::stamp::digit;
+use crate::stamp;
 use crate::utc::NS;
 use crate::{Error, ALPHABET};
 
@@ -97,10 +97,25 @@ impl Duration {
         Self::from_units(if nanos < 0 { -units } else { units })
     }
 
-    /// In nanoseconds, truncated toward zero.
+    /// In nanoseconds, to the nearest (halves away from zero).
+    ///
+    /// A nanosecond is not a whole number of 2⁻⁴⁰ s units, so
+    /// [`Duration::from_nanos`] truncates; rounding back to the nearest makes
+    /// every nanosecond count survive the round trip, and the difference of
+    /// two instants made from nanoseconds reads as the exact difference.
+    ///
+    /// ```
+    /// use t32::Duration;
+    ///
+    /// for n in [1, -1, 7, 999_999_999] {
+    ///     assert_eq!(Duration::from_nanos(n)?.as_nanos(), n);
+    /// }
+    /// # Ok::<(), t32::Error>(())
+    /// ```
     #[must_use]
     pub const fn as_nanos(self) -> i128 {
-        let mag = ((self.0.unsigned_abs() * NS as u128) >> FRAC_BITS) as i128;
+        let half = 1 << (FRAC_BITS - 1);
+        let mag = ((self.0.unsigned_abs() * NS as u128 + half) >> FRAC_BITS) as i128;
         if self.0 < 0 {
             -mag
         } else {
@@ -166,9 +181,15 @@ impl Sub for Duration {
 impl Sum for Duration {
     /// # Panics
     ///
-    /// Panics if the total reaches 2⁴⁰ s in magnitude.
+    /// Panics if the total reaches 2⁴⁰ s in magnitude. Partial sums may
+    /// exceed it on the way: only the total is checked.
     fn sum<I: Iterator<Item = Duration>>(iter: I) -> Duration {
-        iter.fold(Duration::ZERO, |a, b| a + b)
+        // Each term is below 2⁸⁰ units, so i128 holds 2⁴⁷ of them before overflowing.
+        let total = iter.fold(0i128, |a, d| {
+            a.checked_add(d.0)
+                .expect("sum of durations overflowed i128")
+        });
+        Duration::from_units(total).expect("duration out of range")
     }
 }
 
@@ -193,11 +214,15 @@ impl TryFrom<std::time::Duration> for Duration {
 impl TryFrom<Duration> for std::time::Duration {
     type Error = Error;
 
-    /// The standard-library duration, truncated to the nanosecond. Fails for
+    /// The standard-library duration, to the nearest nanosecond. Fails for
     /// negative durations, which `std::time::Duration` cannot hold.
     fn try_from(d: Duration) -> Result<Self, Error> {
-        let nanos = u64::try_from(d.as_nanos()).map_err(|_| Error::OutOfRange)?;
-        Ok(std::time::Duration::from_nanos(nanos))
+        if d.is_negative() {
+            return Err(Error::OutOfRange);
+        }
+        let nanos = d.as_nanos().unsigned_abs();
+        let secs = u64::try_from(nanos / NS as u128).map_err(|_| Error::OutOfRange)?;
+        Ok(std::time::Duration::new(secs, (nanos % NS as u128) as u32))
     }
 }
 
@@ -206,26 +231,22 @@ impl fmt::Display for Duration {
     /// zeros, `+0` for zero.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mag = self.0.unsigned_abs();
-        let (mut int, mut frac) = (mag >> FRAC_BITS, mag & FRAC_MASK);
-        let mut digits = Vec::new();
-        loop {
-            digits.push(ALPHABET[(int % 32) as usize]);
-            int /= 32;
-            if int == 0 {
-                break;
-            }
+        let (int, mut frac) = (mag >> FRAC_BITS, mag & FRAC_MASK);
+        f.write_char(if self.0 < 0 { '-' } else { '+' })?;
+        // Below 2⁴⁰ s, the integer part has at most 8 digits.
+        let places = (1..8).take_while(|&k| int >> (5 * k) > 0).count();
+        for k in (0..=places).rev() {
+            f.write_char(ALPHABET[(int >> (5 * k) & 31) as usize].into())?;
         }
-        digits.reverse();
         if frac > 0 {
-            digits.push(b'.');
+            f.write_char('.')?;
             while frac > 0 {
                 frac <<= 5;
-                digits.push(ALPHABET[(frac >> FRAC_BITS) as usize]);
+                f.write_char(ALPHABET[(frac >> FRAC_BITS) as usize].into())?;
                 frac &= FRAC_MASK;
             }
         }
-        let sign = if self.0 < 0 { '-' } else { '+' };
-        write!(f, "{sign}{}", std::str::from_utf8(&digits).unwrap())
+        Ok(())
     }
 }
 
@@ -267,10 +288,12 @@ impl FromStr for Duration {
 fn digits(t: &str) -> Result<u128, Error> {
     let mut v = 0u128;
     for (i, c) in t.chars().enumerate() {
+        // A character is checked before it is counted (SPEC.md, Text form).
+        let d = stamp::digit(c).ok_or(Error::InvalidChar(c))?;
         if i == 8 {
             return Err(Error::TooLong);
         }
-        v = v * 32 + u128::from(digit(c).ok_or(Error::InvalidChar(c))?);
+        v = v * 32 + u128::from(d);
     }
     if t.is_empty() {
         Err(Error::Empty)
@@ -329,15 +352,36 @@ mod tests {
         assert!(Duration::from_units(i128::MIN).is_err());
         assert!(Duration::from_units(i128::MAX).is_err());
         assert!(std::time::Duration::try_from(-s).is_err());
+        let tiny = Duration::from_units(-1).unwrap();
+        assert!(
+            std::time::Duration::try_from(tiny).is_err(),
+            "negative, however small"
+        );
         assert_eq!(std::time::Duration::try_from(s).unwrap().as_secs(), 1);
         let max = Duration::from_units(LIMIT - 1).unwrap();
         assert!(std::panic::catch_unwind(|| max + s).is_err());
+        assert_eq!(
+            [max, max, -max].into_iter().sum::<Duration>(),
+            max,
+            "only the total is checked"
+        );
     }
 
     #[test]
     fn std_and_nanos() {
         let d = Duration::try_from(std::time::Duration::from_millis(1500)).unwrap();
         assert_eq!(d.as_nanos(), 1_500_000_000);
-        assert_eq!(Duration::from_nanos(-7).unwrap().as_nanos(), -6); // 7 ns is not exact in 2⁻⁴⁰ s
+        // A nanosecond is not exact in 2⁻⁴⁰ s, yet every count reads back.
+        for n in (-3_000..3_000).chain([i64::MAX as i128, -(i64::MAX as i128)]) {
+            assert_eq!(Duration::from_nanos(n).unwrap().as_nanos(), n, "{n} ns");
+        }
+        let seven = std::time::Duration::from_nanos(7);
+        let back = std::time::Duration::try_from(Duration::try_from(seven).unwrap()).unwrap();
+        assert_eq!(back, seven);
+        let long = Duration::from_secs(1 << 39).unwrap(); // beyond u64 nanoseconds
+        assert_eq!(
+            std::time::Duration::try_from(long).unwrap().as_secs(),
+            1 << 39
+        );
     }
 }

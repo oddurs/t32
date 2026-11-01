@@ -27,8 +27,8 @@ pub enum Error {
     InvalidLength(u8),
     /// A duration was written without its mandatory `+` or `-`.
     MissingSign,
-    /// The value lies outside what T32 can represent: about 15,420 BCE to
-    /// 19,420 CE for instants, or 2^40 seconds for durations.
+    /// The value lies outside what T32 can represent: 15,423 BCE to 19,421 CE
+    /// for instants, or 2^40 seconds for durations.
     OutOfRange,
     /// A date or time field was out of bounds, or the text was not of the form
     /// `YYYY-MM-DDThh:mm:ss[.fffffffff]Z`.

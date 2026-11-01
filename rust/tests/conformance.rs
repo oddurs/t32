@@ -60,11 +60,18 @@ fn encode_utc() {
     for row in vectors()["encode_utc"].as_array().unwrap() {
         let utc = row["utc"].as_str().unwrap();
         let len = row["length"].as_u64().unwrap() as u8;
-        let got = utc
-            .parse::<UtcDateTime>()
+        let label = utc.parse::<UtcDateTime>();
+        let got = label
             .and_then(Instant::from_utc)
             .and_then(|t| Stamp::new(t, len));
         assert_eq!(outcome(got), expected(row, "stamp"), "{utc} at {len}");
+        if let Some(p) = row.get("provisional") {
+            assert_eq!(
+                label.unwrap().is_provisional(),
+                p.as_bool().unwrap(),
+                "{utc}"
+            );
+        }
     }
 }
 
@@ -73,8 +80,26 @@ fn encode_unix() {
     for row in vectors()["encode_unix"].as_array().unwrap() {
         let n = int(row, "unix_nanos");
         let len = row["length"].as_u64().unwrap() as u8;
-        let got = Instant::from_unix_nanos(n).and_then(|t| Stamp::new(t, len));
+        let instant = Instant::from_unix_nanos(n);
+        let got = instant.and_then(|t| Stamp::new(t, len));
         assert_eq!(outcome(got), expected(row, "stamp"), "{n}");
+        if let Some(p) = row.get("provisional") {
+            assert_eq!(
+                instant.unwrap().is_provisional(),
+                p.as_bool().unwrap(),
+                "{n}"
+            );
+        }
+    }
+}
+
+#[test]
+fn encode_tai() {
+    for row in vectors()["encode_tai"].as_array().unwrap() {
+        let units: u128 = row["units"].as_str().unwrap().parse().unwrap();
+        let len = row["length"].as_u64().unwrap() as u8;
+        let got = Instant::from_units(units).and_then(|t| Stamp::new(t, len));
+        assert_eq!(outcome(got), expected(row, "stamp"), "{units} at {len}");
     }
 }
 
@@ -102,6 +127,11 @@ fn decode() {
             row["start_inserted"].as_bool().unwrap(),
             "{s}"
         );
+        assert_eq!(
+            s.start().is_provisional(),
+            row["start_provisional"].as_bool().unwrap(),
+            "{s}"
+        );
         match s.end() {
             None => assert!(row["end_utc"].is_null(), "{s}"),
             Some(end) => {
@@ -115,6 +145,11 @@ fn decode() {
                     row["end_inserted"].as_bool().unwrap(),
                     "{s}"
                 );
+                assert_eq!(
+                    end.is_provisional(),
+                    row["end_provisional"].as_bool().unwrap(),
+                    "{s}"
+                );
             }
         }
     }
@@ -123,7 +158,12 @@ fn decode() {
 #[test]
 fn durations() {
     for row in vectors()["durations"].as_array().unwrap() {
-        let text = row["text"].as_str().unwrap();
+        let Some(text) = row["text"].as_str() else {
+            // From nanoseconds, out of range.
+            let got = Duration::from_nanos(int(row, "nanos"));
+            assert_eq!(got.map_err(code).err(), row["error"].as_str(), "{row}");
+            continue;
+        };
         if let Some(e) = row.get("error") {
             assert_eq!(
                 text.parse::<Duration>().map_err(code).err(),
@@ -144,5 +184,63 @@ fn durations() {
                 assert_eq!(Duration::from_nanos(int(row, "nanos")).unwrap(), d);
             }
         }
+    }
+}
+
+fn stamp(row: &Value, field: &str) -> Stamp {
+    row[field].as_str().unwrap().parse().unwrap()
+}
+
+#[test]
+fn binary() {
+    for row in vectors()["binary"].as_array().unwrap() {
+        let s = stamp(row, "stamp");
+        let bytes = (5 * usize::from(s.len())).div_ceil(8);
+        assert_eq!(
+            format!("{:0w$x}", s.value(), w = 2 * bytes),
+            row["bytes"].as_str().unwrap(),
+            "{s}"
+        );
+    }
+}
+
+#[test]
+fn upper_bound() {
+    for row in vectors()["upper_bound"].as_array().unwrap() {
+        let bound = stamp(row, "prefix").upper_bound().map(|b| b.to_string());
+        assert_eq!(bound.as_deref(), row["bound"].as_str(), "{row}");
+    }
+}
+
+#[test]
+fn max_length() {
+    for row in vectors()["max_length"].as_array().unwrap() {
+        let r = Duration::from_units(int(row, "units")).unwrap();
+        assert_eq!(
+            u64::from(Stamp::max_len(r)),
+            row["length"].as_u64().unwrap(),
+            "{row}"
+        );
+    }
+}
+
+#[test]
+fn add() {
+    for row in vectors()["add"].as_array().unwrap() {
+        let d: Duration = row["duration"].as_str().unwrap().parse().unwrap();
+        let got = stamp(row, "stamp").checked_add(d);
+        assert_eq!(outcome(got), expected(row, "result"), "{row}");
+    }
+}
+
+#[test]
+fn difference() {
+    for row in vectors()["difference"].as_array().unwrap() {
+        let (a, b) = (stamp(row, "a"), stamp(row, "b"));
+        assert_eq!(
+            (b.start() - a.start()).to_string(),
+            row["b_minus_a"].as_str().unwrap(),
+            "{row}"
+        );
     }
 }
