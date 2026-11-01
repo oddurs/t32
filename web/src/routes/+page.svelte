@@ -2,6 +2,7 @@
 	import { base } from '$app/paths';
 	import Clock from '$lib/components/Clock.svelte';
 	import Head from '$lib/components/Head.svelte';
+	import { DRAFT, DRAFT_DATE, VECTOR_COUNT } from '$lib/site';
 	import ZoomFigure from '$lib/components/ZoomFigure.svelte';
 	import { parse, parseUtc, fromFx, format } from '$lib/t32';
 
@@ -24,7 +25,7 @@
 
 <div class="with-rail">
 	<header class="titleblock">
-		<span class="label">T32 · Draft 0.2</span>
+		<span class="label">T32 · Draft {DRAFT}</span>
 		<h1>A compact universal timestamp</h1>
 		<p class="lede">
 			T32 writes any moment as eight characters: a count of atomic seconds since 2000, in base32.
@@ -39,12 +40,12 @@
 	<aside class="rail after" aria-label="Document">
 		<p class="label">Document</p>
 		<dl class="meta">
-			<dt>Status</dt><dd>Draft 0.2, for public review</dd>
-			<dt>Date</dt><dd>2026-10-31</dd>
+			<dt>Status</dt><dd>Draft {DRAFT}, for public review</dd>
+			<dt>Date</dt><dd>{DRAFT_DATE}</dd>
 			<dt>Editor</dt><dd>Oddur Sigurdsson</dd>
 			<dt>Time scale</dt><dd>TAI, International Atomic Time</dd>
 			<dt>Text</dt><dd><a href="{base}/spec/">Specification</a></dd>
-			<dt>Conformance</dt><dd><a href="https://github.com/oddurs/t32/blob/main/vectors/t32-vectors.json">594 vectors</a></dd>
+			<dt>Conformance</dt><dd><a href="https://github.com/oddurs/t32/blob/main/vectors/t32-vectors.json">{VECTOR_COUNT} vectors</a></dd>
 			<dt>Code</dt><dd><a href="https://crates.io/crates/t32">Rust</a> · <a href="https://github.com/oddurs/t32/blob/main/web/src/lib/t32.ts">TypeScript</a></dd>
 		</dl>
 	</aside>

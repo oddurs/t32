@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Head from '$lib/components/Head.svelte';
+	import { DRAFT } from '$lib/site';
 	import { base } from '$app/paths';
 	let { data } = $props();
 
@@ -13,7 +14,8 @@
 
 	const track = [
 		{ name: 'Draft 0.1', when: '2026-10-30', what: 'First public draft.', state: 'done' },
-		{ name: 'Draft 0.2', when: '2026-10-31', what: 'Complete enough to implement. Public review is open.', state: 'current' },
+		{ name: 'Draft 0.2', when: '2026-10-31', what: 'Complete enough to implement. Public review opened.', state: 'done' },
+		{ name: 'Draft 0.3', when: '2026-11-01', what: 'Errata from the first review; every vector generated.', state: 'current' },
 		{ name: 'Review', when: 'Open', what: 'Open questions decided, errata closed, three independent implementations.', state: '' },
 		{ name: 'Version 1.0', when: 'After 60 days', what: 'The core is frozen: a stamp means the same thing forever.', state: '' },
 		{ name: 'Working group', when: 'With 1.0', what: 'Chartered by implementers and reviewers, in a neutral home.', state: '' }
@@ -26,7 +28,7 @@
 
 <div class="with-rail">
 	<header class="titleblock">
-		<span class="label">T32 · Draft 0.2 · Participation</span>
+		<span class="label">T32 · Draft {DRAFT} · Participation</span>
 		<h1>Participate</h1>
 		<p class="lede">
 			A specification becomes a standard by being read, implemented and questioned by people other than
@@ -164,7 +166,9 @@
 		padding: 0;
 		margin: var(--s5) 0 var(--s5);
 		display: grid;
-		grid-template-columns: repeat(5, minmax(0, 1fr));
+		/* One column per step, however many there are. */
+		grid-auto-flow: column;
+		grid-auto-columns: minmax(0, 1fr);
 		gap: 0 var(--s4);
 		position: relative;
 	}
@@ -256,6 +260,7 @@
 	}
 	@media (max-width: 700px) {
 		.track {
+			grid-auto-flow: row;
 			grid-template-columns: 1fr;
 			gap: var(--s4);
 			padding-left: var(--s5);
