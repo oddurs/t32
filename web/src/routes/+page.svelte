@@ -2,6 +2,7 @@
 	import { base } from '$app/paths';
 	import Clock from '$lib/components/Clock.svelte';
 	import Head from '$lib/components/Head.svelte';
+	import ZoomFigure from '$lib/components/ZoomFigure.svelte';
 	import { parse, parseUtc, fromFx, format } from '$lib/t32';
 
 	// The worked example, computed by the implementation so the numbers cannot drift.
@@ -56,7 +57,8 @@
 		<ol class="steps">
 			<li>
 				<strong>Count.</strong> Take the instant as seconds of International Atomic Time (TAI) since the
-				start of 2000. TAI is the steady count of seconds behind UTC, without leap seconds.
+				start of 2000. TAI is the atomic time scale that UTC is derived from, and it has no leap seconds,
+				so every second is the same length.
 			</li>
 			<li>
 				<strong>Offset.</strong> Add 2<sup>39</sup> seconds, about 17,400 years, so that earlier dates are
@@ -82,8 +84,11 @@
 
 		<p>
 			Shorten it to <span class="data">{format(coarse)}</span> and it names the 12 days that contain that
-			second; the <a href="{base}/playground/">playground</a> shows every step.
+			second. Each character narrows the span before it by a factor of 32; the
+			<a href="{base}/playground/">playground</a> shows the same steps for any date.
 		</p>
+
+		<ZoomFigure stamp={worked.stamp} />
 
 		<h2>Properties</h2>
 
@@ -103,7 +108,7 @@
 		<div class="table-wrap">
 			<table>
 				<thead>
-					<tr><th>Format</th><th>One second</th><th class="num">Chars</th><th>Sorts as text</th><th>States resolution</th><th>Leap seconds</th></tr>
+					<tr><th>Format</th><th>The same second</th><th class="num">Chars</th><th>Sorts as text</th><th>States resolution</th><th>Leap seconds</th></tr>
 				</thead>
 				<tbody>
 					<tr><td>ISO 8601, UTC</td><td class="data">2026-10-31T03:13:00Z</td><td class="num">20</td><td>Within one format and zone</td><td>Partly</td><td>Has 23:59:60</td></tr>
