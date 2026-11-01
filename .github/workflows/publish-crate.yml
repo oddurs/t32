@@ -1,48 +1,75 @@
 name: Publish crate
 
 # Publishes the t32 crate to crates.io, then tags the commit t32-v<version>.
-# Run it from the Actions tab (or the API) on main. It needs the repository
-# secret CARGO_REGISTRY_TOKEN: a crates.io token scoped to publish t32.
+# Run it from the Actions tab (or the API) on main; from any other branch
+# every job is skipped. It runs the full CI on the commit first, so nothing
+# untested is published. It needs the repository secret
+# CARGO_REGISTRY_TOKEN: a crates.io token scoped to publish t32.
 
 on:
   workflow_dispatch:
 
-permissions:
-  contents: write # to push the release tag
+permissions: {}
 
 concurrency:
   group: publish-crate
   cancel-in-progress: false
 
 jobs:
+  ci:
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
   publish:
+    needs: ci
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     defaults:
       run:
         working-directory: rust
     steps:
-      - uses: actions/checkout@v4
+      # cargo publish builds the crate, running build scripts of dependencies;
+      # keep the token out of .git/config.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Read the version
         id: version
         run: echo "version=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')" >> "$GITHUB_OUTPUT"
 
       - name: Refuse to publish a version twice
+        env:
+          TAG: t32-v${{ steps.version.outputs.version }}
         run: |
-          if git ls-remote --exit-code --tags origin "t32-v${{ steps.version.outputs.version }}" >/dev/null; then
-            echo "t32-v${{ steps.version.outputs.version }} is already tagged; bump the version first." >&2
+          if git ls-remote --exit-code --tags origin "$TAG" >/dev/null; then
+            echo "$TAG is already tagged; bump the version first." >&2
             exit 1
           fi
-
-      - run: cargo test
-      - run: cargo test --all-features
 
       - name: Publish to crates.io
         run: cargo publish
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
+  # The only job that can write to the repository, and it runs no build.
+  tag:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
       - name: Tag the release
+        env:
+          TAG: t32-v${{ needs.publish.outputs.version }}
         run: |
-          git tag "t32-v${{ steps.version.outputs.version }}"
-          git push origin "t32-v${{ steps.version.outputs.version }}"
+          git tag "$TAG"
+          git push origin "$TAG"
