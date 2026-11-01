@@ -3,3 +3,10 @@
 .DS_Store
 __pycache__/
 *.pyc
+
+# LaTeX build output
+/ietf/*.aux
+/ietf/*.log
+/ietf/*.out
+/ietf/*.toc
+/ietf/*.pdf
