@@ -2,7 +2,7 @@
 
 ## Quick start
 
-A T32 stamp is a time written as base32 digits. Eight digits is one second; each extra digit is 32 times finer, each digit removed 32 times coarser.
+A T32 stamp is a time written in base32 characters. Eight characters name one second; each character added is 32 times finer, and each one removed 32 times coarser.
 
 ```
 G0S7G6B1        2026-10-31 03:13:00 UTC, to the second
@@ -110,7 +110,7 @@ Four types carry everything: `Instant` (a point in time, exact to 2⁻⁴⁰ s),
 
 Most clocks give Unix time, which follows UTC. Convert with the TAI − UTC table, which both implementations include. A Unix value never names a leap second: the second that repeats is read as 00:00:00 of the next day.
 
-On Linux, `CLOCK_TAI` reads TAI directly (subtract 946,684,800 s for seconds since the T32 epoch), but only if something has told the kernel the current offset. chrony (`leapsectz right/UTC`) and ntpd (a `leapfile`) do. Otherwise the offset is 0 and `CLOCK_TAI` silently equals `CLOCK_REALTIME`, 37 s wrong. Check that `adjtimex()` reports `tai` equal to 37 before relying on it; an unset offset is 0, and a stale one is wrong by whole seconds.
+On Linux, `CLOCK_TAI` reads TAI directly (subtract 946,684,800 s for seconds since the T32 epoch), but only if something has told the kernel the current offset. chrony (`leapsectz right/UTC`) and ntpd (a `leapfile`) do. Otherwise the offset is 0 and `CLOCK_TAI` silently equals `CLOCK_REALTIME`, 37 s wrong. Before relying on it, check that `adjtimex()` reports `tai` as 37: 0 means the offset was never set, and any other value is stale.
 
 Around a past leap second, clocks that smeared it (some cloud providers did, over many hours) or repeated a second can be up to 1 s off. Undo a known smear before encoding; otherwise treat stamps from that window as approximate. With UTC continuous from 2027-05-20, this only matters for historical data.
 
@@ -152,7 +152,7 @@ They are identifiers: a millisecond Unix timestamp plus randomness. T32 is a tim
 
 Base32 is case-insensitive, so it survives file systems, URLs and people reading it aloud; the Crockford alphabet drops the confusable letters. Its characters are in ASCII order, so text order equals numeric order. And 5 bits per character gives clean steps of 32.
 
-### Why does every stamp start with `G`?
+### Why does every current stamp start with `G`?
 
 The first character covers about 1,089 years, so everything from 2000 to 3089 shares it. That is the price of a fixed width; writing "2026" repeats "20" for the same reason.
 
