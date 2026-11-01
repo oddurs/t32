@@ -90,6 +90,8 @@
 		align-items: baseline;
 		justify-content: space-between;
 		gap: var(--s2) var(--s6);
+		/* Body leading adds space under the baseline and pushes the text above centre. */
+		line-height: 1;
 	}
 	.brand {
 		display: flex;
@@ -102,7 +104,6 @@
 		font-weight: 760;
 		font-size: 1.1875rem;
 		letter-spacing: -0.02em;
-		line-height: 1;
 	}
 	.edition {
 		font-size: var(--label);
@@ -111,31 +112,27 @@
 		text-transform: uppercase;
 		color: var(--ink-3);
 	}
-	nav a {
-		font-size: var(--small);
-		font-weight: var(--w-medium);
-		letter-spacing: 0.005em;
-	}
 	nav {
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--s2) var(--s5);
 	}
 	nav a {
+		font-size: var(--small);
+		font-weight: var(--w-medium);
+		letter-spacing: 0.005em;
 		color: var(--ink-2);
-		text-decoration: none;
-		padding-bottom: 2px;
-		border-bottom: 1px solid transparent;
+		/* A decoration takes no layout space, unlike the padded border it replaces, so the marker cannot lift the text. */
+		text-decoration: underline 1px transparent;
+		text-underline-offset: 5px;
+		text-decoration-skip-ink: none;
 	}
 	nav a:hover {
 		color: var(--ink);
 	}
 	nav a[aria-current='page'] {
 		color: var(--ink);
-		border-bottom-color: var(--ink);
-	}
-	nav a {
-		padding-bottom: 3px;
+		text-decoration-color: var(--ink);
 	}
 	.ext::after {
 		content: ' ↗';
