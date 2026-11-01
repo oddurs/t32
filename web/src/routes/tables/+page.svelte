@@ -1,10 +1,12 @@
 <script lang="ts">
 	import Head from '$lib/components/Head.svelte';
+	import EraStrip from '$lib/components/EraStrip.svelte';
+	import LeapChart from '$lib/components/LeapChart.svelte';
 	import { exponents } from '$lib/exponents';
 	import {
 		ALPHABET, MAX_LEN, CANONICAL_LEN, STEPS, parse, format, fromFx, startFx, endFx, deltaAt,
 		fxToUtcString, fxToUtcStringExact, parseUtc, formatDuration, durationFromNs, unitSeconds,
-		civilFromDays, maxLengthFor
+		civilFromDays, maxLengthFor, PERIODS
 	} from '$lib/t32';
 	import { humanSpan, exactUnit } from '$lib/describe';
 
@@ -101,6 +103,14 @@
 		date: dateOf(x.unixNs),
 		step: (x.seconds > 0 ? '+' : '−') + Math.abs(x.seconds).toFixed(7).replace(/0+$/, ''),
 		kind: x.seconds > 0 ? 'Inserted' : 'Removed: labels in the last ' + Math.abs(x.seconds) + ' s of the day before never occurred'
+	}));
+	// 9. The rate-adjusted periods, read from the implementation's copy of Appendix A.
+	const seventh = (v: bigint) => (Number(v) / 1e7).toFixed(7);
+	const rubber = PERIODS.filter((p) => p.r !== 0n).map((p) => ({
+		from: dateOf(p.start),
+		a: seventh(p.a),
+		m: Number(p.m / (86_400n * NS)) + 40_587,
+		r: seventh(p.r)
 	}));
 	const resolutions: [string, number][] = [['1 second', 1], ['100 ms', 0.1], ['10 ms', 0.01], ['1 ms', 1e-3], ['1 µs', 1e-6], ['1 ns', 1e-9], ['1 ps', 1e-12]];
 
@@ -201,7 +211,11 @@
 		</div>
 
 		<h2 id="eras"><span class="secno">3</span>Eras (first character)</h2>
-		<p>Each era is 2<sup>35</sup> seconds, about 1,089 years. Years are proleptic Gregorian.</p>
+		<p>
+			Each era is 2<sup>35</sup> seconds, about 1,089 years. Years are UTC, in the proleptic Gregorian
+			calendar, so era G begins in 1999: the epoch, midnight TAI, is 23:59:28 UTC on 31 December.
+		</p>
+		<EraStrip {eras} current="G" />
 		<div class="table-wrap">
 			<table>
 				<thead><tr><th>Char</th><th>From</th><th>Until</th><th>Char</th><th>From</th><th>Until</th></tr></thead>
@@ -279,6 +293,7 @@
 			announced no leap second for the end of 2026, and the CGPM has made UTC continuous from 2027-05-20, so this list is
 			expected to be complete.
 		</p>
+		<LeapChart />
 		<div class="table-wrap">
 			<table>
 				<thead><tr><th class="num">#</th><th>Inserted second (UTC)</th><th>T32</th><th class="num">TAI − UTC after</th></tr></thead>
@@ -291,21 +306,13 @@
 		</div>
 
 		<h2 id="rubber"><span class="secno">9</span>TAI − UTC, 1961–1971, and its steps</h2>
-		<p>Before 1972, UTC ran at an adjusted rate. TAI − UTC = a + (MJD − m) × r seconds, with MJD of the UTC instant. Before 1961 it is defined as 0.</p>
+		<p>Before 1972, UTC ran at an adjusted rate. TAI − UTC = a + (MJD − m) × r seconds, where MJD is the Modified Julian Date of the UTC instant. Before 1961 it is defined as 0.</p>
 		<div class="table-wrap">
 			<table>
 				<thead><tr><th>From</th><th class="num">a (s)</th><th class="num">m (MJD)</th><th class="num">r (s/day)</th></tr></thead>
 				<tbody>
-					{#each [
-						['1961-01-01', '1.4228180', 37300, '0.0012960'], ['1961-08-01', '1.3728180', 37300, '0.0012960'],
-						['1962-01-01', '1.8458580', 37665, '0.0011232'], ['1963-11-01', '1.9458580', 37665, '0.0011232'],
-						['1964-01-01', '3.2401300', 38761, '0.0012960'], ['1964-04-01', '3.3401300', 38761, '0.0012960'],
-						['1964-09-01', '3.4401300', 38761, '0.0012960'], ['1965-01-01', '3.5401300', 38761, '0.0012960'],
-						['1965-03-01', '3.6401300', 38761, '0.0012960'], ['1965-07-01', '3.7401300', 38761, '0.0012960'],
-						['1965-09-01', '3.8401300', 38761, '0.0012960'], ['1966-01-01', '4.3131700', 39126, '0.0025920'],
-						['1968-02-01', '4.2131700', 39126, '0.0025920']
-					] as row (row[0])}
-						<tr><td class="data">{row[0]}</td><td class="num data">{row[1]}</td><td class="num">{row[2]}</td><td class="num data">{row[3]}</td></tr>
+					{#each rubber as row (row.from)}
+						<tr><td class="data">{row.from}</td><td class="num data">{row.a}</td><td class="num">{row.m}</td><td class="num data">{row.r}</td></tr>
 					{/each}
 				</tbody>
 			</table>

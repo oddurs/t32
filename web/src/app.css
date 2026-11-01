@@ -262,6 +262,18 @@ figure,
 	margin: 0 0 var(--s4);
 }
 
+/* Figures that explain something get room around them and a caption that says what to look at. */
+figure:has(> .caption) {
+	margin: var(--s5) 0 var(--s6);
+}
+.caption {
+	margin-top: var(--s3);
+	max-width: var(--measure);
+	font-size: var(--small);
+	line-height: 1.5;
+	color: var(--ink-2);
+}
+
 ul,
 ol {
 	padding-left: 1.25em;
