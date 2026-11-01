@@ -1,9 +1,13 @@
 name: CI
 
+# Runs on pull requests, and on main as the first stage of pages.yml and
+# publish-crate.yml, so nothing ships from a commit that has not passed.
 on:
   pull_request:
-  push:
-    branches: [main]
+  workflow_call:
+
+permissions:
+  contents: read
 
 jobs:
   rust:
@@ -12,7 +16,7 @@ jobs:
       run:
         working-directory: rust
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: cargo fmt --check
       - run: cargo clippy --all-targets --all-features -- -D warnings
       - run: cargo test                      # unit, integration and doc tests
@@ -29,7 +33,7 @@ jobs:
       run:
         working-directory: rust
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: rustup toolchain install 1.70 --profile minimal
       # The library's MSRV; the test suite's dev-dependencies need newer Rust.
       - run: cargo +1.70 check --lib
@@ -38,7 +42,7 @@ jobs:
   oracle:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: python3 tools/oracle.py --check vectors/t32-vectors.json
 
   web:
@@ -47,8 +51,8 @@ jobs:
       run:
         working-directory: web
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
