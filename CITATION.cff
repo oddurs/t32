@@ -7,8 +7,8 @@ abstract: >-
   length is its resolution, every stamp names an interval, text order is time
   order, and a prefix is a range query.
 type: software
-version: "draft 0.2"
-date-released: "2026-10-31"
+version: "draft 0.3"
+date-released: "2026-11-01"
 authors:
   - given-names: Oddur
     family-names: Sigurdsson
