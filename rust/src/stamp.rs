@@ -91,9 +91,11 @@ impl Stamp {
         Stamp::new(Instant::now()?, Self::CANONICAL_LEN)
     }
 
-    /// The longest length a source of this resolution may use: the length
-    /// whose unit is nearest the resolution on a logarithmic scale, ties going
-    /// to the shorter (SPEC.md, Length and resolution).
+    /// The longest length a source of this resolution may use: the longest n
+    /// with 32·u(n)² > r², which is the length whose unit is nearest the
+    /// resolution on a logarithmic scale (SPEC.md, Length and resolution).
+    /// The arithmetic is exact. A resolution is a width, so its sign is
+    /// ignored; zero allows every length.
     ///
     /// ```
     /// use t32::{Duration, Stamp};
@@ -105,15 +107,39 @@ impl Stamp {
     /// ```
     #[must_use]
     pub fn max_len(resolution: Duration) -> u8 {
-        let units = resolution.units();
-        if units <= 0 {
-            return Self::MAX_LEN;
+        let r = resolution.units().unsigned_abs();
+        // The unit of length n is 2^(5·(16 − n)) units, so 32·u(n)² = 2^(10·(16 − n) + 5).
+        (1..=Self::MAX_LEN)
+            .rev()
+            .find(|&n| square_below(r, 10 * u32::from(Self::MAX_LEN - n) + 5))
+            .unwrap_or(1)
+    }
+
+    /// The exclusive upper bound of the prefix range this stamp names: every
+    /// stamp it contains, at any length, sorts before the bound, and every
+    /// later stamp sorts at or after it. It is the stamp with its last digit
+    /// incremented, carrying left, with digits that carried to zero dropped;
+    /// `None` for a stamp of all `Z`.
+    ///
+    /// ```
+    /// use t32::Stamp;
+    ///
+    /// // Everything inside G0SZ, at any length, is >= "G0SZ" and < "G0T".
+    /// assert_eq!("G0SZ".parse::<Stamp>()?.upper_bound().unwrap().to_string(), "G0T");
+    /// assert_eq!("G0S7".parse::<Stamp>()?.upper_bound().unwrap().to_string(), "G0S8");
+    /// assert_eq!("ZZ".parse::<Stamp>()?.upper_bound(), None);
+    /// # Ok::<(), t32::Error>(())
+    /// ```
+    #[must_use]
+    pub fn upper_bound(self) -> Option<Stamp> {
+        let mut next = self.next()?;
+        while next.value % 32 == 0 {
+            next = Stamp {
+                value: next.value / 32,
+                len: next.len - 1,
+            };
         }
-        // The unit of length n is 2^(5·(16 − n)) units. Exact ties cannot occur:
-        // they would need a whole number of units equal to 2^(5k − 2.5).
-        let log32 = (units as f64).log2() / 5.0;
-        let n = f64::from(Self::MAX_LEN) - (log32 - 0.5).ceil();
-        n.clamp(1.0, f64::from(Self::MAX_LEN)) as u8
+        Some(next)
     }
 
     /// The stamp with value V of `len` characters: the binary form, as a field
@@ -276,13 +302,13 @@ impl Stamp {
         instant.units() >> shift_for(self.len) == self.value
     }
 
-    /// The next stamp of the same length, or `None` after the last. Its text
-    /// is the exclusive upper bound for a prefix range query.
+    /// The next stamp of the same length, or `None` after the last. For the
+    /// upper bound of a prefix range, use [`Stamp::upper_bound`]: in a column
+    /// of mixed lengths, `G0T` sorts between `G0SZ` and its successor `G0T0`.
     ///
     /// ```
     /// use t32::Stamp;
     ///
-    /// // Everything inside G0SZ is >= "G0SZ" and < "G0T0".
     /// assert_eq!("G0SZ".parse::<Stamp>()?.next().unwrap().to_string(), "G0T0");
     /// assert_eq!("ZZ".parse::<Stamp>()?.next(), None);
     /// # Ok::<(), t32::Error>(())
@@ -341,6 +367,23 @@ impl Stamp {
     }
 }
 
+/// Whether r² < 2^e, exactly, for r < 2⁸⁰ and e < 208.
+///
+/// r² can reach 2¹⁶⁰, beyond u128, so it is formed as hi·2⁸⁰ + lo from 40-bit
+/// halves of r, each partial product of which fits.
+fn square_below(r: u128, e: u32) -> bool {
+    const LOW: u128 = (1 << 80) - 1;
+    let (h, l) = (r >> 40, r & ((1 << 40) - 1));
+    let cross = 2 * h * l;
+    let low = l * l + ((cross & ((1 << 40) - 1)) << 40);
+    let (hi, lo) = (h * h + (cross >> 40) + (low >> 80), low & LOW);
+    if e >= 80 {
+        hi < 1 << (e - 80)
+    } else {
+        hi == 0 && lo < 1 << e
+    }
+}
+
 /// Bits below the value in an instant, for a stamp of `len` characters.
 const fn shift_for(len: u8) -> u32 {
     5 * (Stamp::MAX_LEN - len) as u32
@@ -393,6 +436,60 @@ impl fmt::Debug for Stamp {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn resolution_rule_is_exact_at_near_ties() {
+        // Just above the midpoint 2^52.5 units, where f64 log2 rounds to the tie.
+        let r = Duration::from_units(6_369_051_672_525_773).unwrap();
+        assert_eq!(Stamp::max_len(r), 5);
+        assert_eq!(Stamp::max_len(-r), 5, "a resolution's sign is ignored");
+        // At every midpoint, square_below splits isqrt(2^e) from isqrt(2^e) + 1.
+        // Where t² fits in u128 the reference is plain multiplication; beyond,
+        // the roots come from an independent big-integer computation.
+        for e in (5..=125u32).step_by(10) {
+            let root = (0..64).rev().fold(0u128, |acc, bit| {
+                let t = acc | (1 << bit);
+                if t * t < 1 << e {
+                    t
+                } else {
+                    acc
+                }
+            });
+            assert!(
+                square_below(root, e) && !square_below(root + 1, e),
+                "e = {e}"
+            );
+        }
+        for (e, root) in [
+            (135, 208_701_085_205_324_515_397u128),
+            (145, 6_678_434_726_570_384_492_722),
+            (155, 213_709_911_250_252_303_767_135),
+        ] {
+            assert!(
+                square_below(root, e) && !square_below(root + 1, e),
+                "e = {e}"
+            );
+        }
+    }
+
+    #[test]
+    fn upper_bound_partitions_mixed_lengths() {
+        let mut stamps: Vec<Stamp> = (0..4000i128)
+            .map(|i| {
+                let t = Instant::from_tai_nanos((i - 2000) * 7_919_000_000_017).unwrap();
+                Stamp::new(t, (i % 6 + 1) as u8).unwrap()
+            })
+            .collect();
+        stamps.sort();
+        for p in stamps.iter().step_by(37) {
+            let bound = p.upper_bound();
+            for s in &stamps {
+                let below = bound.map_or(true, |b| s.to_string() < b.to_string());
+                let inside = s.to_string() >= p.to_string() && below;
+                assert_eq!(inside, p.contains(*s), "{s} in {p}, bound {bound:?}");
+            }
+        }
+    }
 
     #[test]
     fn prefix_equals_coarse_encoding() {

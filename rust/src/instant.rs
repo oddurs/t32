@@ -2,7 +2,7 @@ use std::fmt;
 use std::ops::{Add, Sub};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::utc::{self, UtcDateTime, D, K, MAX_LABEL_NS};
+use crate::utc::{self, UtcDateTime, D, K, MAX_LABEL_NS, NS};
 use crate::{Duration, Error, Stamp};
 
 /// Bits after the binary point: an [`Instant`] counts units of 2⁻⁴⁰ s.
@@ -17,8 +17,8 @@ const BIAS_S: i128 = 1 << 39;
 ///
 /// The time scale is TAI from 1961 and Universal Time before, so from 1961 on,
 /// subtracting two instants gives true elapsed SI seconds. Every instant from
-/// about 15,420 BCE to 19,420 CE is representable, and every representable
-/// instant can be written as a [`Stamp`] of any length.
+/// 15,423 BCE to 19,421 CE is representable, and every representable instant
+/// can be written as a [`Stamp`] of any length.
 ///
 /// An instant made from nanoseconds (TAI, Unix or UTC) reads back as the same
 /// nanoseconds: readings in nanoseconds give the latest nanosecond whose
@@ -168,7 +168,13 @@ impl Instant {
     }
 
     /// Whether this instant falls in time UTC inserted: a leap second, or one
-    /// of the fractional steps before 1972.
+    /// of the fractional steps before 1972. The spec requires converters to
+    /// report this alongside the reading.
+    ///
+    /// A label's instant is rarely a whole number of 2⁻⁴⁰ s units, so the
+    /// instant made from a label is its floor. Just after a fractional
+    /// insertion before 1972, that floor can lie inside the insertion: the
+    /// instant then reports `true`, and still reads back as the label.
     ///
     /// ```
     /// use t32::Instant;
@@ -183,6 +189,24 @@ impl Instant {
         utc::scaled_to_reading(self.floor_scaled())
             .inserted_ns
             .is_some()
+    }
+
+    /// Whether reading this instant as UTC is provisional: its label is at or
+    /// after the expiry of the leap-second table, 2027-06-28T00:00:00Z
+    /// ([`UtcDateTime::TABLE_EXPIRES`]). The spec requires converters to
+    /// report this with the result, whichever way they convert; an instant made
+    /// from a Unix time or the system clock reports it here.
+    ///
+    /// ```
+    /// use t32::Instant;
+    ///
+    /// assert!(!Instant::from_unix_nanos(1_793_416_380_000_000_000)?.is_provisional());
+    /// assert!(Instant::from_unix_nanos(1_900_000_000_000_000_000)?.is_provisional());
+    /// # Ok::<(), t32::Error>(())
+    /// ```
+    #[must_use]
+    pub fn is_provisional(self) -> bool {
+        self.to_utc().is_provisional()
     }
 
     /// The current instant, from the system clock.
@@ -330,14 +354,19 @@ impl TryFrom<Instant> for SystemTime {
     /// The system time of an instant, by its Unix reading (an instant inside a
     /// leap second becomes the following 00:00:00, as POSIX clocks show it).
     fn try_from(instant: Instant) -> Result<Self, Error> {
+        // Whole seconds and a non-negative fraction, so the full range fits.
         let nanos = instant.unix_nanos();
-        let magnitude = u64::try_from(nanos.unsigned_abs()).map_err(|_| Error::OutOfRange)?;
-        let offset = std::time::Duration::from_nanos(magnitude);
-        if nanos >= 0 {
-            UNIX_EPOCH.checked_add(offset)
+        let secs =
+            u64::try_from(nanos.div_euclid(NS).unsigned_abs()).map_err(|_| Error::OutOfRange)?;
+        let whole = std::time::Duration::from_secs(secs);
+        let base = if nanos >= 0 {
+            UNIX_EPOCH.checked_add(whole)
         } else {
-            UNIX_EPOCH.checked_sub(offset)
-        }
+            UNIX_EPOCH.checked_sub(whole)
+        };
+        base.and_then(|t| {
+            t.checked_add(std::time::Duration::from_nanos(nanos.rem_euclid(NS) as u64))
+        })
         .ok_or(Error::OutOfRange)
     }
 }
@@ -375,7 +404,6 @@ impl fmt::Debug for Instant {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utc::NS;
 
     #[test]
     fn nanosecond_round_trips_are_exact() {
@@ -458,6 +486,24 @@ mod tests {
     }
 
     #[test]
+    fn nanosecond_differences_are_exact() {
+        for gap in [1, 7, 999, 1_000_000_007] {
+            let a = Instant::from_unix_nanos(1_700_000_000 * NS).unwrap();
+            let b = Instant::from_unix_nanos(1_700_000_000 * NS + gap).unwrap();
+            assert_eq!((b - a).as_nanos(), gap);
+        }
+    }
+
+    #[test]
+    fn provisional_from_every_path() {
+        let expiry = 1_814_140_800 * NS;
+        assert!(!Instant::from_unix_nanos(expiry - 1)
+            .unwrap()
+            .is_provisional());
+        assert!(Instant::from_unix_nanos(expiry).unwrap().is_provisional());
+    }
+
+    #[test]
     fn operators() {
         let day = Duration::from_secs(86_400).unwrap();
         assert_eq!(Instant::EPOCH + day - day, Instant::EPOCH);
@@ -486,5 +532,13 @@ mod tests {
             -86_400 * NS
         );
         assert!(Instant::now().is_ok());
+        // Centuries beyond u64 nanoseconds convert both ways.
+        for secs in [20_000_000_000i128, -21_000_000_000] {
+            let t = Instant::from_unix_nanos(secs * NS + 1).unwrap();
+            assert_eq!(
+                Instant::try_from(SystemTime::try_from(t).unwrap()).unwrap(),
+                t
+            );
+        }
     }
 }
