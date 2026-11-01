@@ -4,7 +4,7 @@ its resolution, every stamp names an interval, text order is time order, and a
 prefix is a range query.
 
 This crate is the reference implementation of the
-[T32 specification](https://github.com/oddurs/t32/blob/main/SPEC.md) (draft 0.2).
+[T32 specification](https://github.com/oddurs/t32/blob/main/SPEC.md) (draft 0.3).
 It has no required dependencies, uses no `unsafe`, builds on Rust 1.70 and
 later, and does all of its arithmetic exactly in integers, rounding once,
 where the spec says to.
@@ -52,7 +52,7 @@ the exact, sortable text forms, and compact formats get integers.
 
 ```toml
 [dependencies]
-t32 = { version = "0.2", features = ["serde"] }
+t32 = { version = "0.3", features = ["serde"] }
 ```
 
 ```json

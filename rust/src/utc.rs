@@ -16,7 +16,7 @@
 use std::fmt;
 use std::str::FromStr;
 
-use crate::civil::{civil_from_days, days_from_civil};
+use crate::civil;
 use crate::Error;
 
 pub(crate) const NS: i128 = 1_000_000_000;
@@ -306,8 +306,10 @@ impl UtcDateTime {
             second,
             nanosecond,
         } = self;
+        // The spec's order: invalid_date, not_a_leap_second, removed_time, out_of_range.
         if !(1..=12).contains(&month)
-            || !(1..=31).contains(&day)
+            || day == 0
+            || u32::from(day) > civil::days_in_month(year, month.into())
             || hour > 23
             || minute > 59
             || second > 60
@@ -316,12 +318,14 @@ impl UtcDateTime {
             return Err(Error::InvalidDateTime);
         }
         if year.unsigned_abs() > MAX_YEAR as u64 {
-            return Err(Error::OutOfRange);
+            // No leap second was inserted out here, and the label cannot be encoded.
+            return Err(if second == 60 {
+                Error::NotALeapSecond
+            } else {
+                Error::OutOfRange
+            });
         }
-        let days = days_from_civil(year, month.into(), day.into());
-        if civil_from_days(days) != (year, month.into(), day.into()) {
-            return Err(Error::InvalidDateTime); // e.g. February 30
-        }
+        let days = civil::days_from_civil(year, month.into(), day.into());
         if second == 60 {
             if !(hour == 23 && minute == 59 && has_leap_second(days)) {
                 return Err(Error::NotALeapSecond);
@@ -404,7 +408,7 @@ impl UtcDateTime {
 
     /// The label in Unix nanoseconds, reading second 60 as 59.
     fn label_ns(&self) -> i128 {
-        let days = days_from_civil(self.year, self.month.into(), self.day.into()) as i128;
+        let days = civil::days_from_civil(self.year, self.month.into(), self.day.into()) as i128;
         let secs = days * 86_400
             + i128::from(self.hour) * 3600
             + i128::from(self.minute) * 60
@@ -423,7 +427,7 @@ impl UtcDateTime {
         let days = u.div_euclid(DAY_NS);
         let in_day = u.rem_euclid(DAY_NS);
         let secs = (in_day / NS) as u32;
-        let (year, month, day) = civil_from_days(days as i64);
+        let (year, month, day) = civil::civil_from_days(days as i64);
         UtcDateTime {
             year,
             month: month as u8,

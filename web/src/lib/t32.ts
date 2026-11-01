@@ -30,16 +30,19 @@ const MAX_LABEL_NS = 600_000_000_000n * NS;
 /** Durations stay below 2^40 s in magnitude: 2^80 units of 2^-40 s. */
 const MAX_DURATION = 1n << 80n;
 
+/** The spec's error codes (SPEC.md, Test vectors), plus two for this API's own arguments. */
 export type T32ErrorCode =
 	| 'empty'
-	| 'too-long'
-	| 'bad-char'
-	| 'bad-hyphen'
-	| 'out-of-range'
-	| 'bad-field'
-	| 'not-a-leap-second'
-	| 'skipped-label'
-	| 'too-fine';
+	| 'too_long'
+	| 'invalid_char'
+	| 'misplaced_hyphen'
+	| 'missing_sign'
+	| 'invalid_date'
+	| 'not_a_leap_second'
+	| 'removed_time'
+	| 'out_of_range'
+	| 'invalid_length'
+	| 'too_fine';
 
 export class T32Error extends Error {
 	constructor(public code: T32ErrorCode) {
@@ -73,11 +76,22 @@ function digit(ch: string): number {
 	return ALPHABET.indexOf(u);
 }
 
+const checkLen = (len: number) => {
+	if (!Number.isInteger(len) || len < 1 || len > MAX_LEN) fail('invalid_length');
+};
+const checkFx = (fx: bigint) => {
+	if (typeof fx !== 'bigint' || fx < 0n || fx >= RANGE_FX) fail('out_of_range');
+};
+/** A stamp built by hand (not by parse or fromFx) is checked before use. */
+const checkStamp = (s: Stamp) => {
+	checkLen(s.len);
+	if (typeof s.value !== 'bigint' || s.value < 0n || s.value >= 32n ** BigInt(s.len)) fail('out_of_range');
+};
+
 /** Floor a biased time to a stamp of `len` characters. */
 export function fromFx(fx: bigint, len: number): Stamp {
-	if (len < 1) fail('empty');
-	if (len > MAX_LEN || !Number.isInteger(len)) fail('too-long');
-	if (fx < 0n || fx >= RANGE_FX) fail('out-of-range');
+	checkLen(len);
+	checkFx(fx);
 	return { value: fx >> BigInt(5 * (MAX_LEN - len)), len };
 }
 
@@ -92,23 +106,24 @@ export function parse(input: string): Stamp {
 	let prevHyphen = false;
 	for (const ch of input) {
 		if (ch === '-') {
-			if (len === 0 || prevHyphen) fail('bad-hyphen');
+			if (len === 0 || prevHyphen) fail('misplaced_hyphen');
 			prevHyphen = true;
 			continue;
 		}
 		const d = digit(ch);
-		if (d < 0) fail('bad-char');
+		if (d < 0) fail('invalid_char');
 		prevHyphen = false;
-		if (++len > MAX_LEN) fail('too-long');
+		if (++len > MAX_LEN) fail('too_long');
 		value = value * 32n + BigInt(d);
 	}
 	if (len === 0) fail('empty');
-	if (prevHyphen) fail('bad-hyphen');
+	if (prevHyphen) fail('misplaced_hyphen');
 	return { value, len };
 }
 
 /** Canonical text: uppercase, exactly `len` digits, no separators. */
 export function format(stamp: Stamp): string {
+	checkStamp(stamp);
 	let v = stamp.value;
 	const out: string[] = new Array(stamp.len);
 	for (let i = stamp.len - 1; i >= 0; i--) {
@@ -123,7 +138,8 @@ export const display = (stamp: Stamp): string => format(stamp).replace(/(.{4})(?
 
 /** The containing stamp of `len` characters (string truncation). */
 export function truncate(stamp: Stamp, len: number): Stamp {
-	if (len < 1 || len > stamp.len) fail('bad-field');
+	checkStamp(stamp);
+	if (!Number.isInteger(len) || len < 1 || len > stamp.len) fail('invalid_length');
 	return { value: stamp.value >> BigInt(5 * (stamp.len - len)), len };
 }
 
@@ -133,6 +149,23 @@ export const startFx = (s: Stamp): bigint => s.value << shift(s);
 /** Exclusive end of the interval (2^80 for the last stamp). */
 export const endFx = (s: Stamp): bigint => (s.value + 1n) << shift(s);
 
+/**
+ * The exclusive upper bound of the prefix range a stamp names (SPEC.md,
+ * Ordering): the last digit incremented, carrying left, with digits that
+ * carried to zero dropped. Null for a stamp of all Z.
+ */
+export function upperBound(stamp: Stamp): Stamp | null {
+	checkStamp(stamp);
+	let value = stamp.value + 1n;
+	let len = stamp.len;
+	if (value === 32n ** BigInt(len)) return null;
+	while (value % 32n === 0n) {
+		value /= 32n;
+		len -= 1;
+	}
+	return { value, len };
+}
+
 /** A contains B exactly when A is a prefix of B. */
 export const contains = (a: Stamp, b: Stamp): boolean =>
 	b.len >= a.len && truncate(b, a.len).value === a.value;
@@ -141,12 +174,39 @@ export const contains = (a: Stamp, b: Stamp): boolean =>
 export const unitSeconds = (len: number): number => 2 ** (5 * (CANONICAL_LEN - len));
 
 /**
+ * The longest length an encoder may use for a source of resolution m * 2^e
+ * units of 2^-40 s (SPEC.md, Length and resolution): the longest n with
+ * 32 * u(n)^2 > r^2, where u(n) = 2^(5 * (16 - n)) units. Exact.
+ */
+function maxLengthExact(m: bigint, e: bigint): number {
+	const r2 = m * m;
+	for (let n = MAX_LEN; n > 1; n--) {
+		const k = BigInt(10 * (MAX_LEN - n) + 5) - 2n * e; // compare 2^k with m^2
+		if (k >= 0n ? r2 < 1n << k : r2 << -k < 1n) return n;
+	}
+	return 1;
+}
+
+/** As maxLengthFor, for a resolution in units of 2^-40 s. A resolution's sign is ignored. */
+export const maxLength = (units: bigint): number => maxLengthExact(abs(units), 0n);
+
+/**
  * The longest length an encoder may use for a source of the given resolution
- * (seconds): the length whose unit is nearest on a log scale, ties to the shorter.
+ * in seconds: the length whose unit is nearest on a log scale. The number is
+ * taken at its exact binary value, so the answer is exact too.
  */
 export function maxLengthFor(resolutionSeconds: number): number {
-	const x = -Math.log(resolutionSeconds) / Math.log(32);
-	return Math.min(MAX_LEN, Math.max(1, CANONICAL_LEN + Math.ceil(x - 0.5 - 1e-9)));
+	if (!Number.isFinite(resolutionSeconds)) fail('out_of_range');
+	const x = Math.abs(resolutionSeconds);
+	if (x === 0) return MAX_LEN;
+	// x = mantissa * 2^exp exactly, from its IEEE 754 bits.
+	const view = new DataView(new ArrayBuffer(8));
+	view.setFloat64(0, x);
+	const bits = view.getBigUint64(0);
+	const biased = (bits >> 52n) & 0x7ffn;
+	const frac = bits & ((1n << 52n) - 1n);
+	const [m, exp] = biased === 0n ? [frac, -1074n] : [frac | (1n << 52n), biased - 1075n];
+	return maxLengthExact(m, exp + FRAC_BITS);
 }
 
 // ---------------------------------------------------------------- durations
@@ -157,23 +217,27 @@ export type Duration = bigint;
 /** B - A, start to start. Exact. */
 export const durationBetween = (a: Stamp, b: Stamp): Duration => startFx(b) - startFx(a);
 
-/** From nanoseconds, truncating toward zero. */
+/** From nanoseconds, truncating toward zero (SPEC.md, Durations). */
 export function durationFromNs(ns: bigint): Duration {
 	const mag = (abs(ns) << FRAC_BITS) / NS;
-	if (mag >= MAX_DURATION) fail('out-of-range');
+	if (mag >= MAX_DURATION) fail('out_of_range');
 	return ns < 0n ? -mag : mag;
 }
 
-/** To nanoseconds, truncating toward zero. */
+/**
+ * To nanoseconds, to the nearest (halves away from zero). A nanosecond is not
+ * a whole number of units, so durationFromNs truncates; rounding back to the
+ * nearest makes every nanosecond count survive the round trip.
+ */
 export function durationToNs(d: Duration): bigint {
-	const mag = (abs(d) * NS) >> FRAC_BITS;
+	const mag = (abs(d) * NS + (1n << (FRAC_BITS - 1n))) >> FRAC_BITS;
 	return d < 0n ? -mag : mag;
 }
 
 /** Canonical: mandatory sign, no leading zeros, no trailing fraction zeros, "+0" for zero. */
 export function formatDuration(d: Duration): string {
 	const mag = abs(d);
-	if (mag >= MAX_DURATION) fail('out-of-range');
+	if (mag >= MAX_DURATION) fail('out_of_range');
 	let int = mag >> FRAC_BITS;
 	let frac = mag & FRAC_MASK;
 	let i = '';
@@ -190,33 +254,38 @@ export function formatDuration(d: Duration): string {
 	return (d < 0n ? '-' : '+') + i + (f ? '.' + f : '');
 }
 
-/** Parse `sign 1*8digit ["." 1*8digit]`, with the same digit leniency as stamps. */
+/**
+ * Parse `sign 1*8digit ["." 1*8digit]`, with the same digit leniency as stamps.
+ * Reads left to right and reports the first error met; a character is checked
+ * before it is counted against a part's eight digits (SPEC.md, Text form).
+ */
 export function parseDuration(text: string): Duration {
 	const sign = text[0];
-	if (sign !== '+' && sign !== '-') fail('bad-field');
-	const [int, frac, extra] = text.slice(1).split('.');
-	if (extra !== undefined) fail('bad-char');
-	const digits = (t: string) => {
-		if (t.length === 0) fail('empty');
-		if (t.length > 8) fail('too-long');
-		let v = 0n;
-		for (const ch of t) {
-			const d = digit(ch);
-			if (d < 0) fail('bad-char');
-			v = v * 32n + BigInt(d);
+	if (sign !== '+' && sign !== '-') fail('missing_sign');
+	const parts = [{ v: 0n, n: 0 }];
+	for (const ch of text.slice(1)) {
+		if (ch === '.' && parts.length === 1) {
+			if (parts[0].n === 0) fail('empty');
+			parts.push({ v: 0n, n: 0 });
+			continue;
 		}
-		return v;
-	};
-	let mag = digits(int) << FRAC_BITS;
-	if (frac !== undefined) mag += digits(frac) << (FRAC_BITS - 5n * BigInt(frac.length));
+		const d = digit(ch);
+		if (d < 0) fail('invalid_char');
+		const part = parts[parts.length - 1];
+		if (part.n === 8) fail('too_long');
+		part.v = part.v * 32n + BigInt(d);
+		part.n += 1;
+	}
+	if (parts[parts.length - 1].n === 0) fail('empty');
+	let mag = parts[0].v << FRAC_BITS;
+	if (parts[1]) mag += parts[1].v << (FRAC_BITS - 5n * BigInt(parts[1].n));
 	return sign === '-' ? -mag : mag;
 }
 
 /** Shift a stamp's start by a duration, then floor to the stamp's own length. */
 export function addDuration(stamp: Stamp, d: Duration): Stamp {
-	const t = startFx(stamp) + d;
-	if (t < 0n) fail('out-of-range');
-	return fromFx(t, stamp.len);
+	checkStamp(stamp);
+	return fromFx(startFx(stamp) + d, stamp.len);
 }
 
 // ---------------------------------------------------------------- TAI - UTC
@@ -236,7 +305,7 @@ const whole = (unixS: number, seconds: number): Period => ({
 	start: BigInt(unixS) * NS, a: BigInt(seconds) * 10_000_000n, m: 0n, r: 0n
 });
 
-/** Unix second after which the leap-second table is not known to be valid (2027-06-28). */
+/** Unix second at which Appendix A expires (2027-06-28T00:00:00Z): conversions from here are provisional. */
 export const LEAP_TABLE_EXPIRES_UNIX = 1_814_140_800n;
 
 /** Appendix A, in order. Before the first period TAI - UTC is defined as zero. */
@@ -287,9 +356,9 @@ export const STEPS = Array.from({ length: PERIODS.length }, (_, k) => k + 1)
 
 function scaledToFx(t: bigint): bigint {
 	const total = t + BIAS_S * D;
-	if (total < 0n) fail('out-of-range');
+	if (total < 0n) fail('out_of_range');
 	const fx = ((total / D) << FRAC_BITS) + ((total % D) << FRAC_BITS) / D;
-	if (fx >= RANGE_FX) fail('out-of-range');
+	if (fx >= RANGE_FX) fail('out_of_range');
 	return fx;
 }
 
@@ -309,23 +378,23 @@ const readingScaled = (fx: bigint) => {
  * skipped (where TAI - UTC decreased). A Unix value never names 23:59:60.
  */
 export function unixNsToFx(u: bigint): bigint {
-	if (abs(u) > MAX_LABEL_NS) fail('out-of-range');
+	if (typeof u !== 'bigint' || abs(u) > MAX_LABEL_NS) fail('out_of_range');
 	const i = periodIndexAt(u);
 	const t = tai(period(i), u);
 	// Where TAI - UTC fell, labels whose TAI instant would reach the start of the
 	// next period (in TAI) never occurred.
 	if (i < PERIODS.length && step(i + 1) < 0n && t >= tai(period(i + 1), period(i + 1).start)) {
-		fail('skipped-label');
+		fail('removed_time');
 	}
 	return scaledToFx(t);
 }
 
 /** TAI nanoseconds since the epoch -> biased time. */
 export const taiNsToFx = (taiNs: bigint): bigint =>
-	abs(taiNs) > MAX_LABEL_NS ? fail('out-of-range') : scaledToFx(taiNs * K);
+	abs(taiNs) > MAX_LABEL_NS ? fail('out_of_range') : scaledToFx(taiNs * K);
 
 /** Biased time -> TAI nanoseconds since the epoch (floored). */
-export const fxToTaiNs = (fx: bigint): bigint => floorDiv(readingScaled(fx), K);
+export const fxToTaiNs = (fx: bigint): bigint => (checkFx(fx), floorDiv(readingScaled(fx), K));
 
 export interface Utc {
 	/** The UTC label as Unix nanoseconds (floored). */
@@ -367,6 +436,7 @@ const floorScaled = (fx: bigint) => (fx >> FRAC_BITS) * D + (((fx & FRAC_MASK) *
  * whose instant encodes, at full resolution, no later than it.
  */
 export function fxToUtc(fx: bigint): Utc {
+	checkFx(fx);
 	const own = scaledToUtc(floorScaled(fx));
 	const top = scaledToUtc(readingScaled(fx));
 	if (own.insertedNs !== null) return own.leapSecond ? top : own;
@@ -375,7 +445,7 @@ export function fxToUtc(fx: bigint): Utc {
 }
 
 /** Whether the instant itself lies in inserted time. */
-export const isInserted = (fx: bigint): boolean => scaledToUtc(floorScaled(fx)).insertedNs !== null;
+export const isInserted = (fx: bigint): boolean => (checkFx(fx), scaledToUtc(floorScaled(fx)).insertedNs !== null);
 
 export function daysFromCivil(y: bigint, m: number, d: number): bigint {
 	const yy = m <= 2 ? y - 1n : y;
@@ -399,20 +469,27 @@ export function civilFromDays(days: bigint): [bigint, number, number] {
 	return [yoe + era * 400n + (m <= 2 ? 1n : 0n), m, d];
 }
 
-/** Proleptic Gregorian UTC fields (astronomical years) -> biased time. */
+const monthDays = (y: bigint, m: number): number => {
+	const leap = y % 4n === 0n && (y % 100n !== 0n || y % 400n === 0n);
+	return [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1];
+};
+
+/**
+ * Proleptic Gregorian UTC fields (astronomical years) -> biased time. Errors in
+ * the spec's order: invalid_date, not_a_leap_second, removed_time, out_of_range.
+ */
 export function utcToFx(y: bigint, mo: number, d: number, h: number, mi: number, s: number, ns = 0n): bigint {
 	const ints = [mo, d, h, mi, s].every(Number.isInteger);
-	if (!ints || mo < 1 || mo > 12 || d < 1 || d > 31 || h < 0 || h > 23 || mi < 0 || mi > 59 ||
-		s < 0 || s > 60 || ns < 0n || ns >= NS) fail('bad-field');
-	if (abs(y) > 100_000n) fail('out-of-range');
+	if (!ints || mo < 1 || mo > 12 || d < 1 || d > monthDays(y, mo) || h < 0 || h > 23 || mi < 0 ||
+		mi > 59 || s < 0 || s > 60 || ns < 0n || ns >= NS) fail('invalid_date');
+	// Far beyond the range there is no leap second, and nothing can be encoded.
+	if (abs(y) > 100_000n) fail(s === 60 ? 'not_a_leap_second' : 'out_of_range');
 	const days = daysFromCivil(y, mo, d);
-	const [cy, cm, cd] = civilFromDays(days);
-	if (cy !== y || cm !== mo || cd !== d) fail('bad-field');
 	const at = (sec: number) => (days * 86_400n + BigInt(h * 3600 + mi * 60 + sec)) * NS + ns;
 	if (s === 60) {
 		const next = (days + 1n) * DAY_NS;
 		const leap = STEPS.some((x) => x.unixNs === next && x.wholeSecond && x.seconds > 0);
-		if (!(leap && h === 23 && mi === 59)) fail('not-a-leap-second');
+		if (!(leap && h === 23 && mi === 59)) fail('not_a_leap_second');
 		const u = at(59);
 		return scaledToFx(tai(period(periodIndexAt(u)), u) + NS * K);
 	}
@@ -464,16 +541,25 @@ export function fxToUtcStringExact(fx: bigint, minDigits = 0): string {
 
 /** Encode a JavaScript millisecond timestamp (Unix time). Lengths above 10 overstate a 1 ms source. */
 export function fromUnixMs(ms: number, len = CANONICAL_LEN): Stamp {
-	if (len > maxLengthFor(1e-3)) fail('too-fine');
+	if (!Number.isFinite(ms)) fail('out_of_range');
+	checkLen(len);
+	if (len > maxLengthFor(1e-3)) fail('too_fine');
 	return fromFx(unixNsToFx(BigInt(Math.floor(ms)) * 1_000_000n), len);
 }
 
-/** Parse an ISO 8601 UTC string (astronomical years, second 60, up to 9 fraction digits). */
+/** A utc-label (SPEC.md, Grammar): RFC 3339 in UTC; years outside 0000-9999 carry a sign. */
+const UTC_LABEL = /^([+-]\d{4,6}|\d{4})-(\d{2})-(\d{2})[Tt ](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?[Zz]$/;
+
+/** Parse a UTC label to a biased time, exactly as the spec's grammar allows. */
 export function parseUtc(input: string): bigint {
-	const m = /^([+-]?\d{1,6})-(\d{2})-(\d{2})(?:[Tt ](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,9}))?)?)?[Zz]?$/.exec(input);
-	if (!m) fail('bad-field');
-	const [, y, mo, d, h = '0', mi = '0', s = '0', f = ''] = m!;
+	const m = UTC_LABEL.exec(input);
+	if (!m) fail('invalid_date');
+	const [, y, mo, d, h, mi, s, f = ''] = m!;
 	return utcToFx(BigInt(y), +mo, +d, +h, +mi, +s, BigInt(f.padEnd(9, '0') || '0'));
 }
 
-export const isProvisional = (unixNs: bigint): boolean => unixNs / NS >= LEAP_TABLE_EXPIRES_UNIX;
+/** Whether a conversion of this UTC label (Unix nanoseconds) is provisional: at or after Appendix A's expiry. */
+export const isProvisional = (unixNs: bigint): boolean => unixNs >= LEAP_TABLE_EXPIRES_UNIX * NS;
+
+/** Whether reading this instant as UTC is provisional. */
+export const fxIsProvisional = (fx: bigint): boolean => isProvisional(fxToUtc(fx).unixNs);

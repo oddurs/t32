@@ -14,13 +14,13 @@ G0S7            the 12-day span that contains it
 
 [![crates.io](https://img.shields.io/crates/v/t32.svg)](https://crates.io/crates/t32)
 [![docs.rs](https://img.shields.io/docsrs/t32)](https://docs.rs/t32)
-[![CI](https://github.com/oddurs/t32/actions/workflows/ci.yml/badge.svg)](https://github.com/oddurs/t32/actions/workflows/ci.yml)
+[![CI](https://github.com/oddurs/t32/actions/workflows/pages.yml/badge.svg)](https://github.com/oddurs/t32/actions/workflows/pages.yml)
 
 | | |
 | --- | --- |
-| Specification | [SPEC.md](SPEC.md), draft 0.2 ([rendered](https://oddurs.github.io/t32/spec/)) |
+| Specification | [SPEC.md](SPEC.md), draft 0.3 ([rendered](https://oddurs.github.io/t32/spec/)) |
 | Site | https://oddurs.github.io/t32/: playground, guide and reference tables |
-| Conformance | [`vectors/t32-vectors.json`](vectors/t32-vectors.json), about 600 vectors for any implementation |
+| Conformance | [`vectors/t32-vectors.json`](vectors/t32-vectors.json), 782 vectors for any implementation |
 | Rust | `cargo add t32` ([docs](https://docs.rs/t32)) |
 | Editor | Oddur Sigurdsson ([@oddurs](https://github.com/oddurs)) |
 

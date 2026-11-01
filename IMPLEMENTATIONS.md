@@ -6,7 +6,7 @@ To add yours, open a pull request that adds a row, with a link to where it runs 
 
 | Implementation | Language | Classes | Vectors | Maintainer | Notes |
 | --- | --- | --- | --- | --- | --- |
-| [`t32`](https://crates.io/crates/t32) ([source](rust/)) | Rust | All | All pass | [@oddurs](https://github.com/oddurs) | Reference implementation. No required dependencies; optional serde. |
+| [`t32`](https://crates.io/crates/t32) ([source](rust/)) | Rust | All | All pass from 0.3.0 | [@oddurs](https://github.com/oddurs) | Reference implementation. No required dependencies; optional serde. |
 | [`t32.ts`](web/src/lib/t32.ts) | TypeScript | All | All pass | [@oddurs](https://github.com/oddurs) | One file, BigInt arithmetic. Runs the site's playground. |
 | [`oracle.py`](tools/oracle.py) | Python | Encoder, decoder, converter, parser | Generates them | [@oddurs](https://github.com/oddurs) | Exact rational arithmetic, written from the text. A checking tool, not a library. |
 

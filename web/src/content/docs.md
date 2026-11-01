@@ -4,7 +4,7 @@
 
 A T32 stamp is a time written in base32 characters. Eight characters name one second; each character added is 32 times finer, and each one removed 32 times coarser.
 
-```
+```text
 G0S7G6B1        2026-10-31 03:13:00 UTC, to the second
 G0S7G6B1G0      … to about a millisecond (03:13:00.500)
 G0S7G6          the 17-minute span 03:07:07 – 03:24:11 that contains it
@@ -52,7 +52,7 @@ A prefix is a range. Everything in a 9-hour window:
 SELECT * FROM events WHERE t32 >= 'G0S7G' AND t32 < 'G0S7H';
 ```
 
-The upper bound is the prefix with its last digit incremented, carrying left. Bucketing for a histogram is a substring:
+The upper bound is the prefix with its last digit incremented, carrying left and dropping digits that carry to zero: `G0SZ` becomes `G0T`, not `G0T0`, which would let the shorter stamp `G0T` in. `Stamp::upper_bound` in Rust and `upperBound` in TypeScript compute it. Bucketing for a histogram is a substring:
 
 ```sql
 SELECT left(t32, 6) AS bucket, count(*)   -- 17-minute buckets
@@ -85,14 +85,15 @@ The [`t32` crate](https://crates.io/crates/t32) has no required dependencies and
 
 ```toml
 [dependencies]
-t32 = "0.2"
+t32 = "0.3"
 ```
 
 ```rust
 use t32::{Duration, Instant, Stamp, UtcDateTime};
 
 let utc: UtcDateTime = "2026-10-31T03:13:00Z".parse()?;
-let stamp = Stamp::new(Instant::from_utc(utc)?, 8)?;           // "G0S7G6B1"
+let stamp = Stamp::new(Instant::from_utc(utc)?, 8)?;
+assert_eq!(stamp.to_string(), "G0S7G6B1");
 
 let fortnight: Stamp = "G0S7".parse()?;
 assert!(fortnight.contains(stamp) && fortnight < stamp);       // Ord is time order
@@ -100,8 +101,9 @@ assert!(fortnight.contains(stamp) && fortnight < stamp);       // Ord is time or
 let gap: Duration = stamp.start() - fortnight.start();          // exact
 assert_eq!(gap.to_string(), "+G6B1");
 
-let now = Stamp::now()?;                                        // from the system clock
-let fine = Instant::now()?.stamp(14)?;                          // a nanosecond clock allows 14
+let now = Instant::now()?;                                      // from the system clock
+println!("{} {}", now.stamp(8)?, now.stamp(14)?.display_form()); // a nanosecond clock allows 14
+# Ok::<(), t32::Error>(())
 ```
 
 Four types carry everything: `Instant` (a point in time, exact to 2⁻⁴⁰ s), `Stamp`, `Duration` and `UtcDateTime` (RFC 3339 text, leap seconds included). `cargo run --example t32 -- G0S7` prints a stamp's interval.
@@ -172,6 +174,6 @@ A stamp names one instant everywhere. Zones apply only when converting for displ
 
 No stamp ever changes meaning. What could change is the conversion of a future UTC label, if the leap-second table changed. In October 2026 the CGPM made UTC continuous from 2027-05-20, and no leap second was announced for the end of 2026, so TAI − UTC is expected to stay 37 s. Converters still report a conversion past their table's expiry date as provisional.
 
-### What about dates before 15,420 BCE?
+### What about dates before 15,423 BCE?
 
 They are out of range. Astronomy uses Julian Dates for deep time, and so should you.

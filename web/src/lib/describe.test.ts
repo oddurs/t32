@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readInput, humanSpan } from './describe.ts';
-import { format, fromFx, parseUtc, unitSeconds } from './t32.ts';
+import { readInput, humanSpan, describe } from './describe.ts';
+import { format, fromFx, parse, parseUtc, unitSeconds } from './t32.ts';
 
 const stampOf = (text: string, len?: number) => {
 	const r = readInput(text);
@@ -40,7 +40,25 @@ test('Unix time, now, and stamps', () => {
 	assert.equal(stampOf(' g0s7-g6bi '), 'G0S7G6B1');
 	assert.equal(stampOf('1793416380'), '1793416380'); // digits alone are a stamp
 	assert.throws(() => readInput('@abc'));
-	assert.throws(() => readInput('2026-1-31'));
+	assert.throws(() => readInput('2026-13-45T00:00Z'), 'not a date, and not stamp text either');
+	assert.throws(() => readInput('\ufeffG0S7'), 'only ASCII whitespace is stripped');
+});
+
+test('stamp text that looks like a date or the clock is offered as a stamp', () => {
+	const now = readInput('now');
+	assert.ok(now.kind === 'now' && now.alsoStamp && format(now.alsoStamp) === 'N0W');
+	const day = readInput('2026-10-31');
+	assert.ok(day.kind === 'date' && day.alsoStamp && format(day.alsoStamp) === '20261031');
+	for (const [text, stamp] of [['2026-1-31', '2026131'], ['1234-56-78', '12345678'], ['1-2-3-4', '1234']]) {
+		const r = readInput(text);
+		assert.ok(r.kind === 'stamp' && r.notADate && format(r.stamp) === stamp, text);
+	}
+});
+
+test('a start before 1970 is floored to the millisecond, not moved later', () => {
+	const d = describe(parse('FZ3S5F48002NZE'));
+	assert.equal(d.start, '1969-12-31T23:59:59.999999999Z');
+	assert.equal(d.startUnixMs, -1);
 });
 
 test('spans are named as the specification names them', () => {
