@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Head from '$lib/components/Head.svelte';
+	import { DRAFT } from '$lib/site';
 	import { exponents } from '$lib/exponents';
 	import { onMount } from 'svelte';
 	import { replaceState } from '$app/navigation';
@@ -75,6 +76,17 @@
 
 	// Digits alone are a valid stamp, but they are often meant as Unix time.
 	const looksUnix = $derived(current?.kind === 'stamp' && /^\d{9,13}$/.test(text.trim()));
+	// Text that reads as a date or the clock can also be a valid stamp, and text that
+	// fails as a date can still be one: say which reading is shown, and offer the other.
+	const alternative = $derived.by(() => {
+		try {
+			const input = readInput(text);
+			if (input.kind === 'stamp') return input.notADate ? { notADate: true, stamp: null } : null;
+			return input.alsoStamp ? { notADate: false, stamp: input.alsoStamp } : null;
+		} catch {
+			return null;
+		}
+	});
 
 	const ladder = $derived.by(() => {
 		if (!shown) return [];
@@ -318,7 +330,7 @@
 
 <div class="with-rail">
 	<header class="titleblock">
-		<span class="label">T32 · Draft 0.2 · Playground</span>
+		<span class="label">T32 · Draft {DRAFT} · Playground</span>
 		<h1>Playground</h1>
 		<p class="lede">Type a date or a T32 stamp, and see the span of time it stands for.</p>
 	</header>
@@ -427,6 +439,14 @@
 						This {current.unix ? 'Unix time' : 'date'} is written to {current.precision}, so at most {current.maxLen} characters. Write it more finely to go further.
 					{/if}
 				</p>
+			{/if}
+			{#if current && alternative?.stamp}
+				<p class="muted small">
+					Read as {current.kind === 'now' ? 'the clock' : 'a date'}. It is also valid stamp text:
+					<button class="link" onclick={() => setInput(format(alternative.stamp!))}>read it as the stamp {format(alternative.stamp)}</button>.
+				</p>
+			{:else if current && alternative?.notADate}
+				<p class="muted small">Not a valid date, so read as stamp text.</p>
 			{/if}
 		</div>
 

@@ -39,6 +39,15 @@ export function renderDoc(src: string, opts: { number?: boolean; base?: string }
 
 	const md = new Marked({ gfm: true });
 	md.use({
+		// Rust blocks are compiled as doctests; lines rustdoc hides are hidden here too.
+		walkTokens(token) {
+			if (token.type === 'code' && token.lang === 'rust') {
+				token.text = token.text
+					.split('\n')
+					.filter((line: string) => !/^#( |$)/.test(line))
+					.join('\n');
+			}
+		},
 		renderer: {
 			heading(this: { parser: { parseInline: (t: Tokens.Generic[]) => string } }, { tokens, depth, text }: Tokens.Heading) {
 				const inner = this.parser.parseInline(tokens);

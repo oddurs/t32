@@ -1,14 +1,15 @@
 {
  "title": "T32 conformance vectors",
- "spec": "SPEC.md, draft 0.2",
- "generator": "tools/oracle.py: exact rational arithmetic written from the spec, sharing no code with the implementations",
+ "spec": "SPEC.md, draft 0.3",
+ "generator": "tools/oracle.py: exact rational arithmetic written from the spec, sharing no code with the implementations; every vector, errors included, is computed",
  "conventions": [
   "Large integers are decimal strings.",
-  "UTC text is RFC 3339 in UTC with astronomical years; years outside 0000-9999 carry a sign. Inputs never use second 60 except during a leap second.",
-  "Lengths follow the resolution rule: 8 for whole seconds, 9 for tenths, 14 for nanoseconds.",
-  "units are the biased time of the spec in units of 2^-40 s (an Instant's fixed-point value); a stamp's start_units is its value shifted left by 5 * (16 - length).",
-  "Decoded UTC readings follow the spec: an inserted instant reads as the label where its insertion ends, a leap second as 23:59:60.f; any other instant as the latest nanosecond label that encodes, at full resolution, no later than it.",
-  "Error codes: empty, too_long, invalid_char, misplaced_hyphen, missing_sign, removed_time, not_a_leap_second, invalid_date."
+  "UTC text is a utc-label (SPEC.md, Grammar): RFC 3339 in UTC with astronomical years; years outside 0000-9999 carry a sign.",
+  "Lengths follow the resolution rule: 8 for whole seconds, 9 for tenths, 10 for milliseconds, 12 for microseconds, 14 for nanoseconds.",
+  "units are the biased time of the spec in units of 2^-40 s (an Instant's fixed-point value); a stamp's start_units is its value shifted left by 5 * (16 - length). A resolution or duration in units is a signed count of 2^-40 s.",
+  "Decoded UTC readings follow the spec: an instant in a leap second reads as 23:59:60.f, any other inserted instant as the label where its insertion ends, with *_inserted true; any other instant as the latest nanosecond label whose length-16 stamp is no later than its own.",
+  "provisional is true when the conversion's UTC label is at or after 2027-06-28T00:00:00Z, the expiry of Appendix A.",
+  "Error codes: empty, too_long, invalid_char, misplaced_hyphen, missing_sign, invalid_date, not_a_leap_second, removed_time, out_of_range. When several apply, the first met reading left to right is reported; UTC labels are checked in the order invalid_date, not_a_leap_second, removed_time, out_of_range."
  ],
  "parse": [
   {
@@ -72,6 +73,10 @@
    "error": "invalid_char"
   },
   {
+   "input": "g0su",
+   "error": "invalid_char"
+  },
+  {
    "input": " G0S7",
    "error": "invalid_char"
   },
@@ -110,6 +115,22 @@
   {
    "input": "t32:G0S7",
    "error": "invalid_char"
+  },
+  {
+   "input": "0000000000000000-",
+   "error": "misplaced_hyphen"
+  },
+  {
+   "input": "G0S7G0S7G0S7G0S7G0S7G0S7G0S7G0S7G0S7G0S7",
+   "error": "too_long"
+  },
+  {
+   "input": "0000000000000000U",
+   "error": "invalid_char"
+  },
+  {
+   "input": "U0000000000000000000000000000000000000000",
+   "error": "invalid_char"
   }
  ],
  "encode_utc": [
@@ -117,156 +138,278 @@
    "utc": "1999-12-31T23:59:28Z",
    "length": 8,
    "stamp": "G0000000",
+   "provisional": false,
    "note": "the T32 epoch"
   },
   {
    "utc": "1970-01-01T00:00:00Z",
    "length": 8,
    "stamp": "FZ3S5F48",
+   "provisional": false,
    "note": "Unix epoch, rubber-second era"
   },
   {
    "utc": "1969-07-20T20:17:40Z",
    "length": 8,
    "stamp": "FZ3BMMKB",
+   "provisional": false,
    "note": "Apollo 11 landing"
   },
   {
    "utc": "1966-06-15T12:00:00.123456789Z",
    "length": 14,
    "stamp": "FZ0EDKA4VPC2A1",
+   "provisional": false,
    "note": "rubber era, exact"
   },
   {
    "utc": "1972-01-01T00:00:00Z",
    "length": 8,
    "stamp": "FZ5NA8WA",
+   "provisional": false,
    "note": "UTC becomes TAI - 10 s"
+  },
+  {
+   "utc": "2016-12-31T23:59:59Z",
+   "length": 8,
+   "stamp": "G0FZP0S3",
+   "provisional": false,
+   "note": "before the last leap second"
+  },
+  {
+   "utc": "2017-01-01T00:00:00Z",
+   "length": 8,
+   "stamp": "G0FZP0S5",
+   "provisional": false,
+   "note": "after the last leap second"
   },
   {
    "utc": "2026-10-31T03:13:00Z",
    "length": 8,
    "stamp": "G0S7G6B1",
+   "provisional": false,
    "note": "spec date"
+  },
+  {
+   "utc": "2026-10-31T03:13:00.5Z",
+   "length": 10,
+   "stamp": "G0S7G6B1G0",
+   "provisional": false,
+   "note": "spec date + 0.5 s, millisecond clock"
+  },
+  {
+   "utc": "2026-10-31T03:13:00.123000Z",
+   "length": 12,
+   "stamp": "G0S7G6B13XYE",
+   "provisional": false,
+   "note": "spec date + 0.123 s, microsecond clock, trailing zeros written"
+  },
+  {
+   "utc": "2026-10-31t03:13:00z",
+   "length": 8,
+   "stamp": "G0S7G6B1",
+   "provisional": false,
+   "note": "lowercase t and z"
+  },
+  {
+   "utc": "2026-10-31 03:13:00Z",
+   "length": 8,
+   "stamp": "G0S7G6B1",
+   "provisional": false,
+   "note": "space for T"
+  },
+  {
+   "utc": "+2026-10-31T03:13:00Z",
+   "length": 8,
+   "stamp": "G0S7G6B1",
+   "provisional": false,
+   "note": "a signed year inside 0000-9999"
   },
   {
    "utc": "1675-08-20T00:00:00Z",
    "length": 8,
    "stamp": "FPEY6N00",
+   "provisional": false,
    "note": "before 1961: read as Universal Time"
+  },
+  {
+   "utc": "-15422-12-06T11:41:52Z",
+   "length": 8,
+   "stamp": "00000000",
+   "provisional": false,
+   "note": "the start of the range"
+  },
+  {
+   "utc": "-15422-12-06T11:41:51Z",
+   "length": 8,
+   "error": "out_of_range",
+   "note": "before the range"
+  },
+  {
+   "utc": "+19421-01-25T12:17:30Z",
+   "length": 8,
+   "stamp": "ZZZZZZZZ",
+   "provisional": true,
+   "note": "the last second of the range"
+  },
+  {
+   "utc": "+19421-01-25T12:17:31Z",
+   "length": 8,
+   "error": "out_of_range",
+   "note": "after the range"
+  },
+  {
+   "utc": "2027-06-27T23:59:59.999999999Z",
+   "length": 14,
+   "stamp": "G0SV8N14ZZZZZY",
+   "provisional": false,
+   "note": "the last label before Appendix A expires"
+  },
+  {
+   "utc": "2027-06-28T00:00:00Z",
+   "length": 8,
+   "stamp": "G0SV8N15",
+   "provisional": true,
+   "note": "Appendix A expires: provisional from here"
+  },
+  {
+   "utc": "2030-01-01T00:00:00Z",
+   "length": 8,
+   "stamp": "G0W6X595",
+   "provisional": true,
+   "note": "provisional"
   },
   {
    "utc": "2026-10-31T03:13:00.123456789Z",
    "length": 1,
    "stamp": "G",
+   "provisional": false,
    "note": "lengths 1 to 14 of one instant"
   },
   {
    "utc": "2026-10-31T03:13:00.123456789Z",
    "length": 2,
    "stamp": "G0",
+   "provisional": false,
    "note": "lengths 1 to 14 of one instant"
   },
   {
    "utc": "2026-10-31T03:13:00.123456789Z",
    "length": 3,
    "stamp": "G0S",
+   "provisional": false,
    "note": "lengths 1 to 14 of one instant"
   },
   {
    "utc": "2026-10-31T03:13:00.123456789Z",
    "length": 4,
    "stamp": "G0S7",
+   "provisional": false,
    "note": "lengths 1 to 14 of one instant"
   },
   {
    "utc": "2026-10-31T03:13:00.123456789Z",
    "length": 5,
    "stamp": "G0S7G",
+   "provisional": false,
    "note": "lengths 1 to 14 of one instant"
   },
   {
    "utc": "2026-10-31T03:13:00.123456789Z",
    "length": 6,
    "stamp": "G0S7G6",
+   "provisional": false,
    "note": "lengths 1 to 14 of one instant"
   },
   {
    "utc": "2026-10-31T03:13:00.123456789Z",
    "length": 7,
    "stamp": "G0S7G6B",
+   "provisional": false,
    "note": "lengths 1 to 14 of one instant"
   },
   {
    "utc": "2026-10-31T03:13:00.123456789Z",
    "length": 8,
    "stamp": "G0S7G6B1",
+   "provisional": false,
    "note": "lengths 1 to 14 of one instant"
   },
   {
    "utc": "2026-10-31T03:13:00.123456789Z",
    "length": 9,
    "stamp": "G0S7G6B13",
+   "provisional": false,
    "note": "lengths 1 to 14 of one instant"
   },
   {
    "utc": "2026-10-31T03:13:00.123456789Z",
    "length": 10,
    "stamp": "G0S7G6B13Y",
+   "provisional": false,
    "note": "lengths 1 to 14 of one instant"
   },
   {
    "utc": "2026-10-31T03:13:00.123456789Z",
    "length": 11,
    "stamp": "G0S7G6B13YD",
+   "provisional": false,
    "note": "lengths 1 to 14 of one instant"
   },
   {
    "utc": "2026-10-31T03:13:00.123456789Z",
    "length": 12,
    "stamp": "G0S7G6B13YDD",
+   "provisional": false,
    "note": "lengths 1 to 14 of one instant"
   },
   {
    "utc": "2026-10-31T03:13:00.123456789Z",
    "length": 13,
    "stamp": "G0S7G6B13YDDT",
+   "provisional": false,
    "note": "lengths 1 to 14 of one instant"
   },
   {
    "utc": "2026-10-31T03:13:00.123456789Z",
    "length": 14,
    "stamp": "G0S7G6B13YDDTD",
+   "provisional": false,
    "note": "lengths 1 to 14 of one instant"
   },
   {
    "utc": "1960-12-31T23:59:59Z",
    "length": 14,
    "stamp": "FYVAAJFZ000000",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1961-01-01)"
   },
   {
    "utc": "1960-12-31T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FYVAAJFZZZZZZY",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1961-01-01)"
   },
   {
    "utc": "1961-01-01T00:00:00Z",
    "length": 14,
    "stamp": "FYVAAJG1DGYWST",
+   "provisional": false,
    "note": "a boundary of Appendix A (1961-01-01)"
   },
   {
    "utc": "1961-01-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FYVAAJG1DGYWSV",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1961-01-01)"
   },
   {
    "utc": "1961-07-31T23:59:59Z",
    "length": 14,
    "stamp": "FYVVSJ00PA9Z4M",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1961-08-01)"
   },
   {
@@ -279,258 +422,301 @@
    "utc": "1961-08-01T00:00:00Z",
    "length": 14,
    "stamp": "FYVVSJ01MQ3JBG",
+   "provisional": false,
    "note": "a boundary of Appendix A (1961-08-01)"
   },
   {
    "utc": "1961-08-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FYVVSJ01MQ3JBJ",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1961-08-01)"
   },
   {
    "utc": "1961-12-31T23:59:59Z",
    "length": 14,
    "stamp": "FYW8CZC0V252C7",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1962-01-01)"
   },
   {
    "utc": "1961-12-31T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FYW8CZC1V252CP",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1962-01-01)"
   },
   {
    "utc": "1962-01-01T00:00:00Z",
    "length": 14,
    "stamp": "FYW8CZC1V252CQ",
+   "provisional": false,
    "note": "a boundary of Appendix A (1962-01-01)"
   },
   {
    "utc": "1962-01-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FYW8CZC1V252CR",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1962-01-01)"
   },
   {
    "utc": "1963-10-31T23:59:59Z",
    "length": 14,
    "stamp": "FYXZGY81K3KM6E",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1963-11-01)"
   },
   {
    "utc": "1963-10-31T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FYXZGY82K3KM6V",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1963-11-01)"
   },
   {
    "utc": "1963-11-01T00:00:00Z",
    "length": 14,
    "stamp": "FYXZGY82PA0DT2",
+   "provisional": false,
    "note": "a boundary of Appendix A (1963-11-01)"
   },
   {
    "utc": "1963-11-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FYXZGY82PA0DT3",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1963-11-01)"
   },
   {
    "utc": "1963-12-31T23:59:59Z",
    "length": 14,
    "stamp": "FYY4HS41RG5H68",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1964-01-01)"
   },
   {
    "utc": "1963-12-31T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FYY4HS42RG5H6N",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1964-01-01)"
   },
   {
    "utc": "1964-01-01T00:00:00Z",
    "length": 14,
    "stamp": "FYY4HS42RG5H6P",
+   "provisional": false,
    "note": "a boundary of Appendix A (1964-01-01)"
   },
   {
    "utc": "1964-01-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FYY4HS42RG5H6Q",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1964-01-01)"
   },
   {
    "utc": "1964-03-31T23:59:59Z",
    "length": 14,
    "stamp": "FYYC1Q81W8Y21P",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1964-04-01)"
   },
   {
    "utc": "1964-03-31T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FYYC1Q82W8Y225",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1964-04-01)"
   },
   {
    "utc": "1964-04-01T00:00:00Z",
    "length": 14,
    "stamp": "FYYC1Q82ZFAVNC",
+   "provisional": false,
    "note": "a boundary of Appendix A (1964-04-01)"
   },
   {
    "utc": "1964-04-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FYYC1Q82ZFAVND",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1964-04-01)"
   },
   {
    "utc": "1964-08-31T23:59:59Z",
    "length": 14,
    "stamp": "FYYRN4M25TCBP3",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1964-09-01)"
   },
   {
    "utc": "1964-08-31T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FYYRN4M35TCBPJ",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1964-09-01)"
   },
   {
    "utc": "1964-09-01T00:00:00Z",
    "length": 14,
    "stamp": "FYYRN4M390S59S",
+   "provisional": false,
    "note": "a boundary of Appendix A (1964-09-01)"
   },
   {
    "utc": "1964-09-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FYYRN4M390S59T",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1964-09-01)"
   },
   {
    "utc": "1964-12-31T23:59:59Z",
    "length": 14,
    "stamp": "FYZ2PTC2E2P5QM",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1965-01-01)"
   },
   {
    "utc": "1964-12-31T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FYZ2PTC3E2P5R3",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1965-01-01)"
   },
   {
    "utc": "1965-01-01T00:00:00Z",
    "length": 14,
    "stamp": "FYZ2PTC3H92ZBB",
+   "provisional": false,
    "note": "a boundary of Appendix A (1965-01-01)"
   },
   {
    "utc": "1965-01-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FYZ2PTC3H92ZBC",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1965-01-01)"
   },
   {
    "utc": "1965-02-28T23:59:59Z",
    "length": 14,
    "stamp": "FYZ7JCG2KQCHMY",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1965-03-01)"
   },
   {
    "utc": "1965-02-28T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FYZ7JCG3KQCHND",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1965-03-01)"
   },
   {
    "utc": "1965-03-01T00:00:00Z",
    "length": 14,
    "stamp": "FYZ7JCG3PXSB8M",
+   "provisional": false,
    "note": "a boundary of Appendix A (1965-03-01)"
   },
   {
    "utc": "1965-03-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FYZ7JCG3PXSB8N",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1965-03-01)"
   },
   {
    "utc": "1965-06-30T23:59:59Z",
    "length": 14,
    "stamp": "FYZHM282VZPBPF",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1965-07-01)"
   },
   {
    "utc": "1965-06-30T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FYZHM283VZPBPY",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1965-07-01)"
   },
   {
    "utc": "1965-07-01T00:00:00Z",
    "length": 14,
    "stamp": "FYZHM283Z635A6",
+   "provisional": false,
    "note": "a boundary of Appendix A (1965-07-01)"
   },
   {
    "utc": "1965-07-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FYZHM283Z635A7",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1965-07-01)"
   },
   {
    "utc": "1965-08-31T23:59:59Z",
    "length": 14,
    "stamp": "FYZPQHG31RC4FD",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1965-09-01)"
   },
   {
    "utc": "1965-08-31T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FYZPQHG41RC4FW",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1965-09-01)"
   },
   {
    "utc": "1965-09-01T00:00:00Z",
    "length": 14,
    "stamp": "FYZPQHG44YRY33",
+   "provisional": false,
    "note": "a boundary of Appendix A (1965-09-01)"
   },
   {
    "utc": "1965-09-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FYZPQHG44YRY34",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1965-09-01)"
   },
   {
    "utc": "1965-12-31T23:59:59Z",
    "length": 14,
    "stamp": "FZ00S783A0NYGY",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1966-01-01)"
   },
   {
    "utc": "1965-12-31T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FZ00S784A0NYHD",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1966-01-01)"
   },
   {
    "utc": "1966-01-01T00:00:00Z",
    "length": 14,
    "stamp": "FZ00S784A0NYHF",
+   "provisional": false,
    "note": "a boundary of Appendix A (1966-01-01)"
   },
   {
    "utc": "1966-01-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FZ00S784A0NYHG",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1966-01-01)"
   },
   {
    "utc": "1968-01-31T23:59:59Z",
    "length": 14,
    "stamp": "FZ1ZFRM594H787",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1968-02-01)"
   },
   {
@@ -543,690 +729,805 @@
    "utc": "1968-02-01T00:00:00Z",
    "length": 14,
    "stamp": "FZ1ZFRM65Y4DP1",
+   "provisional": false,
    "note": "a boundary of Appendix A (1968-02-01)"
   },
   {
    "utc": "1968-02-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FZ1ZFRM65Y4DP2",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1968-02-01)"
   },
   {
    "utc": "1971-12-31T23:59:59Z",
    "length": 14,
    "stamp": "FZ5NA8W8WHMZGG",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1972-01-01)"
   },
   {
    "utc": "1971-12-31T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FZ5NA8W9WHMZHF",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1972-01-01)"
   },
   {
    "utc": "1972-01-01T00:00:00Z",
    "length": 14,
    "stamp": "FZ5NA8WA000000",
+   "provisional": false,
    "note": "a boundary of Appendix A (1972-01-01)"
   },
   {
    "utc": "1972-01-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FZ5NA8WA000001",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1972-01-01)"
   },
   {
    "utc": "1972-06-30T23:59:59Z",
    "length": 14,
    "stamp": "FZ64A549000000",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1972-07-01)"
   },
   {
    "utc": "1972-06-30T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FZ64A549ZZZZZY",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1972-07-01)"
   },
   {
    "utc": "1972-07-01T00:00:00Z",
    "length": 14,
    "stamp": "FZ64A54B000000",
+   "provisional": false,
    "note": "a boundary of Appendix A (1972-07-01)"
   },
   {
    "utc": "1972-07-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FZ64A54B000001",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1972-07-01)"
   },
   {
    "utc": "1972-12-31T23:59:59Z",
    "length": 14,
    "stamp": "FZ6KFA4A000000",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1973-01-01)"
   },
   {
    "utc": "1972-12-31T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FZ6KFA4AZZZZZY",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1973-01-01)"
   },
   {
    "utc": "1973-01-01T00:00:00Z",
    "length": 14,
    "stamp": "FZ6KFA4C000000",
+   "provisional": false,
    "note": "a boundary of Appendix A (1973-01-01)"
   },
   {
    "utc": "1973-01-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FZ6KFA4C000001",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1973-01-01)"
   },
   {
    "utc": "1973-12-31T23:59:59Z",
    "length": 14,
    "stamp": "FZ7HHQ0B000000",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1974-01-01)"
   },
   {
    "utc": "1973-12-31T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FZ7HHQ0BZZZZZY",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1974-01-01)"
   },
   {
    "utc": "1974-01-01T00:00:00Z",
    "length": 14,
    "stamp": "FZ7HHQ0D000000",
+   "provisional": false,
    "note": "a boundary of Appendix A (1974-01-01)"
   },
   {
    "utc": "1974-01-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FZ7HHQ0D000001",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1974-01-01)"
   },
   {
    "utc": "1974-12-31T23:59:59Z",
    "length": 14,
    "stamp": "FZ8FM3WC000000",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1975-01-01)"
   },
   {
    "utc": "1974-12-31T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FZ8FM3WCZZZZZY",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1975-01-01)"
   },
   {
    "utc": "1975-01-01T00:00:00Z",
    "length": 14,
    "stamp": "FZ8FM3WE000000",
+   "provisional": false,
    "note": "a boundary of Appendix A (1975-01-01)"
   },
   {
    "utc": "1975-01-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FZ8FM3WE000001",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1975-01-01)"
   },
   {
    "utc": "1975-12-31T23:59:59Z",
    "length": 14,
    "stamp": "FZ9DPGRD000000",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1976-01-01)"
   },
   {
    "utc": "1975-12-31T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FZ9DPGRDZZZZZY",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1976-01-01)"
   },
   {
    "utc": "1976-01-01T00:00:00Z",
    "length": 14,
    "stamp": "FZ9DPGRF000000",
+   "provisional": false,
    "note": "a boundary of Appendix A (1976-01-01)"
   },
   {
    "utc": "1976-01-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FZ9DPGRF000001",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1976-01-01)"
   },
   {
    "utc": "1976-12-31T23:59:59Z",
    "length": 14,
    "stamp": "FZABVJ0E000000",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1977-01-01)"
   },
   {
    "utc": "1976-12-31T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FZABVJ0EZZZZZY",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1977-01-01)"
   },
   {
    "utc": "1977-01-01T00:00:00Z",
    "length": 14,
    "stamp": "FZABVJ0G000000",
+   "provisional": false,
    "note": "a boundary of Appendix A (1977-01-01)"
   },
   {
    "utc": "1977-01-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FZABVJ0G000001",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1977-01-01)"
   },
   {
    "utc": "1977-12-31T23:59:59Z",
    "length": 14,
    "stamp": "FZB9XYWF000000",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1978-01-01)"
   },
   {
    "utc": "1977-12-31T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FZB9XYWFZZZZZY",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1978-01-01)"
   },
   {
    "utc": "1978-01-01T00:00:00Z",
    "length": 14,
    "stamp": "FZB9XYWH000000",
+   "provisional": false,
    "note": "a boundary of Appendix A (1978-01-01)"
   },
   {
    "utc": "1978-01-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FZB9XYWH000001",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1978-01-01)"
   },
   {
    "utc": "1978-12-31T23:59:59Z",
    "length": 14,
    "stamp": "FZC80BRG000000",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1979-01-01)"
   },
   {
    "utc": "1978-12-31T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FZC80BRGZZZZZY",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1979-01-01)"
   },
   {
    "utc": "1979-01-01T00:00:00Z",
    "length": 14,
    "stamp": "FZC80BRJ000000",
+   "provisional": false,
    "note": "a boundary of Appendix A (1979-01-01)"
   },
   {
    "utc": "1979-01-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FZC80BRJ000001",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1979-01-01)"
   },
   {
    "utc": "1979-12-31T23:59:59Z",
    "length": 14,
    "stamp": "FZD62RMH000000",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1980-01-01)"
   },
   {
    "utc": "1979-12-31T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FZD62RMHZZZZZY",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1980-01-01)"
   },
   {
    "utc": "1980-01-01T00:00:00Z",
    "length": 14,
    "stamp": "FZD62RMK000000",
+   "provisional": false,
    "note": "a boundary of Appendix A (1980-01-01)"
   },
   {
    "utc": "1980-01-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FZD62RMK000001",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1980-01-01)"
   },
   {
    "utc": "1981-06-30T23:59:59Z",
    "length": 14,
    "stamp": "FZEK51RJ000000",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1981-07-01)"
   },
   {
    "utc": "1981-06-30T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FZEK51RJZZZZZY",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1981-07-01)"
   },
   {
    "utc": "1981-07-01T00:00:00Z",
    "length": 14,
    "stamp": "FZEK51RM000000",
+   "provisional": false,
    "note": "a boundary of Appendix A (1981-07-01)"
   },
   {
    "utc": "1981-07-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FZEK51RM000001",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1981-07-01)"
   },
   {
    "utc": "1982-06-30T23:59:59Z",
    "length": 14,
    "stamp": "FZFH7EMK000000",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1982-07-01)"
   },
   {
    "utc": "1982-06-30T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FZFH7EMKZZZZZY",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1982-07-01)"
   },
   {
    "utc": "1982-07-01T00:00:00Z",
    "length": 14,
    "stamp": "FZFH7EMN000000",
+   "provisional": false,
    "note": "a boundary of Appendix A (1982-07-01)"
   },
   {
    "utc": "1982-07-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FZFH7EMN000001",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1982-07-01)"
   },
   {
    "utc": "1983-06-30T23:59:59Z",
    "length": 14,
    "stamp": "FZGF9VGM000000",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1983-07-01)"
   },
   {
    "utc": "1983-06-30T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FZGF9VGMZZZZZY",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1983-07-01)"
   },
   {
    "utc": "1983-07-01T00:00:00Z",
    "length": 14,
    "stamp": "FZGF9VGP000000",
+   "provisional": false,
    "note": "a boundary of Appendix A (1983-07-01)"
   },
   {
    "utc": "1983-07-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FZGF9VGP000001",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1983-07-01)"
   },
   {
    "utc": "1985-06-30T23:59:59Z",
    "length": 14,
    "stamp": "FZJBH9MN000000",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1985-07-01)"
   },
   {
    "utc": "1985-06-30T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FZJBH9MNZZZZZY",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1985-07-01)"
   },
   {
    "utc": "1985-07-01T00:00:00Z",
    "length": 14,
    "stamp": "FZJBH9MQ000000",
+   "provisional": false,
    "note": "a boundary of Appendix A (1985-07-01)"
   },
   {
    "utc": "1985-07-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FZJBH9MQ000001",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1985-07-01)"
   },
   {
    "utc": "1987-12-31T23:59:59Z",
    "length": 14,
    "stamp": "FZMPV8CP000000",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1988-01-01)"
   },
   {
    "utc": "1987-12-31T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FZMPV8CPZZZZZY",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1988-01-01)"
   },
   {
    "utc": "1988-01-01T00:00:00Z",
    "length": 14,
    "stamp": "FZMPV8CR000000",
+   "provisional": false,
    "note": "a boundary of Appendix A (1988-01-01)"
   },
   {
    "utc": "1988-01-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FZMPV8CR000001",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1988-01-01)"
   },
   {
    "utc": "1989-12-31T23:59:59Z",
    "length": 14,
    "stamp": "FZPK2PGQ000000",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1990-01-01)"
   },
   {
    "utc": "1989-12-31T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FZPK2PGQZZZZZY",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1990-01-01)"
   },
   {
    "utc": "1990-01-01T00:00:00Z",
    "length": 14,
    "stamp": "FZPK2PGS000000",
+   "provisional": false,
    "note": "a boundary of Appendix A (1990-01-01)"
   },
   {
    "utc": "1990-01-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FZPK2PGS000001",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1990-01-01)"
   },
   {
    "utc": "1990-12-31T23:59:59Z",
    "length": 14,
    "stamp": "FZQH53CR000000",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1991-01-01)"
   },
   {
    "utc": "1990-12-31T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FZQH53CRZZZZZY",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1991-01-01)"
   },
   {
    "utc": "1991-01-01T00:00:00Z",
    "length": 14,
    "stamp": "FZQH53CT000000",
+   "provisional": false,
    "note": "a boundary of Appendix A (1991-01-01)"
   },
   {
    "utc": "1991-01-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FZQH53CT000001",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1991-01-01)"
   },
   {
    "utc": "1992-06-30T23:59:59Z",
    "length": 14,
    "stamp": "FZRY7CGS000000",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1992-07-01)"
   },
   {
    "utc": "1992-06-30T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FZRY7CGSZZZZZY",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1992-07-01)"
   },
   {
    "utc": "1992-07-01T00:00:00Z",
    "length": 14,
    "stamp": "FZRY7CGV000000",
+   "provisional": false,
    "note": "a boundary of Appendix A (1992-07-01)"
   },
   {
    "utc": "1992-07-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FZRY7CGV000001",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1992-07-01)"
   },
   {
    "utc": "1993-06-30T23:59:59Z",
    "length": 14,
    "stamp": "FZSW9SCT000000",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1993-07-01)"
   },
   {
    "utc": "1993-06-30T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FZSW9SCTZZZZZY",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1993-07-01)"
   },
   {
    "utc": "1993-07-01T00:00:00Z",
    "length": 14,
    "stamp": "FZSW9SCW000000",
+   "provisional": false,
    "note": "a boundary of Appendix A (1993-07-01)"
   },
   {
    "utc": "1993-07-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FZSW9SCW000001",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1993-07-01)"
   },
   {
    "utc": "1994-06-30T23:59:59Z",
    "length": 14,
    "stamp": "FZTTC68V000000",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1994-07-01)"
   },
   {
    "utc": "1994-06-30T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FZTTC68VZZZZZY",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1994-07-01)"
   },
   {
    "utc": "1994-07-01T00:00:00Z",
    "length": 14,
    "stamp": "FZTTC68X000000",
+   "provisional": false,
    "note": "a boundary of Appendix A (1994-07-01)"
   },
   {
    "utc": "1994-07-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FZTTC68X000001",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1994-07-01)"
   },
   {
    "utc": "1995-12-31T23:59:59Z",
    "length": 14,
    "stamp": "FZW7KR4W000000",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1996-01-01)"
   },
   {
    "utc": "1995-12-31T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FZW7KR4WZZZZZY",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1996-01-01)"
   },
   {
    "utc": "1996-01-01T00:00:00Z",
    "length": 14,
    "stamp": "FZW7KR4Y000000",
+   "provisional": false,
    "note": "a boundary of Appendix A (1996-01-01)"
   },
   {
    "utc": "1996-01-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FZW7KR4Y000001",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1996-01-01)"
   },
   {
    "utc": "1997-06-30T23:59:59Z",
    "length": 14,
    "stamp": "FZXMP18X000000",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1997-07-01)"
   },
   {
    "utc": "1997-06-30T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FZXMP18XZZZZZY",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1997-07-01)"
   },
   {
    "utc": "1997-07-01T00:00:00Z",
    "length": 14,
    "stamp": "FZXMP18Z000000",
+   "provisional": false,
    "note": "a boundary of Appendix A (1997-07-01)"
   },
   {
    "utc": "1997-07-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FZXMP18Z000001",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1997-07-01)"
   },
   {
    "utc": "1998-12-31T23:59:59Z",
    "length": 14,
    "stamp": "FZZ1XK4Y000000",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (1999-01-01)"
   },
   {
    "utc": "1998-12-31T23:59:59.999999999Z",
    "length": 14,
    "stamp": "FZZ1XK4YZZZZZY",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (1999-01-01)"
   },
   {
    "utc": "1999-01-01T00:00:00Z",
    "length": 14,
    "stamp": "FZZ1XK50000000",
+   "provisional": false,
    "note": "a boundary of Appendix A (1999-01-01)"
   },
   {
    "utc": "1999-01-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "FZZ1XK50000001",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (1999-01-01)"
   },
   {
    "utc": "2005-12-31T23:59:59Z",
    "length": 14,
    "stamp": "G05MKP0Z000000",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (2006-01-01)"
   },
   {
    "utc": "2005-12-31T23:59:59.999999999Z",
    "length": 14,
    "stamp": "G05MKP0ZZZZZZY",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (2006-01-01)"
   },
   {
    "utc": "2006-01-01T00:00:00Z",
    "length": 14,
    "stamp": "G05MKP11000000",
+   "provisional": false,
    "note": "a boundary of Appendix A (2006-01-01)"
   },
   {
    "utc": "2006-01-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "G05MKP11000001",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (2006-01-01)"
   },
   {
    "utc": "2008-12-31T23:59:59Z",
    "length": 14,
    "stamp": "G08EXH10000000",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (2009-01-01)"
   },
   {
    "utc": "2008-12-31T23:59:59.999999999Z",
    "length": 14,
    "stamp": "G08EXH10ZZZZZY",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (2009-01-01)"
   },
   {
    "utc": "2009-01-01T00:00:00Z",
    "length": 14,
    "stamp": "G08EXH12000000",
+   "provisional": false,
    "note": "a boundary of Appendix A (2009-01-01)"
   },
   {
    "utc": "2009-01-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "G08EXH12000001",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (2009-01-01)"
   },
   {
    "utc": "2012-06-30T23:59:59Z",
    "length": 14,
    "stamp": "G0BR4KX1000000",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (2012-07-01)"
   },
   {
    "utc": "2012-06-30T23:59:59.999999999Z",
    "length": 14,
    "stamp": "G0BR4KX1ZZZZZY",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (2012-07-01)"
   },
   {
    "utc": "2012-07-01T00:00:00Z",
    "length": 14,
    "stamp": "G0BR4KX3000000",
+   "provisional": false,
    "note": "a boundary of Appendix A (2012-07-01)"
   },
   {
    "utc": "2012-07-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "G0BR4KX3000001",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (2012-07-01)"
   },
   {
    "utc": "2015-06-30T23:59:59Z",
    "length": 14,
    "stamp": "G0EJBTH2000000",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (2015-07-01)"
   },
   {
    "utc": "2015-06-30T23:59:59.999999999Z",
    "length": 14,
    "stamp": "G0EJBTH2ZZZZZY",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (2015-07-01)"
   },
   {
    "utc": "2015-07-01T00:00:00Z",
    "length": 14,
    "stamp": "G0EJBTH4000000",
+   "provisional": false,
    "note": "a boundary of Appendix A (2015-07-01)"
   },
   {
    "utc": "2015-07-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "G0EJBTH4000001",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (2015-07-01)"
   },
   {
    "utc": "2016-12-31T23:59:59Z",
    "length": 14,
    "stamp": "G0FZP0S3000000",
+   "provisional": false,
    "note": "1 s before a boundary of Appendix A (2017-01-01)"
   },
   {
    "utc": "2016-12-31T23:59:59.999999999Z",
    "length": 14,
    "stamp": "G0FZP0S3ZZZZZY",
+   "provisional": false,
    "note": "1 ns before a boundary of Appendix A (2017-01-01)"
   },
   {
    "utc": "2017-01-01T00:00:00Z",
    "length": 14,
    "stamp": "G0FZP0S5000000",
+   "provisional": false,
    "note": "a boundary of Appendix A (2017-01-01)"
   },
   {
    "utc": "2017-01-01T00:00:00.000000001Z",
    "length": 14,
    "stamp": "G0FZP0S5000001",
+   "provisional": false,
    "note": "1 ns after a boundary of Appendix A (2017-01-01)"
   },
   {
    "utc": "1961-07-31T23:59:59.95Z",
    "length": 14,
    "stamp": "FYVVSJ01MQ3JBG",
+   "provisional": false,
    "note": "the last label before removed time"
   },
   {
@@ -1239,6 +1540,7 @@
    "utc": "1968-01-31T23:59:59.900000002Z",
    "length": 14,
    "stamp": "FZ1ZFRM65Y4DP0",
+   "provisional": false,
    "note": "the last label before removed time"
   },
   {
@@ -1248,922 +1550,1248 @@
    "note": "the first removed label"
   },
   {
-   "utc": "1972-06-30T23:59:59Z",
-   "length": 8,
-   "stamp": "FZ64A549",
-   "note": "the second before a leap second"
-  },
-  {
-   "utc": "1972-12-31T23:59:59Z",
-   "length": 8,
-   "stamp": "FZ6KFA4A",
-   "note": "the second before a leap second"
-  },
-  {
-   "utc": "1973-12-31T23:59:59Z",
-   "length": 8,
-   "stamp": "FZ7HHQ0B",
-   "note": "the second before a leap second"
-  },
-  {
-   "utc": "1974-12-31T23:59:59Z",
-   "length": 8,
-   "stamp": "FZ8FM3WC",
-   "note": "the second before a leap second"
-  },
-  {
-   "utc": "1975-12-31T23:59:59Z",
-   "length": 8,
-   "stamp": "FZ9DPGRD",
-   "note": "the second before a leap second"
-  },
-  {
-   "utc": "1976-12-31T23:59:59Z",
-   "length": 8,
-   "stamp": "FZABVJ0E",
-   "note": "the second before a leap second"
-  },
-  {
-   "utc": "1977-12-31T23:59:59Z",
-   "length": 8,
-   "stamp": "FZB9XYWF",
-   "note": "the second before a leap second"
-  },
-  {
-   "utc": "1978-12-31T23:59:59Z",
-   "length": 8,
-   "stamp": "FZC80BRG",
-   "note": "the second before a leap second"
-  },
-  {
-   "utc": "1979-12-31T23:59:59Z",
-   "length": 8,
-   "stamp": "FZD62RMH",
-   "note": "the second before a leap second"
-  },
-  {
-   "utc": "1981-06-30T23:59:59Z",
-   "length": 8,
-   "stamp": "FZEK51RJ",
-   "note": "the second before a leap second"
-  },
-  {
-   "utc": "1982-06-30T23:59:59Z",
-   "length": 8,
-   "stamp": "FZFH7EMK",
-   "note": "the second before a leap second"
-  },
-  {
-   "utc": "1983-06-30T23:59:59Z",
-   "length": 8,
-   "stamp": "FZGF9VGM",
-   "note": "the second before a leap second"
-  },
-  {
-   "utc": "1985-06-30T23:59:59Z",
-   "length": 8,
-   "stamp": "FZJBH9MN",
-   "note": "the second before a leap second"
-  },
-  {
-   "utc": "1987-12-31T23:59:59Z",
-   "length": 8,
-   "stamp": "FZMPV8CP",
-   "note": "the second before a leap second"
-  },
-  {
-   "utc": "1989-12-31T23:59:59Z",
-   "length": 8,
-   "stamp": "FZPK2PGQ",
-   "note": "the second before a leap second"
-  },
-  {
-   "utc": "1990-12-31T23:59:59Z",
-   "length": 8,
-   "stamp": "FZQH53CR",
-   "note": "the second before a leap second"
-  },
-  {
-   "utc": "1992-06-30T23:59:59Z",
-   "length": 8,
-   "stamp": "FZRY7CGS",
-   "note": "the second before a leap second"
-  },
-  {
-   "utc": "1993-06-30T23:59:59Z",
-   "length": 8,
-   "stamp": "FZSW9SCT",
-   "note": "the second before a leap second"
-  },
-  {
-   "utc": "1994-06-30T23:59:59Z",
-   "length": 8,
-   "stamp": "FZTTC68V",
-   "note": "the second before a leap second"
-  },
-  {
-   "utc": "1995-12-31T23:59:59Z",
-   "length": 8,
-   "stamp": "FZW7KR4W",
-   "note": "the second before a leap second"
-  },
-  {
-   "utc": "1997-06-30T23:59:59Z",
-   "length": 8,
-   "stamp": "FZXMP18X",
-   "note": "the second before a leap second"
-  },
-  {
-   "utc": "1998-12-31T23:59:59Z",
-   "length": 8,
-   "stamp": "FZZ1XK4Y",
-   "note": "the second before a leap second"
-  },
-  {
-   "utc": "2005-12-31T23:59:59Z",
-   "length": 8,
-   "stamp": "G05MKP0Z",
-   "note": "the second before a leap second"
-  },
-  {
-   "utc": "2008-12-31T23:59:59Z",
-   "length": 8,
-   "stamp": "G08EXH10",
-   "note": "the second before a leap second"
-  },
-  {
-   "utc": "2012-06-30T23:59:59Z",
-   "length": 8,
-   "stamp": "G0BR4KX1",
-   "note": "the second before a leap second"
-  },
-  {
-   "utc": "2015-06-30T23:59:59Z",
-   "length": 8,
-   "stamp": "G0EJBTH2",
-   "note": "the second before a leap second"
-  },
-  {
-   "utc": "2016-12-31T23:59:59Z",
-   "length": 8,
-   "stamp": "G0FZP0S3",
-   "note": "the second before a leap second"
-  },
-  {
    "utc": "1972-06-30T23:59:60Z",
    "length": 8,
    "stamp": "FZ64A54A",
+   "provisional": false,
    "note": "leap second"
   },
   {
    "utc": "1972-06-30T23:59:60.5Z",
    "length": 9,
    "stamp": "FZ64A54AG",
+   "provisional": false,
    "note": "leap second"
+  },
+  {
+   "utc": "1972-06-30T23:59:59Z",
+   "length": 8,
+   "stamp": "FZ64A549",
+   "provisional": false,
+   "note": "the second before a leap second"
   },
   {
    "utc": "1972-12-31T23:59:60Z",
    "length": 8,
    "stamp": "FZ6KFA4B",
+   "provisional": false,
    "note": "leap second"
   },
   {
    "utc": "1972-12-31T23:59:60.5Z",
    "length": 9,
    "stamp": "FZ6KFA4BG",
+   "provisional": false,
    "note": "leap second"
+  },
+  {
+   "utc": "1972-12-31T23:59:59Z",
+   "length": 8,
+   "stamp": "FZ6KFA4A",
+   "provisional": false,
+   "note": "the second before a leap second"
   },
   {
    "utc": "1973-12-31T23:59:60Z",
    "length": 8,
    "stamp": "FZ7HHQ0C",
+   "provisional": false,
    "note": "leap second"
   },
   {
    "utc": "1973-12-31T23:59:60.5Z",
    "length": 9,
    "stamp": "FZ7HHQ0CG",
+   "provisional": false,
    "note": "leap second"
+  },
+  {
+   "utc": "1973-12-31T23:59:59Z",
+   "length": 8,
+   "stamp": "FZ7HHQ0B",
+   "provisional": false,
+   "note": "the second before a leap second"
   },
   {
    "utc": "1974-12-31T23:59:60Z",
    "length": 8,
    "stamp": "FZ8FM3WD",
+   "provisional": false,
    "note": "leap second"
   },
   {
    "utc": "1974-12-31T23:59:60.5Z",
    "length": 9,
    "stamp": "FZ8FM3WDG",
+   "provisional": false,
    "note": "leap second"
+  },
+  {
+   "utc": "1974-12-31T23:59:59Z",
+   "length": 8,
+   "stamp": "FZ8FM3WC",
+   "provisional": false,
+   "note": "the second before a leap second"
   },
   {
    "utc": "1975-12-31T23:59:60Z",
    "length": 8,
    "stamp": "FZ9DPGRE",
+   "provisional": false,
    "note": "leap second"
   },
   {
    "utc": "1975-12-31T23:59:60.5Z",
    "length": 9,
    "stamp": "FZ9DPGREG",
+   "provisional": false,
    "note": "leap second"
+  },
+  {
+   "utc": "1975-12-31T23:59:59Z",
+   "length": 8,
+   "stamp": "FZ9DPGRD",
+   "provisional": false,
+   "note": "the second before a leap second"
   },
   {
    "utc": "1976-12-31T23:59:60Z",
    "length": 8,
    "stamp": "FZABVJ0F",
+   "provisional": false,
    "note": "leap second"
   },
   {
    "utc": "1976-12-31T23:59:60.5Z",
    "length": 9,
    "stamp": "FZABVJ0FG",
+   "provisional": false,
    "note": "leap second"
+  },
+  {
+   "utc": "1976-12-31T23:59:59Z",
+   "length": 8,
+   "stamp": "FZABVJ0E",
+   "provisional": false,
+   "note": "the second before a leap second"
   },
   {
    "utc": "1977-12-31T23:59:60Z",
    "length": 8,
    "stamp": "FZB9XYWG",
+   "provisional": false,
    "note": "leap second"
   },
   {
    "utc": "1977-12-31T23:59:60.5Z",
    "length": 9,
    "stamp": "FZB9XYWGG",
+   "provisional": false,
    "note": "leap second"
+  },
+  {
+   "utc": "1977-12-31T23:59:59Z",
+   "length": 8,
+   "stamp": "FZB9XYWF",
+   "provisional": false,
+   "note": "the second before a leap second"
   },
   {
    "utc": "1978-12-31T23:59:60Z",
    "length": 8,
    "stamp": "FZC80BRH",
+   "provisional": false,
    "note": "leap second"
   },
   {
    "utc": "1978-12-31T23:59:60.5Z",
    "length": 9,
    "stamp": "FZC80BRHG",
+   "provisional": false,
    "note": "leap second"
+  },
+  {
+   "utc": "1978-12-31T23:59:59Z",
+   "length": 8,
+   "stamp": "FZC80BRG",
+   "provisional": false,
+   "note": "the second before a leap second"
   },
   {
    "utc": "1979-12-31T23:59:60Z",
    "length": 8,
    "stamp": "FZD62RMJ",
+   "provisional": false,
    "note": "leap second"
   },
   {
    "utc": "1979-12-31T23:59:60.5Z",
    "length": 9,
    "stamp": "FZD62RMJG",
+   "provisional": false,
    "note": "leap second"
+  },
+  {
+   "utc": "1979-12-31T23:59:59Z",
+   "length": 8,
+   "stamp": "FZD62RMH",
+   "provisional": false,
+   "note": "the second before a leap second"
   },
   {
    "utc": "1981-06-30T23:59:60Z",
    "length": 8,
    "stamp": "FZEK51RK",
+   "provisional": false,
    "note": "leap second"
   },
   {
    "utc": "1981-06-30T23:59:60.5Z",
    "length": 9,
    "stamp": "FZEK51RKG",
+   "provisional": false,
    "note": "leap second"
+  },
+  {
+   "utc": "1981-06-30T23:59:59Z",
+   "length": 8,
+   "stamp": "FZEK51RJ",
+   "provisional": false,
+   "note": "the second before a leap second"
   },
   {
    "utc": "1982-06-30T23:59:60Z",
    "length": 8,
    "stamp": "FZFH7EMM",
+   "provisional": false,
    "note": "leap second"
   },
   {
    "utc": "1982-06-30T23:59:60.5Z",
    "length": 9,
    "stamp": "FZFH7EMMG",
+   "provisional": false,
    "note": "leap second"
+  },
+  {
+   "utc": "1982-06-30T23:59:59Z",
+   "length": 8,
+   "stamp": "FZFH7EMK",
+   "provisional": false,
+   "note": "the second before a leap second"
   },
   {
    "utc": "1983-06-30T23:59:60Z",
    "length": 8,
    "stamp": "FZGF9VGN",
+   "provisional": false,
    "note": "leap second"
   },
   {
    "utc": "1983-06-30T23:59:60.5Z",
    "length": 9,
    "stamp": "FZGF9VGNG",
+   "provisional": false,
    "note": "leap second"
+  },
+  {
+   "utc": "1983-06-30T23:59:59Z",
+   "length": 8,
+   "stamp": "FZGF9VGM",
+   "provisional": false,
+   "note": "the second before a leap second"
   },
   {
    "utc": "1985-06-30T23:59:60Z",
    "length": 8,
    "stamp": "FZJBH9MP",
+   "provisional": false,
    "note": "leap second"
   },
   {
    "utc": "1985-06-30T23:59:60.5Z",
    "length": 9,
    "stamp": "FZJBH9MPG",
+   "provisional": false,
    "note": "leap second"
+  },
+  {
+   "utc": "1985-06-30T23:59:59Z",
+   "length": 8,
+   "stamp": "FZJBH9MN",
+   "provisional": false,
+   "note": "the second before a leap second"
   },
   {
    "utc": "1987-12-31T23:59:60Z",
    "length": 8,
    "stamp": "FZMPV8CQ",
+   "provisional": false,
    "note": "leap second"
   },
   {
    "utc": "1987-12-31T23:59:60.5Z",
    "length": 9,
    "stamp": "FZMPV8CQG",
+   "provisional": false,
    "note": "leap second"
+  },
+  {
+   "utc": "1987-12-31T23:59:59Z",
+   "length": 8,
+   "stamp": "FZMPV8CP",
+   "provisional": false,
+   "note": "the second before a leap second"
   },
   {
    "utc": "1989-12-31T23:59:60Z",
    "length": 8,
    "stamp": "FZPK2PGR",
+   "provisional": false,
    "note": "leap second"
   },
   {
    "utc": "1989-12-31T23:59:60.5Z",
    "length": 9,
    "stamp": "FZPK2PGRG",
+   "provisional": false,
    "note": "leap second"
+  },
+  {
+   "utc": "1989-12-31T23:59:59Z",
+   "length": 8,
+   "stamp": "FZPK2PGQ",
+   "provisional": false,
+   "note": "the second before a leap second"
   },
   {
    "utc": "1990-12-31T23:59:60Z",
    "length": 8,
    "stamp": "FZQH53CS",
+   "provisional": false,
    "note": "leap second"
   },
   {
    "utc": "1990-12-31T23:59:60.5Z",
    "length": 9,
    "stamp": "FZQH53CSG",
+   "provisional": false,
    "note": "leap second"
+  },
+  {
+   "utc": "1990-12-31T23:59:59Z",
+   "length": 8,
+   "stamp": "FZQH53CR",
+   "provisional": false,
+   "note": "the second before a leap second"
   },
   {
    "utc": "1992-06-30T23:59:60Z",
    "length": 8,
    "stamp": "FZRY7CGT",
+   "provisional": false,
    "note": "leap second"
   },
   {
    "utc": "1992-06-30T23:59:60.5Z",
    "length": 9,
    "stamp": "FZRY7CGTG",
+   "provisional": false,
    "note": "leap second"
+  },
+  {
+   "utc": "1992-06-30T23:59:59Z",
+   "length": 8,
+   "stamp": "FZRY7CGS",
+   "provisional": false,
+   "note": "the second before a leap second"
   },
   {
    "utc": "1993-06-30T23:59:60Z",
    "length": 8,
    "stamp": "FZSW9SCV",
+   "provisional": false,
    "note": "leap second"
   },
   {
    "utc": "1993-06-30T23:59:60.5Z",
    "length": 9,
    "stamp": "FZSW9SCVG",
+   "provisional": false,
    "note": "leap second"
+  },
+  {
+   "utc": "1993-06-30T23:59:59Z",
+   "length": 8,
+   "stamp": "FZSW9SCT",
+   "provisional": false,
+   "note": "the second before a leap second"
   },
   {
    "utc": "1994-06-30T23:59:60Z",
    "length": 8,
    "stamp": "FZTTC68W",
+   "provisional": false,
    "note": "leap second"
   },
   {
    "utc": "1994-06-30T23:59:60.5Z",
    "length": 9,
    "stamp": "FZTTC68WG",
+   "provisional": false,
    "note": "leap second"
+  },
+  {
+   "utc": "1994-06-30T23:59:59Z",
+   "length": 8,
+   "stamp": "FZTTC68V",
+   "provisional": false,
+   "note": "the second before a leap second"
   },
   {
    "utc": "1995-12-31T23:59:60Z",
    "length": 8,
    "stamp": "FZW7KR4X",
+   "provisional": false,
    "note": "leap second"
   },
   {
    "utc": "1995-12-31T23:59:60.5Z",
    "length": 9,
    "stamp": "FZW7KR4XG",
+   "provisional": false,
    "note": "leap second"
+  },
+  {
+   "utc": "1995-12-31T23:59:59Z",
+   "length": 8,
+   "stamp": "FZW7KR4W",
+   "provisional": false,
+   "note": "the second before a leap second"
   },
   {
    "utc": "1997-06-30T23:59:60Z",
    "length": 8,
    "stamp": "FZXMP18Y",
+   "provisional": false,
    "note": "leap second"
   },
   {
    "utc": "1997-06-30T23:59:60.5Z",
    "length": 9,
    "stamp": "FZXMP18YG",
+   "provisional": false,
    "note": "leap second"
+  },
+  {
+   "utc": "1997-06-30T23:59:59Z",
+   "length": 8,
+   "stamp": "FZXMP18X",
+   "provisional": false,
+   "note": "the second before a leap second"
   },
   {
    "utc": "1998-12-31T23:59:60Z",
    "length": 8,
    "stamp": "FZZ1XK4Z",
+   "provisional": false,
    "note": "leap second"
   },
   {
    "utc": "1998-12-31T23:59:60.5Z",
    "length": 9,
    "stamp": "FZZ1XK4ZG",
+   "provisional": false,
    "note": "leap second"
+  },
+  {
+   "utc": "1998-12-31T23:59:59Z",
+   "length": 8,
+   "stamp": "FZZ1XK4Y",
+   "provisional": false,
+   "note": "the second before a leap second"
   },
   {
    "utc": "2005-12-31T23:59:60Z",
    "length": 8,
    "stamp": "G05MKP10",
+   "provisional": false,
    "note": "leap second"
   },
   {
    "utc": "2005-12-31T23:59:60.5Z",
    "length": 9,
    "stamp": "G05MKP10G",
+   "provisional": false,
    "note": "leap second"
+  },
+  {
+   "utc": "2005-12-31T23:59:59Z",
+   "length": 8,
+   "stamp": "G05MKP0Z",
+   "provisional": false,
+   "note": "the second before a leap second"
   },
   {
    "utc": "2008-12-31T23:59:60Z",
    "length": 8,
    "stamp": "G08EXH11",
+   "provisional": false,
    "note": "leap second"
   },
   {
    "utc": "2008-12-31T23:59:60.5Z",
    "length": 9,
    "stamp": "G08EXH11G",
+   "provisional": false,
    "note": "leap second"
+  },
+  {
+   "utc": "2008-12-31T23:59:59Z",
+   "length": 8,
+   "stamp": "G08EXH10",
+   "provisional": false,
+   "note": "the second before a leap second"
   },
   {
    "utc": "2012-06-30T23:59:60Z",
    "length": 8,
    "stamp": "G0BR4KX2",
+   "provisional": false,
    "note": "leap second"
   },
   {
    "utc": "2012-06-30T23:59:60.5Z",
    "length": 9,
    "stamp": "G0BR4KX2G",
+   "provisional": false,
    "note": "leap second"
+  },
+  {
+   "utc": "2012-06-30T23:59:59Z",
+   "length": 8,
+   "stamp": "G0BR4KX1",
+   "provisional": false,
+   "note": "the second before a leap second"
   },
   {
    "utc": "2015-06-30T23:59:60Z",
    "length": 8,
    "stamp": "G0EJBTH3",
+   "provisional": false,
    "note": "leap second"
   },
   {
    "utc": "2015-06-30T23:59:60.5Z",
    "length": 9,
    "stamp": "G0EJBTH3G",
+   "provisional": false,
    "note": "leap second"
+  },
+  {
+   "utc": "2015-06-30T23:59:59Z",
+   "length": 8,
+   "stamp": "G0EJBTH2",
+   "provisional": false,
+   "note": "the second before a leap second"
   },
   {
    "utc": "2016-12-31T23:59:60Z",
    "length": 8,
    "stamp": "G0FZP0S4",
+   "provisional": false,
    "note": "leap second"
   },
   {
    "utc": "2016-12-31T23:59:60.5Z",
    "length": 9,
    "stamp": "G0FZP0S4G",
+   "provisional": false,
    "note": "leap second"
+  },
+  {
+   "utc": "2016-12-31T23:59:59Z",
+   "length": 8,
+   "stamp": "G0FZP0S3",
+   "provisional": false,
+   "note": "the second before a leap second"
   },
   {
    "utc": "1600-01-13T07:47:57.633389292Z",
    "length": 14,
-   "stamp": "FM7TZSHDM8JWSX"
+   "stamp": "FM7TZSHDM8JWSX",
+   "provisional": false
   },
   {
    "utc": "1600-01-16T11:14:17.628669445Z",
    "length": 14,
-   "stamp": "FM7V82R9M3R7P4"
+   "stamp": "FM7V82R9M3R7P4",
+   "provisional": false
   },
   {
    "utc": "1600-04-12T10:09:31.555586803Z",
    "length": 14,
-   "stamp": "FM82DBJVHRXEZK"
+   "stamp": "FM82DBJVHRXEZK",
+   "provisional": false
   },
   {
    "utc": "1600-03-25T20:26:35.297312523Z",
    "length": 14,
-   "stamp": "FM80Z0ZV9GEART"
+   "stamp": "FM80Z0ZV9GEART",
+   "provisional": false
   },
   {
    "utc": "1600-02-28T13:56:39.992971322Z",
    "length": 14,
-   "stamp": "FM7YSRCQZRSNWP"
+   "stamp": "FM7YSRCQZRSNWP",
+   "provisional": false
   },
   {
    "utc": "1600-03-06T15:32:25.2048978Z",
    "length": 14,
-   "stamp": "FM7ZCCM96HT2X9"
+   "stamp": "FM7ZCCM96HT2X9",
+   "provisional": false
   },
   {
    "utc": "1600-01-29T12:19:25.332730864Z",
    "length": 14,
-   "stamp": "FM7WAFEDAMPXK4"
+   "stamp": "FM7WAFEDAMPXK4",
+   "provisional": false
   },
   {
    "utc": "1600-01-07T01:15:22.714764737Z",
    "length": 14,
-   "stamp": "FM7TF89APVXD4R"
+   "stamp": "FM7TF89APVXD4R",
+   "provisional": false
   },
   {
    "utc": "1600-04-04T07:23:50.403586067Z",
    "length": 14,
-   "stamp": "FM81QYW6CX8PN7"
+   "stamp": "FM81QYW6CX8PN7",
+   "provisional": false
   },
   {
    "utc": "1600-02-22T18:27:00.010533996Z",
    "length": 14,
-   "stamp": "FM7YADZM0AS5P8"
+   "stamp": "FM7YADZM0AS5P8",
+   "provisional": false
   },
   {
    "utc": "1600-01-25T04:46:03.036341058Z",
    "length": 14,
-   "stamp": "FM7VZ3CB156TBH"
+   "stamp": "FM7VZ3CB156TBH",
+   "provisional": false
   },
   {
    "utc": "1600-03-26T19:47:01.130033144Z",
    "length": 14,
-   "stamp": "FM811K1N454XM9"
+   "stamp": "FM811K1N454XM9",
+   "provisional": false
   },
   {
    "utc": "1600-02-29T10:13:34.116614318Z",
    "length": 14,
-   "stamp": "FM7YVZPE3QD6Z6"
+   "stamp": "FM7YVZPE3QD6Z6",
+   "provisional": false
   },
   {
    "utc": "1600-01-14T10:58:24.111799787Z",
    "length": 14,
-   "stamp": "FM7V2S2G3JFEJB"
+   "stamp": "FM7V2S2G3JFEJB",
+   "provisional": false
   },
   {
    "utc": "1600-02-21T03:05:21.979453746Z",
    "length": 14,
-   "stamp": "FM7Y63KHZAYQP3"
+   "stamp": "FM7Y63KHZAYQP3",
+   "provisional": false
   },
   {
    "utc": "1600-03-31T13:27:38.572204526Z",
    "length": 14,
-   "stamp": "FM81E2PAJ9XZXV"
+   "stamp": "FM81E2PAJ9XZXV",
+   "provisional": false
   },
   {
    "utc": "1600-03-11T09:22:38.905551493Z",
    "length": 14,
-   "stamp": "FM7ZRWTYWZ93HZ"
+   "stamp": "FM7ZRWTYWZ93HZ",
+   "provisional": false
   },
   {
    "utc": "1600-01-10T16:09:56.13903204Z",
    "length": 14,
-   "stamp": "FM7TRSTM4EBSN4"
+   "stamp": "FM7TRSTM4EBSN4",
+   "provisional": false
   },
   {
    "utc": "1600-02-03T19:37:38.487374224Z",
    "length": 14,
-   "stamp": "FM7WRF02FK28X8"
+   "stamp": "FM7WRF02FK28X8",
+   "provisional": false
   },
   {
    "utc": "1600-03-22T06:36:03.450373834Z",
    "length": 14,
-   "stamp": "FM80NK6KED5V66"
+   "stamp": "FM80NK6KED5V66",
+   "provisional": false
   },
   {
    "utc": "1600-02-24T03:20:34.695111903Z",
    "length": 14,
-   "stamp": "FM7YE1M2P7SDN2"
+   "stamp": "FM7YE1M2P7SDN2",
+   "provisional": false
   },
   {
    "utc": "1600-01-13T23:54:34.398920429Z",
    "length": 14,
-   "stamp": "FM7V1J5TCRFTCD"
+   "stamp": "FM7V1J5TCRFTCD",
+   "provisional": false
   },
   {
    "utc": "1600-03-05T06:39:57.413954614Z",
    "length": 14,
-   "stamp": "FM7Z8S1XD7WEVY"
+   "stamp": "FM7Z8S1XD7WEVY",
+   "provisional": false
   },
   {
    "utc": "1600-01-03T06:51:48.805029658Z",
    "length": 14,
-   "stamp": "FM7T5AG4SRB6RX"
+   "stamp": "FM7T5AG4SRB6RX",
+   "provisional": false
   },
   {
    "utc": "1600-02-07T23:15:42.793886279Z",
    "length": 14,
-   "stamp": "FM7X3D8YSCY235"
+   "stamp": "FM7X3D8YSCY235",
+   "provisional": false
   },
   {
    "utc": "1600-01-19T04:35:39.957473069Z",
    "length": 14,
-   "stamp": "FM7VF8GVYMEF8Z"
+   "stamp": "FM7VF8GVYMEF8Z",
+   "provisional": false
   },
   {
    "utc": "1600-02-11T18:34:40.988882307Z",
    "length": 14,
-   "stamp": "FM7XDEA0ZMKP84"
+   "stamp": "FM7XDEA0ZMKP84",
+   "provisional": false
   },
   {
    "utc": "1600-01-30T10:12:31.429783382Z",
    "length": 14,
-   "stamp": "FM7WCWCFDR34H8"
+   "stamp": "FM7WCWCFDR34H8",
+   "provisional": false
   },
   {
    "utc": "1600-02-24T17:39:31.649688849Z",
    "length": 14,
-   "stamp": "FM7YFKYKMS9049"
+   "stamp": "FM7YFKYKMS9049",
+   "provisional": false
   },
   {
    "utc": "1600-03-19T21:42:33.617386242Z",
    "length": 14,
-   "stamp": "FM80FB69KR6GCN"
+   "stamp": "FM80FB69KR6GCN",
+   "provisional": false
   },
   {
    "utc": "1600-01-02T22:45:23.793180384Z",
    "length": 14,
-   "stamp": "FM7T4E03SC6XX8"
+   "stamp": "FM7T4E03SC6XX8",
+   "provisional": false
   },
   {
    "utc": "1600-03-28T09:47:27.752965723Z",
    "length": 14,
-   "stamp": "FM815RNFR315S4"
+   "stamp": "FM815RNFR315S4",
+   "provisional": false
   },
   {
    "utc": "1600-03-24T22:21:09.031746523Z",
    "length": 14,
-   "stamp": "FM80WKAN10G8MH"
+   "stamp": "FM80WKAN10G8MH",
+   "provisional": false
   },
   {
    "utc": "1600-04-10T07:17:51.216762734Z",
    "length": 14,
-   "stamp": "FM827RRZ6XYW6D"
+   "stamp": "FM827RRZ6XYW6D",
+   "provisional": false
   },
   {
    "utc": "1600-02-08T16:36:10.375642942Z",
    "length": 14,
-   "stamp": "FM7X5A7TC0N25H"
+   "stamp": "FM7X5A7TC0N25H",
+   "provisional": false
   },
   {
    "utc": "1600-02-13T09:45:18.823408623Z",
    "length": 14,
-   "stamp": "FM7XHR1ETB5EGM"
+   "stamp": "FM7XHR1ETB5EGM",
+   "provisional": false
   },
   {
    "utc": "1600-01-12T15:53:01.133948424Z",
    "length": 14,
-   "stamp": "FM7TY1JX495739"
+   "stamp": "FM7TY1JX495739",
+   "provisional": false
   },
   {
    "utc": "1600-04-11T10:47:29.193743517Z",
    "length": 14,
-   "stamp": "FM82ASE166CJSN"
+   "stamp": "FM82ASE166CJSN",
+   "provisional": false
   },
   {
    "utc": "1600-03-27T17:01:19.98654146Z",
    "length": 14,
-   "stamp": "FM813XPZZJ6ZPA"
+   "stamp": "FM813XPZZJ6ZPA",
+   "provisional": false
   },
   {
    "utc": "1600-03-30T09:50:29.423224642Z",
    "length": 14,
-   "stamp": "FM81B1K5DHC76F"
+   "stamp": "FM81B1K5DHC76F",
+   "provisional": false
   },
   {
    "utc": "1600-03-14T15:50:58.60662279Z",
    "length": 14,
-   "stamp": "FM801GQ2KD5T35"
+   "stamp": "FM801GQ2KD5T35",
+   "provisional": false
   },
   {
    "utc": "1600-01-04T02:57:26.543065184Z",
    "length": 14,
-   "stamp": "FM7T7H4PHC353S"
+   "stamp": "FM7T7H4PHC353S",
+   "provisional": false
   },
   {
    "utc": "1600-01-10T05:40:38.277572452Z",
    "length": 14,
-   "stamp": "FM7TQMYP8W7FSY"
+   "stamp": "FM7TQMYP8W7FSY",
+   "provisional": false
   },
   {
    "utc": "1600-03-03T14:57:14.11578609Z",
    "length": 14,
-   "stamp": "FM7Z4DEA3PJ2GF"
+   "stamp": "FM7Z4DEA3PJ2GF",
+   "provisional": false
   },
   {
    "utc": "1600-03-14T10:18:22.051346697Z",
    "length": 14,
-   "stamp": "FM800X7E1MJGX8"
+   "stamp": "FM800X7E1MJGX8",
+   "provisional": false
   },
   {
    "utc": "1600-01-23T07:39:40.710678706Z",
    "length": 14,
-   "stamp": "FM7VT4SWPQQGMA"
+   "stamp": "FM7VT4SWPQQGMA",
+   "provisional": false
   },
   {
    "utc": "1600-02-15T22:18:22.076233015Z",
    "length": 14,
-   "stamp": "FM7XRCXE2E203G"
+   "stamp": "FM7XRCXE2E203G",
+   "provisional": false
   },
   {
    "utc": "1600-02-13T22:55:02.59493271Z",
    "length": 14,
-   "stamp": "FM7XK6A6K16R55"
+   "stamp": "FM7XK6A6K16R55",
+   "provisional": false
   },
   {
    "utc": "1600-03-09T08:57:37.701555469Z",
    "length": 14,
-   "stamp": "FM7ZKJM1PECJ78"
+   "stamp": "FM7ZKJM1PECJ78",
+   "provisional": false
   },
   {
    "utc": "1600-03-29T01:02:35.11997599Z",
    "length": 14,
-   "stamp": "FM817E9B3TVBY6"
+   "stamp": "FM817E9B3TVBY6",
+   "provisional": false
   },
   {
    "utc": "1600-04-04T07:21:31.700629275Z",
    "length": 14,
-   "stamp": "FM81QYQVPDE71B"
+   "stamp": "FM81QYQVPDE71B",
+   "provisional": false
   },
   {
    "utc": "1600-02-20T14:42:03.225584411Z",
    "length": 14,
-   "stamp": "FM7Y4R1V76ZYCR"
+   "stamp": "FM7Y4R1V76ZYCR",
+   "provisional": false
   },
   {
    "utc": "1600-02-16T05:03:02.358731735Z",
    "length": 14,
-   "stamp": "FM7XS4M6BFAXFK"
+   "stamp": "FM7XS4M6BFAXFK",
+   "provisional": false
   },
   {
    "utc": "1600-01-15T20:48:24.171243191Z",
    "length": 14,
-   "stamp": "FM7V6G0R5FB9G0"
+   "stamp": "FM7V6G0R5FB9G0",
+   "provisional": false
   },
   {
    "utc": "1600-01-31T12:19:52.491988779Z",
    "length": 14,
-   "stamp": "FM7WFR78FQSFM0"
+   "stamp": "FM7WFR78FQSFM0",
+   "provisional": false
   },
   {
    "utc": "1600-03-05T01:08:36.705739993Z",
    "length": 14,
-   "stamp": "FM7Z85MMPJNP0K"
+   "stamp": "FM7Z85MMPJNP0K",
+   "provisional": false
   },
   {
    "utc": "1600-03-25T21:19:03.729769523Z",
    "length": 14,
-   "stamp": "FM80Z427QB92ST"
+   "stamp": "FM80Z427QB92ST",
+   "provisional": false
   },
   {
    "utc": "1600-04-13T09:11:43.600938917Z",
    "length": 14,
-   "stamp": "FM82FWJFK7BJ40"
+   "stamp": "FM82FWJFK7BJ40",
+   "provisional": false
   },
   {
    "utc": "1600-01-08T04:54:40.173244423Z",
    "length": 14,
-   "stamp": "FM7TJ9GG5HCVY6"
+   "stamp": "FM7TJ9GG5HCVY6",
+   "provisional": false
   },
   {
    "utc": "1600-01-13T14:48:10.055965398Z",
    "length": 14,
-   "stamp": "FM7V0J5A1S9VZ4"
+   "stamp": "FM7V0J5A1S9VZ4",
+   "provisional": false
   }
  ],
  "encode_unix": [
   {
    "unix_nanos": "0",
    "length": 14,
-   "stamp": "FZ3S5F48002NZE"
+   "stamp": "FZ3S5F48002NZE",
+   "provisional": false
   },
   {
    "unix_nanos": "1483228800000000000",
    "length": 8,
-   "stamp": "G0FZP0S5"
+   "stamp": "G0FZP0S5",
+   "provisional": false
   },
   {
    "unix_nanos": "1483228799000000000",
    "length": 8,
-   "stamp": "G0FZP0S3"
+   "stamp": "G0FZP0S3",
+   "provisional": false
   },
   {
    "unix_nanos": "-1",
    "length": 14,
-   "stamp": "FZ3S5F48002NZD"
+   "stamp": "FZ3S5F48002NZD",
+   "provisional": false
   },
   {
    "unix_nanos": "1793416380000000000",
    "length": 8,
-   "stamp": "G0S7G6B1"
+   "stamp": "G0S7G6B1",
+   "provisional": false
   },
   {
    "unix_nanos": "-14182940000000000",
    "length": 8,
-   "stamp": "FZ3BMMKB"
+   "stamp": "FZ3BMMKB",
+   "provisional": false
+  },
+  {
+   "unix_nanos": "1814140799999999999",
+   "length": 14,
+   "stamp": "G0SV8N14ZZZZZY",
+   "provisional": false
+  },
+  {
+   "unix_nanos": "1814140800000000000",
+   "length": 14,
+   "stamp": "G0SV8N15000000",
+   "provisional": true
+  },
+  {
+   "unix_nanos": "600000000000000000000",
+   "length": 8,
+   "error": "out_of_range"
+  },
+  {
+   "unix_nanos": "-600000000000000000000",
+   "length": 8,
+   "error": "out_of_range"
   },
   {
    "unix_nanos": "-1993474937839417163",
    "length": 14,
-   "stamp": "FX8C1E8654DZ9W"
+   "stamp": "FX8C1E8654DZ9W",
+   "provisional": false
   },
   {
    "unix_nanos": "-1992220929358122851",
    "length": 14,
-   "stamp": "FX8D7PVYMH90Z4"
+   "stamp": "FX8D7PVYMH90Z4",
+   "provisional": false
   },
   {
    "unix_nanos": "-1991684332334795434",
    "length": 14,
-   "stamp": "FX8DR2WKN95DHC"
+   "stamp": "FX8DR2WKN95DHC",
+   "provisional": false
   },
   {
    "unix_nanos": "-1999157391517566672",
    "length": 14,
-   "stamp": "FX86M0ZGFE0C09"
+   "stamp": "FX86M0ZGFE0C09",
+   "provisional": false
   },
   {
    "unix_nanos": "-1998788298550870981",
    "length": 14,
-   "stamp": "FX86Z9DNEBX1X4"
+   "stamp": "FX86Z9DNEBX1X4",
+   "provisional": false
   },
   {
    "unix_nanos": "-1996589739046976031",
    "length": 14,
-   "stamp": "FX892CEMYFWP1Y"
+   "stamp": "FX892CEMYFWP1Y",
+   "provisional": false
   },
   {
    "unix_nanos": "-1995186616152363958",
    "length": 14,
-   "stamp": "FX8AD6P7V3ZASX"
+   "stamp": "FX8AD6P7V3ZASX",
+   "provisional": false
   },
   {
    "unix_nanos": "-1991361988266522386",
    "length": 14,
-   "stamp": "FX8E1XNVQF2K0Q"
+   "stamp": "FX8E1XNVQF2K0Q",
+   "provisional": false
   },
   {
    "unix_nanos": "-1994237040138045847",
    "length": 14,
-   "stamp": "FX8BA60FVJMGE0"
+   "stamp": "FX8BA60FVJMGE0",
+   "provisional": false
   },
   {
    "unix_nanos": "-1994803457365251365",
    "length": 14,
-   "stamp": "FX8ARWVYM9ZE5X"
+   "stamp": "FX8ARWVYM9ZE5X",
+   "provisional": false
   },
   {
    "unix_nanos": "-1991261576813999077",
    "length": 14,
-   "stamp": "FX8E4ZQQ5YEW3A"
+   "stamp": "FX8E4ZQQ5YEW3A",
+   "provisional": false
   },
   {
    "unix_nanos": "-1993605981657229698",
    "length": 14,
-   "stamp": "FX8BXE92AYZWPS"
+   "stamp": "FX8BXE92AYZWPS",
+   "provisional": false
   },
   {
    "unix_nanos": "-1996451845571430357",
    "length": 14,
-   "stamp": "FX896K3TDPVBTY"
+   "stamp": "FX896K3TDPVBTY",
+   "provisional": false
   },
   {
    "unix_nanos": "-1992738586731111266",
    "length": 14,
-   "stamp": "FX8CQXB58KAY8Q"
+   "stamp": "FX8CQXB58KAY8Q",
+   "provisional": false
   },
   {
    "unix_nanos": "-1996867855672689015",
    "length": 14,
-   "stamp": "FX88SWVGAF5AE6"
+   "stamp": "FX88SWVGAF5AE6",
+   "provisional": false
   },
   {
    "unix_nanos": "-1995825535008851913",
    "length": 14,
-   "stamp": "FX89SPR0ZPXY32"
+   "stamp": "FX89SPR0ZPXY32",
+   "provisional": false
   },
   {
    "unix_nanos": "-1999687608102807498",
    "length": 14,
-   "stamp": "FX863V67WPQ6GS"
+   "stamp": "FX863V67WPQ6GS",
+   "provisional": false
   },
   {
    "unix_nanos": "-1999553819502320541",
    "length": 14,
-   "stamp": "FX867XV4FXKYQJ"
+   "stamp": "FX867XV4FXKYQJ",
+   "provisional": false
   },
   {
    "unix_nanos": "-1997483532871948194",
    "length": 14,
-   "stamp": "FX8873KK43401K"
+   "stamp": "FX8873KK43401K",
+   "provisional": false
   },
   {
    "unix_nanos": "-1996073682183168808",
    "length": 14,
-   "stamp": "FX89J4DDT4DXJN"
+   "stamp": "FX89J4DDT4DXJN",
+   "provisional": false
+  }
+ ],
+ "encode_tai": [
+  {
+   "units": "0",
+   "length": 8,
+   "stamp": "00000000"
+  },
+  {
+   "units": "0",
+   "length": 16,
+   "stamp": "0000000000000000"
+  },
+  {
+   "units": "1208925819614629174706175",
+   "length": 16,
+   "stamp": "ZZZZZZZZZZZZZZZZ"
+  },
+  {
+   "units": "1208925819614629174706175",
+   "length": 1,
+   "stamp": "Z"
+  },
+  {
+   "units": "1208925819614629174706176",
+   "length": 8,
+   "error": "out_of_range"
+  },
+  {
+   "units": "604462909807314587353088",
+   "length": 8,
+   "stamp": "G0000000"
+  },
+  {
+   "units": "605052846213710452097024",
+   "length": 8,
+   "stamp": "G0FZP0S4"
+  },
+  {
+   "units": "844306379102043298744847",
+   "length": 10,
+   "stamp": "PB4Z1HH2CK"
+  },
+  {
+   "units": "74529521522109130624480",
+   "length": 11,
+   "stamp": "1Z441RMP0YC"
+  },
+  {
+   "units": "1096713155817979166331602",
+   "length": 2,
+   "stamp": "X0"
+  },
+  {
+   "units": "973284592252882643991052",
+   "length": 16,
+   "stamp": "SRCXT32372W44EGC"
+  },
+  {
+   "units": "254499750762961008864675",
+   "length": 15,
+   "stamp": "6QJ7B2E9E6E20BD"
+  },
+  {
+   "units": "658081822125562874877198",
+   "length": 15,
+   "stamp": "HDDAZRSW8RJX1N8"
+  },
+  {
+   "units": "975323387855728213951238",
+   "length": 13,
+   "stamp": "ST4661AA07QDE"
+  },
+  {
+   "units": "755817908066407230789251",
+   "length": 5,
+   "stamp": "M06FH"
+  },
+  {
+   "units": "968880089239005424522789",
+   "length": 1,
+   "stamp": "S"
+  },
+  {
+   "units": "1100065514893618946023221",
+   "length": 15,
+   "stamp": "X3SAQJJPVB74H7S"
+  },
+  {
+   "units": "874826804462491856094660",
+   "length": 3,
+   "stamp": "Q50"
+  },
+  {
+   "units": "499386666808974219426552",
+   "length": 13,
+   "stamp": "D6ZWWCHESR00R"
+  },
+  {
+   "units": "41791069456569903674311",
+   "length": 13,
+   "stamp": "13CQZ60W5JZ0H"
+  },
+  {
+   "units": "1098203889633499497306529",
+   "length": 6,
+   "stamp": "X26W13"
+  },
+  {
+   "units": "139781537965154024517219",
+   "length": 5,
+   "stamp": "3PCS5"
+  },
+  {
+   "units": "740413285695754467841576",
+   "length": 9,
+   "stamp": "KK4Y4Y0EJ"
+  },
+  {
+   "units": "376957649027137623334374",
+   "length": 9,
+   "stamp": "9Z9EMH06Y"
+  },
+  {
+   "units": "25805196229058475535073",
+   "length": 7,
+   "stamp": "0NVEE2D"
+  },
+  {
+   "units": "660715802645062844310051",
+   "length": 12,
+   "stamp": "HFMQKDEVAMA5"
+  },
+  {
+   "units": "657833873414225890949592",
+   "length": 16,
+   "stamp": "HD6KXT3N01MG9EER"
   }
  ],
  "utc_errors": [
@@ -2180,12 +2808,96 @@
    "error": "not_a_leap_second"
   },
   {
+   "utc": "1971-12-31T23:59:60Z",
+   "error": "not_a_leap_second"
+  },
+  {
    "utc": "2026-02-29T00:00:00Z",
    "error": "invalid_date"
   },
   {
    "utc": "2026-04-31T00:00:00Z",
    "error": "invalid_date"
+  },
+  {
+   "utc": "2026-13-01T00:00:00Z",
+   "error": "invalid_date"
+  },
+  {
+   "utc": "2026-00-10T00:00:00Z",
+   "error": "invalid_date"
+  },
+  {
+   "utc": "2026-10-31T24:00:00Z",
+   "error": "invalid_date"
+  },
+  {
+   "utc": "2026-10-31T23:60:00Z",
+   "error": "invalid_date"
+  },
+  {
+   "utc": "2026-10-31T23:59:61Z",
+   "error": "invalid_date"
+  },
+  {
+   "utc": "2026-10-31T03:13:00",
+   "error": "invalid_date"
+  },
+  {
+   "utc": "2026-10-31",
+   "error": "invalid_date"
+  },
+  {
+   "utc": "2026-10-31T03:13Z",
+   "error": "invalid_date"
+  },
+  {
+   "utc": "26-10-31T03:13:00Z",
+   "error": "invalid_date"
+  },
+  {
+   "utc": "10000-01-01T00:00:00Z",
+   "error": "invalid_date"
+  },
+  {
+   "utc": "2026-10-31T03:13:00+00:00",
+   "error": "invalid_date"
+  },
+  {
+   "utc": "2026-10-31T03:13:00.1234567890Z",
+   "error": "invalid_date"
+  },
+  {
+   "utc": "2026-10-31T03:13:00.Z",
+   "error": "invalid_date"
+  },
+  {
+   "utc": "2026-02-30T23:59:60Z",
+   "error": "invalid_date"
+  },
+  {
+   "utc": "1961-07-31T23:59:59.950000001Z",
+   "error": "removed_time"
+  },
+  {
+   "utc": "-15423-01-01T00:00:00Z",
+   "error": "out_of_range"
+  },
+  {
+   "utc": "+19422-01-01T00:00:00Z",
+   "error": "out_of_range"
+  },
+  {
+   "utc": "+100001-01-01T00:00:00Z",
+   "error": "out_of_range"
+  },
+  {
+   "utc": "+100001-02-30T00:00:00Z",
+   "error": "invalid_date"
+  },
+  {
+   "utc": "+100001-12-31T23:59:60Z",
+   "error": "not_a_leap_second"
   }
  ],
  "decode": [
@@ -2194,70 +2906,87 @@
    "start_units": "0",
    "start_utc": "-15422-12-06T11:41:52Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "-15422-12-06T11:41:53Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "G0000000",
    "start_units": "604462909807314587353088",
    "start_utc": "1999-12-31T23:59:28Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1999-12-31T23:59:29Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZ3BMMKB",
    "start_units": "603406424562126322401280",
    "start_utc": "1969-07-20T20:17:39.425406217Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1969-07-20T20:17:40.425406187Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "G0FZP0S4",
    "start_units": "605052846213710452097024",
    "start_utc": "2016-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "2017-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "G0S7",
    "start_units": "605393317461532312862720",
    "start_utc": "2026-10-24T23:46:35Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "2026-11-06T03:02:51Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "G0S7G6",
    "start_units": "605393900677684057341952",
    "start_utc": "2026-10-31T03:07:07Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "2026-10-31T03:24:11Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "G0S7G6B1G0",
    "start_units": "605393901066361417760768",
    "start_utc": "2026-10-31T03:13:00.5Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "2026-10-31T03:13:00.500976562Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "G",
    "start_units": "604462909807314587353088",
    "start_utc": "1999-12-31T23:59:28Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "3088-10-25T03:45:31Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": true
   },
   {
    "stamp": "Z",
    "start_units": "1171146887751672012996608",
    "start_utc": "+18332-04-02T08:31:23Z",
    "start_inserted": false,
+   "start_provisional": true,
    "end_utc": null
   },
   {
@@ -2265,6 +2994,7 @@
    "start_units": "1208925819613529663078400",
    "start_utc": "+19421-01-25T12:17:30Z",
    "start_inserted": false,
+   "start_provisional": true,
    "end_utc": null
   },
   {
@@ -2272,6 +3002,7 @@
    "start_units": "1208925819614629174706175",
    "start_utc": "+19421-01-25T12:17:30.999999999Z",
    "start_inserted": false,
+   "start_provisional": true,
    "end_utc": null
   },
   {
@@ -2279,1304 +3010,2107 @@
    "start_units": "0",
    "start_utc": "-15422-12-06T11:41:52Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "-15422-12-06T11:41:52Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
+  },
+  {
+   "stamp": "G0S",
+   "start_units": "605385247011000064933888",
+   "start_utc": "2026-08-01T00:52:43Z",
+   "start_inserted": false,
+   "start_provisional": false,
+   "end_utc": "2027-08-24T09:33:15Z",
+   "end_inserted": false,
+   "end_provisional": true
+  },
+  {
+   "stamp": "G0VVK",
+   "start_units": "605490847415062648324096",
+   "start_utc": "2029-08-16T15:29:31Z",
+   "start_inserted": false,
+   "start_provisional": true,
+   "end_utc": "2029-08-17T00:35:39Z",
+   "end_inserted": false,
+   "end_provisional": true
+  },
+  {
+   "stamp": "G0W",
+   "start_units": "605495927475442322243584",
+   "start_utc": "2029-10-09T02:54:19Z",
+   "start_inserted": false,
+   "start_provisional": true,
+   "end_utc": "2030-11-01T11:34:51Z",
+   "end_inserted": false,
+   "end_provisional": true
   },
   {
    "stamp": "FZ64A54A",
    "start_units": "603508656870702446542848",
    "start_utc": "1972-06-30T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1972-07-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZ64A54AG",
    "start_units": "603508656871252202356736",
    "start_utc": "1972-06-30T23:59:60.5Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1972-06-30T23:59:60.53125Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZ6KFA4B",
    "start_units": "603526136467855689908224",
    "start_utc": "1972-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1973-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZ6KFA4BG",
    "start_units": "603526136468405445722112",
    "start_utc": "1972-12-31T23:59:60.5Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1972-12-31T23:59:60.53125Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZ7HHQ0C",
    "start_units": "603560810667648745472000",
    "start_utc": "1973-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1974-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZ7HHQ0CG",
    "start_units": "603560810668198501285888",
    "start_utc": "1973-12-31T23:59:60.5Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1973-12-31T23:59:60.53125Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZ8FM3WD",
    "start_units": "603595484867441801035776",
    "start_utc": "1974-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1975-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZ8FM3WDG",
    "start_units": "603595484867991556849664",
    "start_utc": "1974-12-31T23:59:60.5Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1974-12-31T23:59:60.53125Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZ9DPGRE",
    "start_units": "603630159067234856599552",
    "start_utc": "1975-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1976-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZ9DPGREG",
    "start_units": "603630159067784612413440",
    "start_utc": "1975-12-31T23:59:60.5Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1975-12-31T23:59:60.53125Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZABVJ0F",
    "start_units": "603664928264832552009728",
    "start_utc": "1976-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1977-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZABVJ0FG",
    "start_units": "603664928265382307823616",
    "start_utc": "1976-12-31T23:59:60.5Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1976-12-31T23:59:60.53125Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZB9XYWG",
    "start_units": "603699602464625607573504",
    "start_utc": "1977-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1978-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZB9XYWGG",
    "start_units": "603699602465175363387392",
    "start_utc": "1977-12-31T23:59:60.5Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1977-12-31T23:59:60.53125Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZC80BRH",
    "start_units": "603734276664418663137280",
    "start_utc": "1978-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1979-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZC80BRHG",
    "start_units": "603734276664968418951168",
    "start_utc": "1978-12-31T23:59:60.5Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1978-12-31T23:59:60.53125Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZD62RMJ",
    "start_units": "603768950864211718701056",
    "start_utc": "1979-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1980-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZD62RMJG",
    "start_units": "603768950864761474514944",
    "start_utc": "1979-12-31T23:59:60.5Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1979-12-31T23:59:60.53125Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZEK51RK",
    "start_units": "603820914664449226309632",
    "start_utc": "1981-06-30T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1981-07-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZEK51RKG",
    "start_units": "603820914664998982123520",
    "start_utc": "1981-06-30T23:59:60.5Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1981-06-30T23:59:60.53125Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZFH7EMM",
    "start_units": "603855588864242281873408",
    "start_utc": "1982-06-30T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1982-07-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZFH7EMMG",
    "start_units": "603855588864792037687296",
    "start_utc": "1982-06-30T23:59:60.5Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1982-06-30T23:59:60.53125Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZGF9VGN",
    "start_units": "603890263064035337437184",
    "start_utc": "1983-06-30T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1983-07-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZGF9VGNG",
    "start_units": "603890263064585093251072",
    "start_utc": "1983-06-30T23:59:60.5Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1983-06-30T23:59:60.53125Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZJBH9MP",
    "start_units": "603959706460326576783360",
    "start_utc": "1985-06-30T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1985-07-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZJBH9MPG",
    "start_units": "603959706460876332597248",
    "start_utc": "1985-06-30T23:59:60.5Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1985-06-30T23:59:60.53125Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZMPV8CQ",
    "start_units": "604046534454866908020736",
    "start_utc": "1987-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1988-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZMPV8CQG",
    "start_units": "604046534455416663834624",
    "start_utc": "1987-12-31T23:59:60.5Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1987-12-31T23:59:60.53125Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZPK2PGR",
    "start_units": "604115977851158147366912",
    "start_utc": "1989-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1990-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZPK2PGRG",
    "start_units": "604115977851707903180800",
    "start_utc": "1989-12-31T23:59:60.5Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1989-12-31T23:59:60.53125Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZQH53CS",
    "start_units": "604150652050951202930688",
    "start_utc": "1990-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1991-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZQH53CSG",
    "start_units": "604150652051500958744576",
    "start_utc": "1990-12-31T23:59:60.5Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1990-12-31T23:59:60.53125Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZRY7CGT",
    "start_units": "604202615851188710539264",
    "start_utc": "1992-06-30T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1992-07-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZRY7CGTG",
    "start_units": "604202615851738466353152",
    "start_utc": "1992-06-30T23:59:60.5Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1992-06-30T23:59:60.53125Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZSW9SCV",
    "start_units": "604237290050981766103040",
    "start_utc": "1993-06-30T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1993-07-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZSW9SCVG",
    "start_units": "604237290051531521916928",
    "start_utc": "1993-06-30T23:59:60.5Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1993-06-30T23:59:60.53125Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZTTC68W",
    "start_units": "604271964250774821666816",
    "start_utc": "1994-06-30T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1994-07-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZTTC68WG",
    "start_units": "604271964251324577480704",
    "start_utc": "1994-06-30T23:59:60.5Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1994-06-30T23:59:60.53125Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZW7KR4X",
    "start_units": "604324118046621608968192",
    "start_utc": "1995-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1996-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZW7KR4XG",
    "start_units": "604324118047171364782080",
    "start_utc": "1995-12-31T23:59:60.5Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1995-12-31T23:59:60.53125Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZXMP18Y",
    "start_units": "604376081846859116576768",
    "start_utc": "1997-06-30T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1997-07-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZXMP18YG",
    "start_units": "604376081847408872390656",
    "start_utc": "1997-06-30T23:59:60.5Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1997-06-30T23:59:60.53125Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZZ1XK4Z",
    "start_units": "604428235642705903878144",
    "start_utc": "1998-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1999-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZZ1XK4ZG",
    "start_units": "604428235643255659692032",
    "start_utc": "1998-12-31T23:59:60.5Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1998-12-31T23:59:60.53125Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "G05MKP10",
    "start_units": "604671145030269502750720",
    "start_utc": "2005-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "2006-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "G05MKP10G",
    "start_units": "604671145030819258564608",
    "start_utc": "2005-12-31T23:59:60.5Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "2005-12-31T23:59:60.53125Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "G08EXH11",
    "start_units": "604775262625254286032896",
    "start_utc": "2008-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "2009-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "G08EXH11G",
    "start_units": "604775262625804041846784",
    "start_utc": "2008-12-31T23:59:60.5Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "2008-12-31T23:59:60.53125Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "G0BR4KX2",
    "start_units": "604896574822878881513472",
    "start_utc": "2012-06-30T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "2012-07-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "G0BR4KX2G",
    "start_units": "604896574823428637327360",
    "start_utc": "2012-06-30T23:59:60.5Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "2012-06-30T23:59:60.53125Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "G0EJBTH3",
    "start_units": "605000597420059024949248",
    "start_utc": "2015-06-30T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "2015-07-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "G0EJBTH3G",
    "start_units": "605000597420608780763136",
    "start_utc": "2015-06-30T23:59:60.5Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "2015-06-30T23:59:60.53125Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "G0FZP0S4G",
    "start_units": "605052846214260207910912",
    "start_utc": "2016-12-31T23:59:60.5Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "2016-12-31T23:59:60.53125Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FYVAAJG1DGYWSTH8",
    "start_units": "603109761079589020166696",
    "start_utc": "1961-01-01T00:00:00Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1961-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FYVVSJ01MQ3JBGYY",
    "start_units": "603129900614419785040862",
    "start_utc": "1961-08-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1961-08-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FYVVSJ01PA9Z545B",
    "start_units": "603129900614474760622251",
    "start_utc": "1961-08-01T00:00:00.049999999Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1961-08-01T00:00:00.049999999Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FYW8CZC1V252CQRF",
    "start_units": "603144435278747701501711",
    "start_utc": "1962-01-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1962-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FYXZGY82PA0DT2HH",
    "start_units": "603207988810987905813041",
    "start_utc": "1963-11-01T00:00:00Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1963-11-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FYXZGY82K3KM6W4R",
    "start_units": "603207988810877954650264",
    "start_utc": "1963-10-31T23:59:59.999999999Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1963-11-01T00:00:00Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FYY4HS42RG5H6PBS",
    "start_units": "603213783677146269702521",
    "start_utc": "1964-01-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1964-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FYYC1Q82ZFAVNCGR",
    "start_units": "603222428477608118891032",
    "start_utc": "1964-04-01T00:00:00Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1964-04-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FYYC1Q82W8Y2263Y",
    "start_units": "603222428477498167728254",
    "start_utc": "1964-03-31T23:59:59.999999999Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1964-04-01T00:00:00Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FYYRN4M390S59SQ2",
    "start_units": "603236963142045986514658",
    "start_utc": "1964-09-01T00:00:00Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1964-09-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FYYRN4M35TCBPKA8",
    "start_units": "603236963141936035351880",
    "start_utc": "1964-08-31T23:59:59.999999999Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1964-09-01T00:00:00Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FYZ2PTC3H92ZBBCP",
    "start_units": "603248552874495844920726",
    "start_utc": "1965-01-01T00:00:00Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1965-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FYZ2PTC3E2P5R4ZX",
    "start_units": "603248552874385893757949",
    "start_utc": "1964-12-31T23:59:59.999999999Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1965-01-01T00:00:00Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FYZ7JCG3PXSB8MM2",
    "start_units": "603254157745163620078210",
    "start_utc": "1965-03-01T00:00:00Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1965-03-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FYZ7JCG3KQCHNE78",
    "start_units": "603254157745053668915432",
    "start_utc": "1965-02-28T23:59:59.999999999Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1965-03-01T00:00:00Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FYZHM283Z635A69Q",
    "start_units": "603265747477613478484279",
    "start_utc": "1965-07-01T00:00:00Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1965-07-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FYZHM283VZPBPZWX",
    "start_units": "603265747477503527321501",
    "start_utc": "1965-06-30T23:59:59.999999999Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1965-07-01T00:00:00Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FYZPQHG44YRY33QV",
    "start_units": "603271637341699448082171",
    "start_utc": "1965-09-01T00:00:00Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1965-09-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FYZPQHG41RC4FXB2",
    "start_units": "603271637341589496919394",
    "start_utc": "1965-08-31T23:59:59.999999999Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1965-09-01T00:00:00Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZ00S784A0NYHF0P",
    "start_units": "603283227074039355325462",
    "start_utc": "1966-01-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1966-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZ1ZFRM65Y4DP1BM",
    "start_units": "603355520405429127153012",
    "start_utc": "1968-02-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1968-02-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZ1ZFRM694H797RE",
    "start_units": "603355520405539078315790",
    "start_utc": "1968-02-01T00:00:00.099999997Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1968-02-01T00:00:00.099999997Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZ5NA8WA00000000",
    "start_units": "603491367270257994498048",
    "start_utc": "1972-01-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1972-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZ5NA8W9WHMZHGGY",
    "start_units": "603491367270139513324062",
    "start_utc": "1971-12-31T23:59:59.999999999Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1972-01-01T00:00:00Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZ64A54B00000000",
    "start_units": "603508656871801958170624",
    "start_utc": "1972-07-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1972-07-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZ64A54A00000000",
    "start_units": "603508656870702446542848",
    "start_utc": "1972-06-30T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1972-06-30T23:59:60Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZ6KFA4C00000000",
    "start_units": "603526136468955201536000",
    "start_utc": "1973-01-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1973-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZ6KFA4B00000000",
    "start_units": "603526136467855689908224",
    "start_utc": "1972-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1972-12-31T23:59:60Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZ7HHQ0D00000000",
    "start_units": "603560810668748257099776",
    "start_utc": "1974-01-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1974-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZ7HHQ0C00000000",
    "start_units": "603560810667648745472000",
    "start_utc": "1973-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1973-12-31T23:59:60Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZ8FM3WE00000000",
    "start_units": "603595484868541312663552",
    "start_utc": "1975-01-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1975-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZ8FM3WD00000000",
    "start_units": "603595484867441801035776",
    "start_utc": "1974-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1974-12-31T23:59:60Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZ9DPGRF00000000",
    "start_units": "603630159068334368227328",
    "start_utc": "1976-01-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1976-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZ9DPGRE00000000",
    "start_units": "603630159067234856599552",
    "start_utc": "1975-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1975-12-31T23:59:60Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZABVJ0G00000000",
    "start_units": "603664928265932063637504",
    "start_utc": "1977-01-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1977-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZABVJ0F00000000",
    "start_units": "603664928264832552009728",
    "start_utc": "1976-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1976-12-31T23:59:60Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZB9XYWH00000000",
    "start_units": "603699602465725119201280",
    "start_utc": "1978-01-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1978-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZB9XYWG00000000",
    "start_units": "603699602464625607573504",
    "start_utc": "1977-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1977-12-31T23:59:60Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZC80BRJ00000000",
    "start_units": "603734276665518174765056",
    "start_utc": "1979-01-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1979-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZC80BRH00000000",
    "start_units": "603734276664418663137280",
    "start_utc": "1978-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1978-12-31T23:59:60Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZD62RMK00000000",
    "start_units": "603768950865311230328832",
    "start_utc": "1980-01-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1980-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZD62RMJ00000000",
    "start_units": "603768950864211718701056",
    "start_utc": "1979-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1979-12-31T23:59:60Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZEK51RM00000000",
    "start_units": "603820914665548737937408",
    "start_utc": "1981-07-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1981-07-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZEK51RK00000000",
    "start_units": "603820914664449226309632",
    "start_utc": "1981-06-30T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1981-06-30T23:59:60Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZFH7EMN00000000",
    "start_units": "603855588865341793501184",
    "start_utc": "1982-07-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1982-07-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZFH7EMM00000000",
    "start_units": "603855588864242281873408",
    "start_utc": "1982-06-30T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1982-06-30T23:59:60Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZGF9VGP00000000",
    "start_units": "603890263065134849064960",
    "start_utc": "1983-07-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1983-07-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZGF9VGN00000000",
    "start_units": "603890263064035337437184",
    "start_utc": "1983-06-30T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1983-06-30T23:59:60Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZJBH9MQ00000000",
    "start_units": "603959706461426088411136",
    "start_utc": "1985-07-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1985-07-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZJBH9MP00000000",
    "start_units": "603959706460326576783360",
    "start_utc": "1985-06-30T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1985-06-30T23:59:60Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZMPV8CR00000000",
    "start_units": "604046534455966419648512",
    "start_utc": "1988-01-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1988-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZMPV8CQ00000000",
    "start_units": "604046534454866908020736",
    "start_utc": "1987-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1987-12-31T23:59:60Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZPK2PGS00000000",
    "start_units": "604115977852257658994688",
    "start_utc": "1990-01-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1990-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZPK2PGR00000000",
    "start_units": "604115977851158147366912",
    "start_utc": "1989-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1989-12-31T23:59:60Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZQH53CT00000000",
    "start_units": "604150652052050714558464",
    "start_utc": "1991-01-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1991-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZQH53CS00000000",
    "start_units": "604150652050951202930688",
    "start_utc": "1990-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1990-12-31T23:59:60Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZRY7CGV00000000",
    "start_units": "604202615852288222167040",
    "start_utc": "1992-07-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1992-07-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZRY7CGT00000000",
    "start_units": "604202615851188710539264",
    "start_utc": "1992-06-30T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1992-06-30T23:59:60Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZSW9SCW00000000",
    "start_units": "604237290052081277730816",
    "start_utc": "1993-07-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1993-07-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZSW9SCV00000000",
    "start_units": "604237290050981766103040",
    "start_utc": "1993-06-30T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1993-06-30T23:59:60Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZTTC68X00000000",
    "start_units": "604271964251874333294592",
    "start_utc": "1994-07-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1994-07-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZTTC68W00000000",
    "start_units": "604271964250774821666816",
    "start_utc": "1994-06-30T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1994-06-30T23:59:60Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZW7KR4Y00000000",
    "start_units": "604324118047721120595968",
    "start_utc": "1996-01-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1996-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZW7KR4X00000000",
    "start_units": "604324118046621608968192",
    "start_utc": "1995-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1995-12-31T23:59:60Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZXMP18Z00000000",
    "start_units": "604376081847958628204544",
    "start_utc": "1997-07-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1997-07-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZXMP18Y00000000",
    "start_units": "604376081846859116576768",
    "start_utc": "1997-06-30T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1997-06-30T23:59:60Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "FZZ1XK5000000000",
    "start_units": "604428235643805415505920",
    "start_utc": "1999-01-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "1999-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "FZZ1XK4Z00000000",
    "start_units": "604428235642705903878144",
    "start_utc": "1998-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "1998-12-31T23:59:60Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "G05MKP1100000000",
    "start_units": "604671145031369014378496",
    "start_utc": "2006-01-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "2006-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "G05MKP1000000000",
    "start_units": "604671145030269502750720",
    "start_utc": "2005-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "2005-12-31T23:59:60Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "G08EXH1200000000",
    "start_units": "604775262626353797660672",
    "start_utc": "2009-01-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "2009-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "G08EXH1100000000",
    "start_units": "604775262625254286032896",
    "start_utc": "2008-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "2008-12-31T23:59:60Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "G0BR4KX300000000",
    "start_units": "604896574823978393141248",
    "start_utc": "2012-07-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "2012-07-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "G0BR4KX200000000",
    "start_units": "604896574822878881513472",
    "start_utc": "2012-06-30T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "2012-06-30T23:59:60Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "G0EJBTH400000000",
    "start_units": "605000597421158536577024",
    "start_utc": "2015-07-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "2015-07-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "G0EJBTH300000000",
    "start_units": "605000597420059024949248",
    "start_utc": "2015-06-30T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "2015-06-30T23:59:60Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
    "stamp": "G0FZP0S500000000",
    "start_units": "605052846214809963724800",
    "start_utc": "2017-01-01T00:00:00Z",
    "start_inserted": false,
+   "start_provisional": false,
    "end_utc": "2017-01-01T00:00:00Z",
-   "end_inserted": false
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
    "stamp": "G0FZP0S400000000",
    "start_units": "605052846213710452097024",
    "start_utc": "2016-12-31T23:59:60Z",
    "start_inserted": true,
+   "start_provisional": false,
    "end_utc": "2016-12-31T23:59:60Z",
-   "end_inserted": true
+   "end_inserted": true,
+   "end_provisional": false
   },
   {
-   "stamp": "00000495V8ESCKW6",
-   "start_units": "4826693333569414",
-   "start_utc": "-15422-12-06T12:55:01.852013964Z",
+   "stamp": "SD",
+   "start_units": "959820987643255389683712",
+   "start_utc": "+12241-09-06T18:56:27Z",
    "start_inserted": false,
-   "end_utc": "-15422-12-06T12:55:01.852013964Z",
-   "end_inserted": false
+   "start_provisional": true,
+   "end_utc": "+12275-09-16T08:33:31Z",
+   "end_inserted": false,
+   "end_provisional": true
   },
   {
-   "stamp": "0000005H",
-   "start_units": "194613558116352",
-   "start_utc": "-15422-12-06T11:44:49Z",
+   "stamp": "7B9ZAP53C1ZG96",
+   "start_units": "277807198065964223862784",
+   "start_utc": "-7415-07-16T08:41:07.37693814Z",
    "start_inserted": false,
-   "end_utc": "-15422-12-06T11:44:50Z",
-   "end_inserted": false
+   "start_provisional": false,
+   "end_utc": "-7415-07-16T08:41:07.37693814Z",
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
-   "stamp": "000000MP0YC",
-   "start_units": "727909312495616",
-   "start_utc": "-15422-12-06T11:52:54.029663085Z",
+   "stamp": "2J1PJE6ZC98",
+   "start_units": "96871435186634875731968",
+   "start_utc": "-12630-11-02T08:52:47.384033203Z",
    "start_inserted": false,
-   "end_utc": "-15422-12-06T11:52:54.029693603Z",
-   "end_inserted": false
+   "start_provisional": false,
+   "end_utc": "-12630-11-02T08:52:47.38406372Z",
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
-   "stamp": "000",
-   "start_units": "0",
-   "start_utc": "-15422-12-06T11:41:52Z",
+   "stamp": "8R",
+   "start_units": "330565653800875164958720",
+   "start_utc": "-5894-01-29T08:40:32Z",
    "start_inserted": false,
-   "end_utc": "-15421-12-29T20:22:24Z",
-   "end_inserted": false
+   "start_provisional": false,
+   "end_utc": "-5860-02-07T22:17:36Z",
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
-   "stamp": "000003MVS",
-   "start_units": "4111932969713664",
-   "start_utc": "-15422-12-06T12:44:11.78125Z",
+   "stamp": "T7JE8V5VK0M0FQ",
+   "start_units": "991196912305561940777984",
+   "start_utc": "+13145-12-17T07:30:30.59436082Z",
    "start_inserted": false,
-   "end_utc": "-15422-12-06T12:44:11.8125Z",
-   "end_inserted": false
+   "start_provisional": true,
+   "end_utc": "+13145-12-17T07:30:30.59436082Z",
+   "end_inserted": false,
+   "end_provisional": true
   },
   {
-   "stamp": "0000032372W44EGC",
-   "start_units": "3451610609105420",
-   "start_utc": "-15422-12-06T12:34:11.221561564Z",
+   "stamp": "Q5M0WBPTKYWC3W",
+   "start_units": "875557282709095151955968",
+   "start_utc": "9813-02-20T22:09:57.623912926Z",
    "start_inserted": false,
-   "end_utc": "-15422-12-06T12:34:11.221561564Z",
-   "end_inserted": false
+   "start_provisional": true,
+   "end_utc": "9813-02-20T22:09:57.623912927Z",
+   "end_inserted": false,
+   "end_provisional": true
   },
   {
-   "stamp": "0000",
-   "start_units": "0",
-   "start_utc": "-15422-12-06T11:41:52Z",
+   "stamp": "SH6N14GNWB",
+   "start_units": "964788967526016521076736",
+   "start_utc": "+12384-11-11T12:32:48.885742187Z",
    "start_inserted": false,
-   "end_utc": "-15422-12-18T14:58:08Z",
-   "end_inserted": false
+   "start_provisional": true,
+   "end_utc": "+12384-11-11T12:32:48.88671875Z",
+   "end_inserted": false,
+   "end_provisional": true
   },
   {
-   "stamp": "000005GW8ZPVA9VE",
-   "start_units": "6223544743962478",
-   "start_utc": "-15422-12-06T13:16:12.28097088Z",
+   "stamp": "QXJJXT",
+   "start_units": "903838499331067242086400",
+   "start_utc": "+10628-03-23T19:41:15Z",
    "start_inserted": false,
-   "end_utc": "-15422-12-06T13:16:12.28097088Z",
-   "end_inserted": false
+   "start_provisional": true,
+   "end_utc": "+10628-03-23T19:58:19Z",
+   "end_inserted": false,
+   "end_provisional": true
   },
   {
-   "stamp": "000000SW8RJX1N8",
-   "start_units": "910696909952256",
-   "start_utc": "-15422-12-06T11:55:40.274014522Z",
+   "stamp": "FAZ1Y2NKN5G",
+   "start_units": "579635829081806515208192",
+   "start_utc": "1284-06-18T06:26:59.661621093Z",
    "start_inserted": false,
-   "end_utc": "-15422-12-06T11:55:40.274014522Z",
-   "end_inserted": false
+   "start_provisional": false,
+   "end_utc": "1284-06-18T06:26:59.661651611Z",
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
-   "stamp": "0000029",
-   "start_units": "2568459162484736",
-   "start_utc": "-15422-12-06T12:20:48Z",
+   "stamp": "Z5XH",
+   "start_units": "1178139356677112539906048",
+   "start_utc": "+18533-10-11T23:48:43Z",
    "start_inserted": false,
-   "end_utc": "-15422-12-06T12:21:20Z",
-   "end_inserted": false
+   "start_provisional": true,
+   "end_utc": "+18533-10-24T03:04:59Z",
+   "end_inserted": false,
+   "end_provisional": true
   },
   {
-   "stamp": "00000",
-   "start_units": "0",
-   "start_utc": "-15422-12-06T11:41:52Z",
+   "stamp": "92Z00Z5E2A7",
+   "start_units": "343515303234911097323520",
+   "start_utc": "-5521-04-18T14:39:42.072479248Z",
    "start_inserted": false,
-   "end_utc": "-15422-12-06T20:48:00Z",
-   "end_inserted": false
+   "start_provisional": false,
+   "end_utc": "-5521-04-18T14:39:42.072509765Z",
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
-   "stamp": "000001",
-   "start_units": "1125899906842624",
-   "start_utc": "-15422-12-06T11:58:56Z",
+   "stamp": "3EPDWNXKBJ3",
+   "start_units": "130692756489567823986688",
+   "start_utc": "-11655-08-05T12:08:19.361419677Z",
    "start_inserted": false,
-   "end_utc": "-15422-12-06T12:16:00Z",
-   "end_inserted": false
+   "start_provisional": false,
+   "end_utc": "-11655-08-05T12:08:19.361450195Z",
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
-   "stamp": "000002ZAM4X82CD",
-   "start_units": "3354202935996832",
-   "start_utc": "-15422-12-06T12:32:42.62979896Z",
+   "stamp": "5F617YZ6CVRFK",
+   "start_units": "206826334552267171659776",
+   "start_utc": "-9461-10-27T02:39:34.40211448Z",
    "start_inserted": false,
-   "end_utc": "-15422-12-06T12:32:42.62979896Z",
-   "end_inserted": false
+   "start_provisional": false,
+   "end_utc": "-9461-10-27T02:39:34.40211451Z",
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
-   "stamp": "000002JPVB74H7S",
-   "start_units": "2910247530831648",
-   "start_utc": "-15422-12-06T12:25:58.854710139Z",
+   "stamp": "T",
+   "start_units": "982252228436886204448768",
+   "start_utc": "+12888-03-01T13:40:43Z",
    "start_inserted": false,
-   "end_utc": "-15422-12-06T12:25:58.854710139Z",
-   "end_inserted": false
+   "start_provisional": true,
+   "end_utc": "+13976-12-25T17:26:51Z",
+   "end_inserted": false,
+   "end_provisional": true
   },
   {
-   "stamp": "00",
-   "start_units": "0",
-   "start_utc": "-15422-12-06T11:41:52Z",
+   "stamp": "9FT5ND4J",
+   "start_units": "358685027778696440709120",
+   "start_utc": "-5084-07-01T14:41:22Z",
    "start_inserted": false,
-   "end_utc": "-15388-12-16T01:18:56Z",
-   "end_inserted": false
+   "start_provisional": false,
+   "end_utc": "-5084-07-01T14:41:23Z",
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
-   "stamp": "000004HESR00R",
-   "start_units": "5118011879718912",
-   "start_utc": "-15422-12-06T12:59:26.804688215Z",
+   "stamp": "YH4EV7KWZ8",
+   "start_units": "1153602709653747012730880",
+   "start_utc": "+17826-08-13T12:40:55.9765625Z",
    "start_inserted": false,
-   "end_utc": "-15422-12-06T12:59:26.804688245Z",
-   "end_inserted": false
+   "start_provisional": true,
+   "end_utc": "+17826-08-13T12:40:55.977539062Z",
+   "end_inserted": false,
+   "end_provisional": true
   },
   {
-   "stamp": "0000054B",
-   "start_units": "5782331650473984",
-   "start_utc": "-15422-12-06T13:09:31Z",
+   "stamp": "SP",
+   "start_units": "970446312229712091414528",
+   "start_utc": "+12547-11-29T21:30:03Z",
    "start_inserted": false,
-   "end_utc": "-15422-12-06T13:09:32Z",
-   "end_inserted": false
+   "start_provisional": true,
+   "end_utc": "+12581-12-08T11:07:07Z",
+   "end_inserted": false,
+   "end_provisional": true
   },
   {
-   "stamp": "000003",
-   "start_units": "3377699720527872",
-   "start_utc": "-15422-12-06T12:33:04Z",
+   "stamp": "W72",
+   "start_units": "1066148020484117245198336",
+   "start_utc": "+15306-02-08T13:53:31Z",
    "start_inserted": false,
-   "end_utc": "-15422-12-06T12:50:08Z",
-   "end_inserted": false
+   "start_provisional": true,
+   "end_utc": "+15307-03-03T22:34:03Z",
+   "end_inserted": false,
+   "end_provisional": true
   },
   {
-   "stamp": "0000060EJ",
-   "start_units": "6771411079135232",
-   "start_utc": "-15422-12-06T13:24:30.5625Z",
+   "stamp": "D",
+   "start_units": "491126114218443102224384",
+   "start_utc": "-1267-07-20T12:41:36Z",
    "start_inserted": false,
-   "end_utc": "-15422-12-06T13:24:30.59375Z",
-   "end_inserted": false
+   "start_provisional": false,
+   "end_utc": "-0178-05-14T16:27:44Z",
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
-   "stamp": "000000T",
-   "start_units": "914793674309632",
-   "start_utc": "-15422-12-06T11:55:44Z",
+   "stamp": "1",
+   "start_units": "37778931862957161709568",
+   "start_utc": "-14333-09-30T15:28:00Z",
    "start_inserted": false,
-   "end_utc": "-15422-12-06T11:56:16Z",
-   "end_inserted": false
+   "start_provisional": false,
+   "end_utc": "-13244-07-25T19:14:08Z",
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
-   "stamp": "000006GT5",
-   "start_units": "7347108495491072",
-   "start_utc": "-15422-12-06T13:33:14.15625Z",
+   "stamp": "V",
+   "start_units": "1020031160299843366158336",
+   "start_utc": "+13976-12-25T17:26:51Z",
    "start_inserted": false,
-   "end_utc": "-15422-12-06T13:33:14.1875Z",
-   "end_inserted": false
+   "start_provisional": true,
+   "end_utc": "+15065-10-19T21:12:59Z",
+   "end_inserted": false,
+   "end_provisional": true
   },
   {
-   "stamp": "000002D",
-   "start_units": "2709196650840064",
-   "start_utc": "-15422-12-06T12:22:56Z",
+   "stamp": "TM5SVZPF7QYK",
+   "start_units": "1006078359800818422513664",
+   "start_utc": "+13574-11-08T17:58:02.242144584Z",
    "start_inserted": false,
-   "end_utc": "-15422-12-06T12:23:28Z",
-   "end_inserted": false
+   "start_provisional": true,
+   "end_utc": "+13574-11-08T17:58:02.242145538Z",
+   "end_inserted": false,
+   "end_provisional": true
   },
   {
-   "stamp": "000001N7",
-   "start_units": "1872468302102528",
-   "start_utc": "-15422-12-06T12:10:15Z",
+   "stamp": "6",
+   "start_units": "226673591177742970257408",
+   "start_utc": "-8889-11-01T10:18:40Z",
    "start_inserted": false,
-   "end_utc": "-15422-12-06T12:10:16Z",
-   "end_inserted": false
+   "start_provisional": false,
+   "end_utc": "-7800-08-25T14:04:48Z",
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
-   "stamp": "0000023N01MG9EER",
-   "start_units": "2380444436052440",
-   "start_utc": "-15422-12-06T12:17:57.001602454Z",
+   "stamp": "R0K1MZSEQ",
+   "start_units": "907397250281907681230848",
+   "start_utc": "+10730-10-17T05:20:09.71875Z",
    "start_inserted": false,
-   "end_utc": "-15422-12-06T12:17:57.001602454Z",
-   "end_inserted": false
+   "start_provisional": true,
+   "end_utc": "+10730-10-17T05:20:09.75Z",
+   "end_inserted": false,
+   "end_provisional": true
   },
   {
-   "stamp": "0000038QH93",
-   "start_units": "3685057344569344",
-   "start_utc": "-15422-12-06T12:37:43.540130615Z",
+   "stamp": "NEZHE",
+   "start_units": "811049654013450728243200",
+   "start_utc": "7953-12-25T13:27:55Z",
    "start_inserted": false,
-   "end_utc": "-15422-12-06T12:37:43.540161132Z",
-   "end_inserted": false
+   "start_provisional": true,
+   "end_utc": "7953-12-25T22:34:03Z",
+   "end_inserted": false,
+   "end_provisional": true
   },
   {
-   "stamp": "00000653C1ZG96",
-   "start_units": "6935034284251136",
-   "start_utc": "-15422-12-06T13:26:59.37693814Z",
+   "stamp": "BQ21Y64R",
+   "start_units": "442797885453264461234176",
+   "start_utc": "-2660-09-10T13:48:08Z",
    "start_inserted": false,
-   "end_utc": "-15422-12-06T13:26:59.37693814Z",
-   "end_inserted": false
+   "start_provisional": false,
+   "end_utc": "-2660-09-10T13:48:09Z",
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
-   "stamp": "000004QZ2EMA",
-   "start_units": "5347009479311360",
-   "start_utc": "-15422-12-06T13:02:55.076791763Z",
+   "stamp": "CYN2DY099T",
+   "start_units": "489542502232704505872384",
+   "start_utc": "-1313-11-28T13:03:05.306640625Z",
    "start_inserted": false,
-   "end_utc": "-15422-12-06T13:02:55.076792716Z",
-   "end_inserted": false
+   "start_provisional": false,
+   "end_utc": "-1313-11-28T13:03:05.307617187Z",
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
-   "stamp": "000002VEYM9RZSSA",
-   "start_units": "3218223618058026",
-   "start_utc": "-15422-12-06T12:30:38.957329744Z",
+   "stamp": "X9CZQVZF82HAET11",
+   "start_units": "1106693671205740969682977",
+   "start_utc": "+16474-08-29T18:22:02.252481902Z",
    "start_inserted": false,
-   "end_utc": "-15422-12-06T12:30:38.957329744Z",
-   "end_inserted": false
+   "start_provisional": true,
+   "end_utc": "+16474-08-29T18:22:02.252481902Z",
+   "end_inserted": false,
+   "end_provisional": true
   },
   {
-   "stamp": "000005Y7NSB8Y",
-   "start_units": "6693476054794240",
-   "start_utc": "-15422-12-06T13:23:19.681008279Z",
+   "stamp": "FJ81K",
+   "start_units": "588231612491098149093376",
+   "start_utc": "1532-03-15T06:58:08Z",
    "start_inserted": false,
-   "end_utc": "-15422-12-06T13:23:19.681008309Z",
-   "end_inserted": false
+   "start_provisional": false,
+   "end_utc": "1532-03-15T16:04:16Z",
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
-   "stamp": "000003PTKYWC3W",
-   "start_units": "4181029208322048",
-   "start_utc": "-15422-12-06T12:45:14.623912926Z",
+   "stamp": "0C64TSSCP2",
+   "start_units": "14394037853293545259008",
+   "start_utc": "-15007-10-11T04:14:36.689453125Z",
    "start_inserted": false,
-   "end_utc": "-15422-12-06T12:45:14.623912927Z",
-   "end_inserted": false
+   "start_provisional": false,
+   "end_utc": "-15007-10-11T04:14:36.690429687Z",
+   "end_inserted": false,
+   "end_provisional": false
   },
   {
-   "stamp": "000003JKQ0Z6",
-   "start_units": "4032700459515904",
-   "start_utc": "-15422-12-06T12:42:59.719701766Z",
+   "stamp": "MTR",
+   "start_units": "787159463113333986557952",
+   "start_utc": "7265-06-13T01:20:27Z",
    "start_inserted": false,
-   "end_utc": "-15422-12-06T12:42:59.71970272Z",
-   "end_inserted": false
+   "start_provisional": true,
+   "end_utc": "7266-07-06T10:00:59Z",
+   "end_inserted": false,
+   "end_provisional": true
+  },
+  {
+   "stamp": "XTJAA63CQZHQMJ",
+   "start_units": "1126960385329051037485056",
+   "start_utc": "+17058-10-06T12:40:39.749564783Z",
+   "start_inserted": false,
+   "start_provisional": true,
+   "end_utc": "+17058-10-06T12:40:39.749564784Z",
+   "end_inserted": false,
+   "end_provisional": true
+  },
+  {
+   "stamp": "V07TSXN2WHKNF2W",
+   "start_units": "1020320324789069673892736",
+   "start_utc": "+13985-04-26T15:13:01.892201873Z",
+   "start_inserted": false,
+   "start_provisional": true,
+   "end_utc": "+13985-04-26T15:13:01.892201873Z",
+   "end_inserted": false,
+   "end_provisional": true
+  },
+  {
+   "stamp": "31YAE7D1C4PX8KG",
+   "start_units": "115636233812428880891392",
+   "start_utc": "-12089-08-28T03:08:17.379605549Z",
+   "start_inserted": false,
+   "start_provisional": false,
+   "end_utc": "-12089-08-28T03:08:17.379605549Z",
+   "end_inserted": false,
+   "end_provisional": false
+  },
+  {
+   "stamp": "VE93J2T56YNZERN5",
+   "start_units": "1036895594838404212679333",
+   "start_utc": "+14463-01-11T04:37:52.217467748Z",
+   "start_inserted": false,
+   "start_provisional": true,
+   "end_utc": "+14463-01-11T04:37:52.217467748Z",
+   "end_inserted": false,
+   "end_provisional": true
+  },
+  {
+   "stamp": "N0P",
+   "start_units": "794169225861343616172032",
+   "start_utc": "7467-06-23T17:41:47Z",
+   "start_inserted": false,
+   "start_provisional": true,
+   "end_utc": "7468-07-16T02:22:19Z",
+   "end_inserted": false,
+   "end_provisional": true
+  },
+  {
+   "stamp": "WPFDNAE",
+   "start_units": "1084352266476672428015616",
+   "start_utc": "+15830-10-07T15:34:51Z",
+   "start_inserted": false,
+   "start_provisional": true,
+   "end_utc": "+15830-10-07T15:35:23Z",
+   "end_inserted": false,
+   "end_provisional": true
+  },
+  {
+   "stamp": "5D97DTTA",
+   "start_units": "204582960801518790377472",
+   "start_utc": "-9525-03-01T02:30:34Z",
+   "start_inserted": false,
+   "start_provisional": false,
+   "end_utc": "-9525-03-01T02:30:35Z",
+   "end_inserted": false,
+   "end_provisional": false
+  },
+  {
+   "stamp": "F9E6RW20M",
+   "start_units": "577833625181287421575168",
+   "start_utc": "1232-07-10T06:18:40.625Z",
+   "start_inserted": false,
+   "start_provisional": false,
+   "end_utc": "1232-07-10T06:18:40.65625Z",
+   "end_inserted": false,
+   "end_provisional": false
+  },
+  {
+   "stamp": "SPTCSNA",
+   "start_units": "971420302695267508944896",
+   "start_utc": "+12575-12-25T15:56:11Z",
+   "start_inserted": false,
+   "start_provisional": true,
+   "end_utc": "+12575-12-25T15:56:43Z",
+   "end_inserted": false,
+   "end_provisional": true
+  }
+ ],
+ "binary": [
+  {
+   "stamp": "0",
+   "bytes": "00"
+  },
+  {
+   "stamp": "Z",
+   "bytes": "1f"
+  },
+  {
+   "stamp": "G0S7",
+   "bytes": "080327"
+  },
+  {
+   "stamp": "G0S7G6B1",
+   "bytes": "8032781961"
+  },
+  {
+   "stamp": "G0S7G6B1G0",
+   "bytes": "0200c9e0658600"
+  },
+  {
+   "stamp": "G0S7G6B13XYE",
+   "bytes": "080327819611f7ce"
+  },
+  {
+   "stamp": "ZZZZZZZZZZZZZZZZ",
+   "bytes": "ffffffffffffffffffff"
+  },
+  {
+   "stamp": "M",
+   "bytes": "14"
+  },
+  {
+   "stamp": "75",
+   "bytes": "00e5"
+  },
+  {
+   "stamp": "PQA",
+   "bytes": "5aea"
+  },
+  {
+   "stamp": "WVJ1",
+   "bytes": "0e6e41"
+  },
+  {
+   "stamp": "0PYN0",
+   "bytes": "000b7aa0"
+  },
+  {
+   "stamp": "GTV24B",
+   "bytes": "21ad888b"
+  },
+  {
+   "stamp": "WCSAEF5",
+   "bytes": "07199539e5"
+  },
+  {
+   "stamp": "DVPJ8D5Y",
+   "bytes": "6eed2434be"
+  },
+  {
+   "stamp": "R2RN5B1FQ",
+   "bytes": "18162a5585f7"
+  },
+  {
+   "stamp": "Y9HN68YV9C",
+   "bytes": "03c98d4c8f6d2c"
+  },
+  {
+   "stamp": "HTSE7WMY3JY",
+   "bytes": "475971f94f0e5e"
+  },
+  {
+   "stamp": "YT67P3W9BS1P",
+   "bytes": "0f68c7b0f895e436"
+  },
+  {
+   "stamp": "E5SEAT0CY2ZS0",
+   "bytes": "00e2e5cad019e17f20"
+  },
+  {
+   "stamp": "N2PGHXBGQGTR4H",
+   "bytes": "2a2b423d5c2f0d6091"
+  },
+  {
+   "stamp": "TQE6NVDNX6C44S1",
+   "bytes": "06aee3576daf4cc21321"
+  },
+  {
+   "stamp": "GHH1NV5645KDD4NT",
+   "bytes": "84621aeca62166d692ba"
+  }
+ ],
+ "upper_bound": [
+  {
+   "prefix": "G0S7",
+   "bound": "G0S8"
+  },
+  {
+   "prefix": "G0SZ",
+   "bound": "G0T"
+  },
+  {
+   "prefix": "G0ZZ",
+   "bound": "G1"
+  },
+  {
+   "prefix": "0",
+   "bound": "1"
+  },
+  {
+   "prefix": "1Z",
+   "bound": "2"
+  },
+  {
+   "prefix": "Y",
+   "bound": "Z"
+  },
+  {
+   "prefix": "Z",
+   "bound": null
+  },
+  {
+   "prefix": "ZZZ",
+   "bound": null
+  },
+  {
+   "prefix": "G0S7G6B1",
+   "bound": "G0S7G6B2"
+  },
+  {
+   "prefix": "FZZZZZZZ",
+   "bound": "G"
+  },
+  {
+   "prefix": "8",
+   "bound": "9"
+  },
+  {
+   "prefix": "VT58",
+   "bound": "VT59"
+  },
+  {
+   "prefix": "8ZV5SGQ",
+   "bound": "8ZV5SGR"
+  },
+  {
+   "prefix": "72GHGHJAB9",
+   "bound": "72GHGHJABA"
+  },
+  {
+   "prefix": "0Q1ATY4NTB0GH",
+   "bound": "0Q1ATY4NTB0GJ"
+  },
+  {
+   "prefix": "R6BM9JAGPHZSXFPF",
+   "bound": "R6BM9JAGPHZSXFPG"
+  }
+ ],
+ "max_length": [
+  {
+   "units": "0",
+   "length": 16,
+   "note": "no resolution limit"
+  },
+  {
+   "units": "1099511627776",
+   "length": 8,
+   "note": "1 s"
+  },
+  {
+   "units": "109951162777",
+   "length": 9,
+   "note": "0.1 s"
+  },
+  {
+   "units": "1099511627",
+   "length": 10,
+   "note": "1 ms"
+  },
+  {
+   "units": "1099511",
+   "length": 12,
+   "note": "1 us"
+  },
+  {
+   "units": "1099",
+   "length": 14,
+   "note": "1 ns, truncated"
+  },
+  {
+   "units": "65970697666560",
+   "length": 7,
+   "note": "1 minute"
+  },
+  {
+   "units": "94997804639846400",
+   "length": 5,
+   "note": "1 day"
+  },
+  {
+   "units": "1",
+   "length": 16,
+   "note": "2^-40 s"
+  },
+  {
+   "units": "5",
+   "length": 16,
+   "note": "just below a midpoint"
+  },
+  {
+   "units": "6",
+   "length": 15,
+   "note": "just above a midpoint"
+  },
+  {
+   "units": "181",
+   "length": 15,
+   "note": "just below a midpoint"
+  },
+  {
+   "units": "182",
+   "length": 14,
+   "note": "just above a midpoint"
+  },
+  {
+   "units": "5792",
+   "length": 14,
+   "note": "just below a midpoint"
+  },
+  {
+   "units": "5793",
+   "length": 13,
+   "note": "just above a midpoint"
+  },
+  {
+   "units": "185363",
+   "length": 13,
+   "note": "just below a midpoint"
+  },
+  {
+   "units": "185364",
+   "length": 12,
+   "note": "just above a midpoint"
+  },
+  {
+   "units": "5931641",
+   "length": 12,
+   "note": "just below a midpoint"
+  },
+  {
+   "units": "5931642",
+   "length": 11,
+   "note": "just above a midpoint"
+  },
+  {
+   "units": "189812531",
+   "length": 11,
+   "note": "just below a midpoint"
+  },
+  {
+   "units": "189812532",
+   "length": 10,
+   "note": "just above a midpoint"
+  },
+  {
+   "units": "6074000999",
+   "length": 10,
+   "note": "just below a midpoint"
+  },
+  {
+   "units": "6074001000",
+   "length": 9,
+   "note": "just above a midpoint"
+  },
+  {
+   "units": "194368031998",
+   "length": 9,
+   "note": "just below a midpoint"
+  },
+  {
+   "units": "194368031999",
+   "length": 8,
+   "note": "just above a midpoint"
+  },
+  {
+   "units": "6219777023950",
+   "length": 8,
+   "note": "just below a midpoint"
+  },
+  {
+   "units": "6219777023951",
+   "length": 7,
+   "note": "just above a midpoint"
+  },
+  {
+   "units": "199032864766430",
+   "length": 7,
+   "note": "just below a midpoint"
+  },
+  {
+   "units": "199032864766431",
+   "length": 6,
+   "note": "just above a midpoint"
+  },
+  {
+   "units": "6369051672525772",
+   "length": 6,
+   "note": "just below a midpoint"
+  },
+  {
+   "units": "6369051672525773",
+   "length": 5,
+   "note": "just above a midpoint"
+  },
+  {
+   "units": "203809653520824722",
+   "length": 5,
+   "note": "just below a midpoint"
+  },
+  {
+   "units": "203809653520824723",
+   "length": 4,
+   "note": "just above a midpoint"
+  },
+  {
+   "units": "6521908912666391106",
+   "length": 4,
+   "note": "just below a midpoint"
+  },
+  {
+   "units": "6521908912666391107",
+   "length": 3,
+   "note": "just above a midpoint"
+  },
+  {
+   "units": "208701085205324515397",
+   "length": 3,
+   "note": "just below a midpoint"
+  },
+  {
+   "units": "208701085205324515398",
+   "length": 2,
+   "note": "just above a midpoint"
+  },
+  {
+   "units": "6678434726570384492722",
+   "length": 2,
+   "note": "just below a midpoint"
+  },
+  {
+   "units": "6678434726570384492723",
+   "length": 1,
+   "note": "just above a midpoint"
   }
  ],
  "durations": [
@@ -3672,6 +5206,19 @@
    "text": "+2MC0"
   },
   {
+   "nanos": "1099511627775999999999",
+   "units": "1208925819614629174705076",
+   "text": "+ZZZZZZZZ.ZZZZZYXM"
+  },
+  {
+   "nanos": "-1099511627776000000000",
+   "error": "out_of_range"
+  },
+  {
+   "nanos": "1099511627776000000000",
+   "error": "out_of_range"
+  },
+  {
    "text": "1W",
    "error": "missing_sign"
   },
@@ -3685,6 +5232,14 @@
   },
   {
    "text": "+1.",
+   "error": "empty"
+  },
+  {
+   "text": "+.5",
+   "error": "empty"
+  },
+  {
+   "text": "+..V",
    "error": "empty"
   },
   {
@@ -3708,6 +5263,18 @@
    "error": "invalid_char"
   },
   {
+   "text": "+1234567😀",
+   "error": "invalid_char"
+  },
+  {
+   "text": "-Q.APCKNHYT.8",
+   "error": "invalid_char"
+  },
+  {
+   "text": "++06780W9C",
+   "error": "invalid_char"
+  },
+  {
    "text": "+o.g",
    "canonical": "+0.G"
   },
@@ -3722,6 +5289,103 @@
   {
    "text": "+1.G0",
    "canonical": "+1.G"
+  },
+  {
+   "text": "+ZZZZZZZZ.ZZZZZZZZ",
+   "canonical": "+ZZZZZZZZ.ZZZZZZZZ"
+  },
+  {
+   "text": "-1.G",
+   "canonical": "-1.G"
+  }
+ ],
+ "add": [
+  {
+   "stamp": "G0S7",
+   "duration": "+10000",
+   "result": "G0S8"
+  },
+  {
+   "stamp": "G0S7G6B1",
+   "duration": "-1",
+   "result": "G0S7G6B0"
+  },
+  {
+   "stamp": "G0S7G6B1",
+   "duration": "+0.G",
+   "result": "G0S7G6B1"
+  },
+  {
+   "stamp": "G0S7",
+   "duration": "-0.0000001",
+   "result": "G0S6"
+  },
+  {
+   "stamp": "ZZZZZZZZ",
+   "duration": "+1",
+   "error": "out_of_range"
+  },
+  {
+   "stamp": "ZZZZZZZZ",
+   "duration": "+0.0000001",
+   "result": "ZZZZZZZZ"
+  },
+  {
+   "stamp": "00000000",
+   "duration": "-0.0000001",
+   "error": "out_of_range"
+  },
+  {
+   "stamp": "00000000",
+   "duration": "+0",
+   "result": "00000000"
+  },
+  {
+   "stamp": "G0FZP0S3",
+   "duration": "+2",
+   "result": "G0FZP0S5"
+  },
+  {
+   "stamp": "Z",
+   "duration": "+ZZZZZZZZ",
+   "error": "out_of_range"
+  }
+ ],
+ "difference": [
+  {
+   "a": "G0S7",
+   "b": "G0S8",
+   "b_minus_a": "+10000"
+  },
+  {
+   "a": "G0S7",
+   "b": "G0S7G6B1",
+   "b_minus_a": "+G6B1"
+  },
+  {
+   "a": "G0S7G6B1",
+   "b": "G0S7",
+   "b_minus_a": "-G6B1"
+  },
+  {
+   "a": "G0S7",
+   "b": "G0S7",
+   "b_minus_a": "+0"
+  },
+  {
+   "a": "00000000",
+   "b": "ZZZZZZZZ",
+   "b_minus_a": "+ZZZZZZZZ"
+  },
+  {
+   "a": "ZZZZZZZZZZZZZZZZ",
+   "b": "0000000000000000",
+   "b_minus_a": "-ZZZZZZZZ.ZZZZZZZZ"
+  },
+  {
+   "a": "FZ3BMMKB",
+   "b": "G0FZP0S4",
+   "b_minus_a": "+1CM1C5S"
   }
  ]
 }
