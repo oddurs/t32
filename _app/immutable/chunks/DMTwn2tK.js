@@ -1,0 +1,1 @@
+function c(p){return p.split(/(<pre[\s\S]*?<\/pre>|<code[\s\S]*?<\/code>)/).map((e,s)=>s%2?e:e.replace(/(\d+|\b[a-z])\^(?:\(([^()<>]+)\)|([−-]?[0-9a-z]+))/g,(a,n,o,r)=>`${n}<sup>${o??r}</sup>`)).join("")}export{c as e};
