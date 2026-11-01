@@ -100,7 +100,8 @@ export function humanSpan(seconds: number): string {
 				: v.toPrecision(3).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
 		return `${exact ? '' : '≈ '}${s} ${unit}`;
 	};
-	if (seconds >= 365.2425 * 86400) return fmt(seconds / (365.2425 * 86400), 'years');
+	// Below two years, days read better: the spec calls 2^25 s "388 days", not "1.06 years".
+	if (seconds >= 2 * 365.2425 * 86400) return fmt(seconds / (365.2425 * 86400), 'years');
 	if (seconds >= 86400) return fmt(seconds / 86400, 'days');
 	if (seconds >= 3600) return fmt(seconds / 3600, 'hours');
 	if (seconds >= 60) return fmt(seconds / 60, 'minutes');

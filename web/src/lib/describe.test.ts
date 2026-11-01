@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readInput } from './describe.ts';
-import { format, fromFx, parseUtc } from './t32.ts';
+import { readInput, humanSpan } from './describe.ts';
+import { format, fromFx, parseUtc, unitSeconds } from './t32.ts';
 
 const stampOf = (text: string, len?: number) => {
 	const r = readInput(text);
@@ -41,4 +41,12 @@ test('Unix time, now, and stamps', () => {
 	assert.equal(stampOf('1793416380'), '1793416380'); // digits alone are a stamp
 	assert.throws(() => readInput('@abc'));
 	assert.throws(() => readInput('2026-1-31'));
+});
+
+test('spans are named as the specification names them', () => {
+	const spans = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => humanSpan(unitSeconds(n)));
+	assert.deepEqual(spans, [
+		'≈ 1,089 years', '≈ 34 years', '≈ 388 days', '≈ 12.1 days',
+		'≈ 9.1 hours', '≈ 17.1 minutes', '32 seconds', '1 second'
+	]);
 });
