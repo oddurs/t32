@@ -222,7 +222,7 @@ export function addDuration(stamp: Stamp, d: Duration): Stamp {
 // ---------------------------------------------------------------- TAI - UTC
 
 /** One period of Appendix A: TAI - UTC = (a * DAY_NS + (u - m) * r) / D seconds at label u. */
-interface Period {
+export interface Period {
 	start: bigint; // first UTC label, Unix ns
 	a: bigint; // 1e-7 s
 	m: bigint; // reference label, Unix ns
@@ -239,8 +239,8 @@ const whole = (unixS: number, seconds: number): Period => ({
 /** Unix second after which the leap-second table is not known to be valid (2027-06-28). */
 export const LEAP_TABLE_EXPIRES_UNIX = 1_814_140_800n;
 
-/** Appendix A. Before the first period TAI - UTC is defined as zero. */
-const PERIODS: readonly Period[] = [
+/** Appendix A, in order. Before the first period TAI - UTC is defined as zero. */
+export const PERIODS: readonly Period[] = [
 	rubber(37300, 14_228_180, 37300, 12_960), rubber(37512, 13_728_180, 37300, 12_960),
 	rubber(37665, 18_458_580, 37665, 11_232), rubber(38334, 19_458_580, 37665, 11_232),
 	rubber(38395, 32_401_300, 38761, 12_960), rubber(38486, 33_401_300, 38761, 12_960),
