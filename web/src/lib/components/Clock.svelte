@@ -17,7 +17,8 @@
 
 	const spans = ['1,089 y', '34 y', '388 d', '12.1 d', '9.1 h', '17.1 min', '32 s', '1 s', '31 ms', '0.98 ms'];
 	// Before the clock starts, placeholder rows hold the table's height, so nothing moves when it fills in.
-	const blank = '0000-00-00T00:00:00Z';
+	// Dots, not zeros: before the script runs (or without it) the rows must not read as a time.
+	const blank = '····-··-··T··:··:··Z';
 	const ladder = $derived(
 		Array.from({ length: 8 }, (_, i) => {
 			if (!full) return { text: '·'.repeat(i + 1), from: blank, to: blank };

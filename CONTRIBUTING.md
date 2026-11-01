@@ -40,7 +40,7 @@ CI runs all of these and fails if the vectors file is out of date.
 
 ## Style
 
-The specification is written in plain, short sentences, in the present tense, with BCP 14 keywords used only where a requirement is meant. Prefer an example to an adjective. Code follows each language's formatter: `cargo fmt` and the project's Prettier settings.
+The specification is written in plain, short sentences, in the present tense, with BCP 14 keywords used only where a requirement is meant. Prefer an example to an adjective. Rust follows `cargo fmt`. The web code has no formatter; `npm run check` and `npm run build` must pass, and CI runs both.
 
 ## Licence
 

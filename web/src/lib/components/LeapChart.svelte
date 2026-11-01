@@ -40,6 +40,8 @@
 	const yTicks = [0, 10, 20, 30, 40];
 
 	let hover: number | null = $state(null);
+	// The slider's value is a decimal year, a number a screen reader can say; the text carries the date.
+	const year = (u: number) => Math.round((1970 + u / (365.2425 * 86_400)) * 100) / 100;
 	const date = (u: number) => {
 		const [yy, mm, dd] = civilFromDays(BigInt(Math.floor(u / 86_400)));
 		return `${yy}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`;
@@ -57,11 +59,19 @@
 		hover = Math.round(Math.min(X1 - 1, Math.max(X0, u)));
 	}
 	// The keyboard visits each date where TAI - UTC changes, which is where the chart says anything.
+	// Up and right step forward as on any slider; Page keys jump five changes.
 	function onKey(e: KeyboardEvent) {
 		const cur = hover ?? X0;
+		const after = stops.findIndex((u) => u > cur);
+		const at = after < 0 ? stops.length : after; // index of the first stop after cur
+		const notBefore = stops.findIndex((u) => u >= cur); // stops are sorted
+		const before = (notBefore < 0 ? stops.length : notBefore) - 1; // last stop before cur
+		const pick = (i: number) => stops[Math.max(0, Math.min(stops.length - 1, i))];
 		const next =
-			e.key === 'ArrowRight' ? stops.find((u) => u > cur) :
-			e.key === 'ArrowLeft' ? [...stops].reverse().find((u) => u < cur) :
+			e.key === 'ArrowRight' || e.key === 'ArrowUp' ? (after < 0 ? undefined : stops[after]) :
+			e.key === 'ArrowLeft' || e.key === 'ArrowDown' ? (before < 0 ? undefined : stops[before]) :
+			e.key === 'PageUp' ? pick(at + 4) :
+			e.key === 'PageDown' ? pick(before - 4) :
 			e.key === 'Home' ? stops[0] :
 			e.key === 'End' ? stops[stops.length - 1] : undefined;
 		if (e.key === 'Escape') hover = null;
@@ -79,9 +89,9 @@
 			role="slider"
 			tabindex="0"
 			aria-label="TAI − UTC from 1958 to 2027: zero until 1961, rising gradually to 9.9 s by the end of 1971, then exactly 10 s, and one second at a time to 37 s from 2017. Arrow keys step through the changes."
-			aria-valuemin={X0}
-			aria-valuemax={X1}
-			aria-valuenow={reading?.u ?? X0}
+			aria-valuemin={year(X0)}
+			aria-valuemax={year(X1)}
+			aria-valuenow={year(reading?.u ?? X0)}
 			aria-valuetext={reading ? `${reading.date}: ${reading.text}` : 'No date chosen'}
 			onpointermove={onMove}
 			onpointerleave={() => (hover = null)}
