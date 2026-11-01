@@ -2,8 +2,8 @@
 
 | | |
 | --- | --- |
-| Document | T32 specification, draft 0.2 |
-| Date | 2026-10-31 |
+| Document | T32 specification, draft 0.3 |
+| Date | 2026-11-01 |
 | Editor | Oddur Sigurdsson ([@oddurs](https://github.com/oddurs)) |
 | Latest version | https://oddurs.github.io/t32/spec/ |
 | Source and history | https://github.com/oddurs/t32 |
@@ -15,11 +15,11 @@ T32 writes any moment as 8 base32 characters: a count of atomic (TAI) seconds si
 
 A stamp's length is its resolution. Drop characters for a coarser span, append characters for finer time; every stamp names an interval, never a false instant. Byte-wise sorting is time order, and a prefix is a range query.
 
-The canonical 8-character form covers roughly 15,420 BCE to 19,420 CE at one-second resolution.
+The canonical 8-character form covers 15,423 BCE to 19,421 CE at one-second resolution.
 
 ## Status of this document
 
-This is draft 0.2 of the T32 specification, published for public review. It is complete enough to implement and to test against, and it is not yet frozen: any part may change before version 1.0. Changes are made in the open, each with its reason, and are listed in Appendix D.
+This is draft 0.3 of the T32 specification, published for public review. It is complete enough to implement and to test against, and it is not yet frozen: any part may change before version 1.0. Changes are made in the open, each with its reason, and are listed in Appendix D. Each draft is tagged in the repository as `spec-draft-<number>`, so a draft number always names one fixed text.
 
 Comments are welcome from anyone. They are most useful when specific: a sentence that can be read two ways, a vector that seems wrong, a use the format serves badly. Appendix C lists the questions the editor considers open; views on them are particularly sought. How comments become changes, and the path from this draft to version 1.0 and to a working group, is set out in [GOVERNANCE.md](GOVERNANCE.md).
 
@@ -38,7 +38,7 @@ This document defines four conformance classes:
 | Parser | Text to stamp or duration | Grammar; Text form; Durations |
 | Converter | UTC (or Unix time) to and from TAI | Converting from UTC; Appendix A |
 
-An implementation conforms to a class when it meets every requirement of that class and reproduces every test vector for it. The text, the test vectors and Appendix A are normative. The implementations in Appendix B are informative.
+An implementation conforms to a class when it meets every requirement of that class and reproduces every test vector for it. The text, the test vectors and Appendix A are normative; where a vector and the text disagree, the text decides and the disagreement is an erratum. The implementations in Appendix B are informative.
 
 ## Goals and non-goals
 
@@ -83,7 +83,8 @@ TAI itself is computed after the fact by the BIPM; in real time it is approximat
 ```abnf
 stamp          = 1*16digit32                  ; canonical form
 
-digit32        = DIGIT / %x41-48 / %x4A-4B / %x4D-4E / %x50-54 / %x56-5A
+digit32        = DIGIT / %x41-48 / %x4A-4B / %x4D-4E
+                 / %x50-54 / %x56-5A
                  ; 0-9 A-H J K M N P-T V-Z
 
 stamp-input    = in-digit 0*15( [ "-" ] in-digit )
@@ -96,9 +97,18 @@ alias          = %x4F / %x6F / %x49 / %x69 / %x4C / %x6C
 duration       = sign 1*8digit32 [ "." 1*8digit32 ]
 duration-input = sign 1*8in-digit [ "." 1*8in-digit ]
 sign           = "+" / "-"
+
+utc-label      = year "-" month "-" day ( "T" / SP )
+                 hour ":" minute ":" second [ "." 1*9DIGIT ] "Z"
+year           = 4DIGIT / sign 4*6DIGIT
+month          = 2DIGIT          ; 01-12
+day            = 2DIGIT          ; 01-31, as the month allows
+hour           = 2DIGIT          ; 00-23
+minute         = 2DIGIT          ; 00-59
+second         = 2DIGIT          ; 00-60, 60 only in a leap second
 ```
 
-Hyphens in `stamp-input` stand only between two digits, singly. Canonical durations have further constraints (see Durations).
+Hyphens in `stamp-input` stand only between two digits, singly. Canonical durations have further constraints (see Durations). `utc-label` is RFC 3339 [RFC 3339] in UTC, with ISO 8601's expanded years for those outside 0000 to 9999; as in all ABNF, `"T"` and `"Z"` also match lowercase. Converters read and write UTC labels in this form, with the fewest fraction digits that are exact.
 
 ## Encoding
 
@@ -128,7 +138,7 @@ A stamp of length n and value V denotes the half-open interval of the T32 time s
 - **Containment.** Stamp A contains stamp B exactly when A is a prefix of B.
 - **No partial overlap.** Two stamps are nested or disjoint; there is no third case.
 - **Trailing zeros carry meaning.** `G0S7G6B1` and `G0S7G6B10` are different stamps; the second is one thirty-second of the first.
-- **Nanosecond readings.** An implementation that holds instants more finely than 1 ns SHOULD read one in nanoseconds as the latest nanosecond that encodes, at its full resolution, to no later than the held value. A nanosecond then survives a round trip exactly, and a stamp boundary reads as its floor.
+- **Nanosecond readings.** A decoder that writes an instant as a nanosecond UTC label MUST write the latest nanosecond label whose length-16 stamp is no later than the instant's length-16 stamp; within a leap second, labels 23:59:60.f count as labels. Every nanosecond label then survives a round trip exactly. A label's instant need not be a multiple of 2⁻⁴⁰ s, so the instant encoded from a label is its floor, which can fall in time inserted just before that label (see Steps in ΔAT); it still reads back as the label.
 
 ## Ordering and prefix properties
 
@@ -137,7 +147,7 @@ Byte-wise comparison of canonical stamps orders them by start, and on equal star
 - **Same length:** text order is time order.
 - **Mixed lengths:** still ordered by start. `G0S7` sorts immediately before everything it contains.
 - **Collation:** comparisons MUST be byte-wise (ASCII, or SQL `COLLATE "C"`). Locale-aware collation can break the order.
-- **Range query:** everything inside `G0S7` is `t >= 'G0S7' AND t < 'G0S8'`. The upper bound is the prefix with its last digit incremented, carrying left (`G0SZ` → `G0T0`). A prefix of all `Z` has no upper bound.
+- **Range query:** everything inside `G0S7`, at any length, is `t >= 'G0S7' AND t < 'G0S8'`. The upper bound is the prefix with its last digit incremented, carrying left and dropping every digit that carries to zero (`G0SZ` → `G0T`, `G0ZZ` → `G1`); keeping them would admit the shorter stamp `G0T`, which `G0SZ` does not contain. A prefix of all `Z` has no upper bound.
 
 ## Length and resolution
 
@@ -158,7 +168,7 @@ Length records the resolution of the record: the width of the interval in which 
 | 14 | 2^−30 s | 0.931 ns | | Nanoseconds |
 | 16 | 2^−40 s | 0.909 ps | | Picoseconds |
 
-Odd lengths are valid. An encoder MUST NOT emit a stamp longer than the length whose unit is nearest its source's resolution on a logarithmic scale, ties going to the shorter length. A millisecond clock therefore yields at most 10 characters, a nanosecond clock at most 14. Encoders SHOULD use one fixed length per field.
+Odd lengths are valid. A source's resolution r is the unit in which it reports time, such as 1 ns for a POSIX `timespec`, not the accuracy of the clock behind it. An encoder MUST NOT emit a stamp longer than the longest length n with u(n) > r/√32: the length whose unit is nearest r on a logarithmic scale, the shorter where two are equally near. In integers, n is the longest length with 32 · u(n)² > r². A millisecond clock therefore yields at most 10 characters, a nanosecond clock at most 14. Encoders SHOULD use one fixed length per field.
 
 ## Durations
 
@@ -175,7 +185,7 @@ A duration is a signed whole number of 2^−40 s, written exactly as a sign, bas
 - **Value.** sign × (I + F / 32^k) seconds, where I is the integer part and F the k fraction digits. Every duration is exact in this form, and its magnitude is less than 2^40 s.
 - **Canonical form.** The sign is REQUIRED. No leading zeros in the integer part (zero is `0`), no trailing zeros in the fraction, no fraction if it is zero. Zero is `+0`, never `-0`.
 - **From other units.** Converting a duration from decimal units (nanoseconds, say) MUST truncate toward zero, so negating a duration negates its text.
-- **Stamp − stamp.** The difference of the two starts, exactly. The difference of the instants they stand for lies within (−u(A), +u(B)) of it.
+- **Stamp − stamp.** B − A is start(B) − start(A), exactly. The difference of the instants that B and A stand for lies within (−u(A), +u(B)) of it.
 - **Range.** Implementations MUST reject a duration whose magnitude reaches 2^40 s.
 - **Stamp + duration.** Add the duration to the stamp's start, then floor to the stamp's own length. If the result leaves [0, 2^40) s, the operation MUST fail.
 - Durations are SI seconds. `+2MC0` is 86,400 s even across a leap second; a civil day is a calendar notion.
@@ -198,8 +208,8 @@ At each boundary b in Appendix A, ΔAT changes by s = ΔAT_after(b) − ΔAT_bef
 
 - **Removed time (s < 0).** A label before b whose TAI instant, under the old formula, would reach the TAI instant of b under the new one never occurred. Converters MUST reject it. This happened on 1961-08-01 and 1968-02-01, removing just under 0.05 s and 0.1 s of labels (from 23:59:59.950000001 and 23:59:59.900000003 respectively, at nanosecond resolution). Defined this way, every instant of TAI still has a label. A negative leap second would remove 23:59:59.
 - **Inserted time (s > 0).** For s seconds of TAI before the instant labelled b, the formula gives no label.
-  - Since 1972 each insertion is one leap second, written 23:59:60. Converters MUST accept second 60 then and only then, and convert 23:59:60.f as 23:59:59.f plus one second.
-  - Decoders MUST give any inserted instant the label b, and SHOULD report that it was inserted. For a leap second they MAY write 23:59:60.f instead.
+  - From 1972-07-01 each insertion is one leap second, written 23:59:60 on the day before b. Converters MUST accept second 60 then and only then, and convert 23:59:60.f to the TAI instant one second after that of 23:59:59.f. (The insertion of 0.107758 s at 1972-01-01 is fractional and has no second 60.)
+  - Decoders MUST write an instant in a leap second as 23:59:60.f, and any other inserted instant as the label b. They MUST report that the instant was inserted.
   - Before 1972, UTC clocks repeated fractions of a second at these steps; T32 does not represent the repetition.
 
 ### Unix time
@@ -208,7 +218,7 @@ A Unix value is a UTC label and never names 23:59:60. The Unix value at a leap-s
 
 ### Before 1961
 
-Before 1961-01-01, ΔAT is defined as 0 and the label is read as Universal Time (mean solar time at Greenwich), extended proleptically. Julian-calendar dates MUST be converted to Gregorian first.
+Before 1961-01-01, ΔAT is defined as 0 and the label is read as Universal Time (mean solar time at Greenwich), extended proleptically. Labels are Gregorian: a date in the Julian calendar is converted to Gregorian before it is a label.
 
 - Pre-1961 stamps are **stable**: they do not change when models of Earth's rotation are revised.
 - Pre-1961 T32 time follows Earth's rotation, not atomic seconds. Elapsed time between such stamps differs from physical time by the change in ΔT (TT − UT): under about a minute across the last three centuries, hours in antiquity. Applications that need physical elapsed time in the deep past apply a ΔT model when they read a stamp, never when they write one.
@@ -216,9 +226,9 @@ Before 1961-01-01, ΔAT is defined as 0 and the label is read as Universal Time 
 
 ### The table and the future
 
-In October 2026 the 28th CGPM resolved that UTC becomes continuous on 2027-05-20, allowing UT1 − UTC to reach 3,600 s. IERS Bulletin C 72 announced no leap second for 2026-12-31. No further step in ΔAT is therefore expected: Appendix A is expected to be final, with ΔAT = 37 s for every label from 2017-01-01.
+In Resolution 5 of October 2026, the 28th CGPM decided that UTC becomes continuous on 2027-05-20, allowing |UT1 − UTC| to reach 3,600 s [CGPM 2026]. IERS Bulletin C 72 announced no leap second for 2026-12-31. No further step in ΔAT is therefore expected: Appendix A is expected to be final, with ΔAT = 37 s for every label from 2017-01-01.
 
-- A published table carries an expiry date (2027-06-28 for the current `leap-seconds.list`). Converting a label later than the expiry of the table in use is **provisional**, and the converter MUST report it. That status belongs to the conversion, not to the stamp.
+- A table carries an expiry date: Appendix A expires at 2027-06-28T00:00:00Z, as does the `leap-seconds.list` it reproduces. Converting a label at or after the expiry of the table in use, in either direction, is **provisional**. A converter MUST return that status with the result, and MUST NOT fail a conversion for it alone. The status belongs to the conversion, not to the stamp.
 - Converters SHOULD be able to report which table they used, identified by its expiry date.
 - If UTC is ever stepped again, Appendix A gains rows in a new version of this document. Stamps already issued keep their meaning; only conversions of later labels change.
 
@@ -238,6 +248,7 @@ Parse leniently, emit strictly.
   - Letters are case-insensitive. `O` is read as `0`, and `I` or `L` as `1`. `U` MUST be rejected.
   - A hyphen MAY appear only between two digits. Leading, trailing and doubled hyphens MUST be rejected, so a negative duration such as `-1W` is never read as a stamp.
   - More than 16 digits MUST be rejected.
+  - A parser reads its input from left to right and reports the first error it meets: at a character, the error that character causes; at the end of the input, a missing sign, a missing part (`empty`) or a trailing hyphen. Converters check a UTC label in this order: `invalid_date`, `not_a_leap_second`, `removed_time`, `out_of_range`. The error codes are listed under Test vectors.
 - **No check character.** Length carries meaning, so a trailing check digit would be indistinguishable from one more digit of resolution. Integrity belongs to the transport.
 
 ## Binary form
@@ -258,12 +269,12 @@ In binary, a stamp is its value V as an unsigned integer. The length is not stor
 
 ## Versioning
 
-This document is draft 0.2. Until version 1.0, any part may change. From 1.0, Definitions, Encoding, Decoding and the grammar are frozen; later versions may only add, for example rows in Appendix A. A stamp carries no version, and its meaning never changes.
+This document is draft 0.3. Until version 1.0, any part may change. From 1.0, Definitions, Encoding, Decoding, the grammar and the reading of labels before 1961 are frozen; later versions may only add, for example rows in Appendix A. A stamp carries no version, and its meaning never changes.
 
 ## Security and privacy considerations
 
 - **Canonicalize first.** Different input texts can denote the same stamp (`g0s7-g6bi`, `G0S7G6B1`). Compare, hash and use as keys only canonical forms.
-- **Bounded input.** A valid input is at most 31 characters (16 digits and 15 hyphens). Parsers can reject longer input before reading it.
+- **Bounded input.** A valid input is at most 31 characters (16 digits and 15 hyphens), and a duration at most 18. A parser that reports the first error it meets has met one by the 32nd character, so it never reads further.
 - **Confusables.** Parsing is ASCII-only, so look-alike Unicode letters are rejected rather than mapped.
 - **Resolution is information.** A long stamp can reveal timing, such as when an action happened to the microsecond. Truncate to the resolution you mean to publish; for T32 that is a string slice.
 - **Table integrity.** A tampered leap-second table shifts every conversion after the change. Obtain it from tzdata or the IERS, and check its expiry date and hash (`leap-seconds.list` carries one).
@@ -289,27 +300,30 @@ These limits are deliberate; removing any of them would cost a goal.
 - **Calendar alignment.** Buckets do not fall on days, months or years. Eras are aligned to the epoch: `F` covers about 911 to 2000 and `G` about 2000 to 3089, so dates either side of 2000 differ in the first character.
 - **Relativity.** TAI, like Terrestrial Time (TT = TAI + 32.184 s), is a time scale for clocks on Earth. Clocks in orbit, on the Moon or on Mars convert through a defined relativistic transformation, as GPS does, before encoding.
 - **Before 1961.** Stamps follow Universal Time, not atomic seconds (see Converting from UTC).
-- **Range.** The canonical form ends at about 19,420 CE. Extending it would add a character to every stamp in use.
+- **Range.** The canonical form ends in 19,421 CE. Extending it would add a character to every stamp in use.
 - **Uniqueness.** Two events in the same unit share a stamp. T32 is a time, not an identifier; see Goals and non-goals for where randomness may go.
 
 ## Test vectors
 
-A conforming implementation reproduces every vector for its class. The tables below are a readable selection. The complete set, about 600 vectors including both sides of every boundary in Appendix A, is [`vectors/t32-vectors.json`](vectors/t32-vectors.json), in a form any implementation can load. Both are normative.
+A conforming implementation reproduces every vector for its class. The tables below are a readable selection. The complete set, 782 vectors including both sides of every boundary in Appendix A, is [`vectors/t32-vectors.json`](vectors/t32-vectors.json), in a form any implementation can load. Both are normative.
 
-Every vector was computed by an exact rational-arithmetic oracle written directly from this text (Appendix B), and is reproduced by both implementations. A disagreement between this text, the vectors and an implementation is a defect, and reports of one are especially welcome.
+Every vector was computed by an exact rational-arithmetic oracle written directly from this text (Appendix B), including the errors, and is reproduced by both implementations. A disagreement between this text, the vectors and an implementation is a defect, and reports of one are especially welcome.
 
 Errors in the vectors file are named by code:
 
 | Code | Condition |
 | --- | --- |
-| `empty` | No digits |
+| `empty` | No digit where one is required: the whole stamp, or either part of a duration |
 | `too_long` | More than 16 digits in a stamp, or 8 in either part of a duration |
 | `invalid_char` | A character outside the input grammar |
 | `misplaced_hyphen` | A hyphen not between two digits |
-| `missing_sign` | A duration without `+` or `-` |
-| `removed_time` | A UTC label in removed time |
+| `missing_sign` | A duration that does not begin with `+` or `-` |
+| `invalid_date` | Text that is not a `utc-label`, or a day or time the calendar lacks |
 | `not_a_leap_second` | Second 60 where no leap second was inserted |
-| `invalid_date` | A day the month does not have |
+| `removed_time` | A UTC label in removed time |
+| `out_of_range` | An instant, stamp or duration outside its range |
+
+Which code an input gets when it has several errors is fixed by the order under Text form, display and parsing.
 
 **Encoder and converter (UTC labels)**
 
@@ -408,11 +422,11 @@ The `FZ3BMMKB` interval is 0.99999997 UTC seconds wide, because UTC seconds were
 - [ISO 8601] ISO 8601-1:2019, "Date and time — Representations for information interchange — Part 1: Basic rules".
 - [POSIX] IEEE Std 1003.1-2024, Base Definitions, "Seconds Since the Epoch".
 - [CGPM 2022] 27th CGPM (2022), Resolution 4, "On the use and future development of UTC".
-- [CGPM 2026] 28th CGPM (2026), resolution on the technical actions needed to ensure the continuity of UTC (Draft Resolution C), adopted October 2026: UTC continuous from 2027-05-20.
+- [CGPM 2026] 28th CGPM (2026), Resolution 5, "On the technical actions needed to ensure the continuity of UTC", https://www.bipm.org/en/cgpm-2026/resolution-5: UTC continuous from 2027-05-20.
 
 ## Appendix A: TAI − UTC
 
-ΔAT = TAI − UTC as a function of the UTC label. It has been 37 s since 2017-01-01, and with UTC continuous from 2027-05-20 it is expected to stay 37 s (see The table and the future). Before 1961-01-01, ΔAT is defined as 0 for T32.
+ΔAT = TAI − UTC as a function of the UTC label. It has been 37 s since 2017-01-01, and with UTC continuous from 2027-05-20 it is expected to stay 37 s (see The table and the future). Before 1961-01-01, ΔAT is defined as 0 for T32. This table expires at 2027-06-28T00:00:00Z.
 
 **1972 onward (whole seconds; each value applies from 00:00:00 UTC on its date)**
 
@@ -434,7 +448,7 @@ The `FZ3BMMKB` interval is 0.99999997 UTC seconds wide, because UTC seconds were
 | | | 2015-07-01 | 36 |
 | | | 2017-01-01 | 37 |
 
-**1961 to 1971 (ΔAT = a + (MJD − m) × r seconds, MJD of the UTC label)**
+**1961 to 1971 (ΔAT = a + (MJD − m) × r seconds, where MJD is the Modified Julian Date of the UTC label, fraction of the day included)**
 
 | From | a (s) | m (MJD) | r (s/day) |
 | --- | --- | --- | --- |
@@ -483,9 +497,9 @@ These are the questions the editor considers open before version 1.0. Each state
 
 **C.2 The epoch.** T32 counts from 2000-01-01T00:00:00 TAI. Alternatives considered were J2000 (2000-01-01T12:00:00 TT), which suits astronomy, and 1972-01-01, when UTC's offset from TAI became whole seconds. The current position favours a round instant in the scale T32 counts. Since the epoch fixes every stamp, this question closes at version 1.0.
 
-**C.3 Before 1961.** Labels before 1961 are read as Universal Time, which keeps stamps stable but makes elapsed time non-physical across centuries. The alternative is to apply a ΔT model, which is physical but changes stamps whenever the model is revised. The current position favours stability. Users of historical or astronomical data are invited to say which they would rather have.
+**C.3 Before 1961.** Labels before 1961 are read as Universal Time, which keeps stamps stable but makes elapsed time non-physical across centuries. The alternative is to apply a ΔT model, which is physical but changes stamps whenever the model is revised. The current position favours stability. Users of historical or astronomical data are invited to say which they would rather have. The reading of these labels is frozen at version 1.0, so this question closes then.
 
-**C.4 The resolution rule.** An encoder may use the length whose unit is nearest its source's resolution on a logarithmic scale, so a stamp can claim up to √32 (about 5.7) times more resolution than its source has. The stricter alternative is the longest length whose unit is no finer than the source, which gives 9 for a millisecond clock instead of 10. The current position prefers the familiar lengths 8, 10, 12 and 14 for seconds, milliseconds, microseconds and nanoseconds.
+**C.4 The resolution rule.** An encoder may use the length whose unit is nearest its source's resolution on a logarithmic scale (u(n) > r/√32), so a stamp can claim up to √32 (about 5.7) times more resolution than its source has. The stricter alternative is the longest length whose unit is no finer than the source, which gives 9 for a millisecond clock instead of 10. The current position prefers the familiar lengths 8, 10, 12 and 14 for seconds, milliseconds, microseconds and nanoseconds.
 
 **C.5 Letter case.** Canonical stamps are uppercase. Lowercase reads better in URLs and file names, and some systems fold case. Since parsing is case-insensitive, the question is only which form is canonical. The current position is uppercase, as in Crockford base32.
 
@@ -496,6 +510,20 @@ These are the questions the editor considers open before version 1.0. Each state
 **C.8 Other time scales.** TAI suits clocks on Earth. Lunar and Martian time scales are being defined, and a T32 profile for one of them would need its own epoch and conversion. The current position is to leave the format TAI-only and to define profiles, if any, in separate documents.
 
 ## Appendix D: Change history
+
+**Draft 0.3, 2026-11-01.** Errata and clarifications from a review of draft 0.2; no stamp changes meaning.
+- Text and vectors are both normative, and the text decides where they disagree.
+- Decoders MUST write an instant in a leap second as 23:59:60.f and MUST report inserted time, as the vectors already required.
+- The nanosecond reading rule is exact: the latest nanosecond label whose length-16 stamp is no later than the instant's.
+- Appendix A expires at 2027-06-28T00:00:00Z; a provisional conversion is returned with its result, not failed.
+- The range-query bound drops digits that carry to zero (`G0SZ` → `G0T`): the old bound admitted shorter stamps outside the prefix.
+- The resolution rule is stated in integers, and a source's resolution is the unit it reports.
+- B − A names its operands; MJD includes the fraction of the day; second 60 exists from 1972-07-01.
+- UTC label text has a grammar, and every error code a definition and an order of precedence. Added `out_of_range`.
+- The reading of labels before 1961 joins what version 1.0 freezes.
+- Drafts are tagged `spec-draft-<number>`. After draft 0.2 was dated, its 1966 vector changed from length 16 to 14 and the vectors file was added without a new number; both belong to this draft.
+- The vectors gained the remaining spec-table rows and categories for binary packing, stamp ± duration, stamp − stamp, range bounds, the resolution rule, TAI-instant encoding and provisional status. The oracle now generates every vector, errors included.
+- References cite the CGPM's Resolution 5 by number.
 
 **Draft 0.2, 2026-10-31.**
 - Added BCP 14 conformance language, an ABNF grammar, conformance classes, versioning, security and privacy considerations, prior art and references.
