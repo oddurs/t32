@@ -2,6 +2,7 @@
 	import '../app.css';
 	import { page } from '$app/state';
 	import { base } from '$app/paths';
+	import { DRAFT } from '$lib/site';
 
 	let { children } = $props();
 
@@ -22,7 +23,7 @@
 	<div class="bar">
 		<a class="brand" href="{base}/" aria-label="T32, overview">
 			<span class="mark">T32</span>
-			<span class="edition">Draft 0.2</span>
+			<span class="edition">Draft {DRAFT}</span>
 		</a>
 		<nav aria-label="Main">
 			{#each nav as item (item.href)}
@@ -41,7 +42,7 @@
 	<div class="cols">
 		<div>
 			<p class="label">T32</p>
-			<p>A compact universal timestamp. Draft 0.2, published for public review.</p>
+			<p>A compact universal timestamp. Draft {DRAFT}, published for public review.</p>
 		</div>
 		<div>
 			<p class="label">Editor</p>

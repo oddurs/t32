@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Head from '$lib/components/Head.svelte';
+	import { DRAFT } from '$lib/site';
 	import EraStrip from '$lib/components/EraStrip.svelte';
 	import LeapChart from '$lib/components/LeapChart.svelte';
 	import { exponents } from '$lib/exponents';
@@ -34,7 +35,8 @@
 	// 3. Eras
 	const eras = [...ALPHABET].map((c) => {
 		const s = parse(c);
-		return { c, from: yearText(startFx(s)), to: yearText(endFx(s)) };
+		// The year of the era's last instant: Z ends at 2^80, past the range, where no reading exists.
+		return { c, from: yearText(startFx(s)), to: yearText(endFx(s) - 1n) };
 	});
 
 	// 4. Generations, 1900–2100
@@ -48,8 +50,8 @@
 		}
 		return out;
 	};
-	const generations = prefixesBetween('1900-01-01', '2100-01-01', 2);
-	const years = prefixesBetween('2020-01-01', '2036-01-01', 3);
+	const generations = prefixesBetween('1900-01-01T00:00:00Z', '2100-01-01T00:00:00Z', 2);
+	const years = prefixesBetween('2020-01-01T00:00:00Z', '2036-01-01T00:00:00Z', 3);
 
 	// 6. Durations
 	const durations: [string, bigint][] = [
@@ -69,15 +71,15 @@
 	// 7. Notable moments
 	const moments: [string, string][] = [
 		['Start of range', '00000000'],
-		['Royal Observatory foundation stone (Gregorian)', '1675-08-20T00:00:00'],
-		['Start of the 1961 UTC definition', '1961-01-01T00:00:00'],
-		['Apollo 11 lunar landing', '1969-07-20T20:17:40'],
-		['Unix epoch', '1970-01-01T00:00:00'],
-		['UTC becomes TAI − 10 s', '1972-01-01T00:00:00'],
-		['GPS epoch', '1980-01-06T00:00:00'],
-		['T32 epoch (2000-01-01 TAI)', '1999-12-31T23:59:28'],
-		['Last leap second (so far)', '2016-12-31T23:59:60'],
-		['Signed 32-bit Unix time overflows', '2038-01-19T03:14:08'],
+		['Royal Observatory foundation stone (Gregorian)', '1675-08-20T00:00:00Z'],
+		['Start of the 1961 UTC definition', '1961-01-01T00:00:00Z'],
+		['Apollo 11 lunar landing', '1969-07-20T20:17:40Z'],
+		['Unix epoch', '1970-01-01T00:00:00Z'],
+		['UTC becomes TAI − 10 s', '1972-01-01T00:00:00Z'],
+		['GPS epoch', '1980-01-06T00:00:00Z'],
+		['T32 epoch (2000-01-01 TAI)', '1999-12-31T23:59:28Z'],
+		['Last leap second (so far)', '2016-12-31T23:59:60Z'],
+		['Signed 32-bit Unix time overflows', '2038-01-19T03:14:08Z'],
 		['End of range', 'ZZZZZZZZ']
 	];
 	const momentRows = moments.map(([name, v]) => {
@@ -91,10 +93,10 @@
 		return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 	};
 	const leaps = STEPS.filter((x) => x.wholeSecond).map((x) => {
-		const label = `${dateOf(x.unixNs, -1n)}T23:59:60`;
+		const label = `${dateOf(x.unixNs, -1n)}T23:59:60Z`;
 		const dat = deltaAt(x.unixNs);
 		return {
-			label: label.replace('T', ' '),
+			label: label.replace('T', ' ').replace('Z', ''),
 			stamp: format(fromFx(parseUtc(label), CANONICAL_LEN)),
 			after: Number(dat.num / dat.den)
 		};
@@ -116,18 +118,18 @@
 
 	// 10. Test vectors
 	const vectors: [string, string, number][] = [
-		['T32 epoch', '1999-12-31T23:59:28', 8],
-		['Unix epoch (rubber era)', '1970-01-01T00:00:00', 8],
-		['Apollo 11 landing', '1969-07-20T20:17:40', 8],
-		['UTC becomes integer', '1972-01-01T00:00:00', 8],
-		['Before last leap second', '2016-12-31T23:59:59', 8],
-		['Last leap second', '2016-12-31T23:59:60', 8],
-		['After last leap second', '2017-01-01T00:00:00', 8],
-		['Spec date', '2026-10-31T03:13:00', 8],
-		['Spec date + 0.5 s (ms clock)', '2026-10-31T03:13:00.500', 10],
-		['Spec date + 0.123 s (µs clock)', '2026-10-31T03:13:00.123000', 12],
-		['Rubber era, exact (ns clock)', '1966-06-15T12:00:00.123456789', 14],
-		['Before 1961, taken as UT', '1675-08-20T00:00:00', 8]
+		['T32 epoch', '1999-12-31T23:59:28Z', 8],
+		['Unix epoch (rubber era)', '1970-01-01T00:00:00Z', 8],
+		['Apollo 11 landing', '1969-07-20T20:17:40Z', 8],
+		['UTC becomes integer', '1972-01-01T00:00:00Z', 8],
+		['Before last leap second', '2016-12-31T23:59:59Z', 8],
+		['Last leap second', '2016-12-31T23:59:60Z', 8],
+		['After last leap second', '2017-01-01T00:00:00Z', 8],
+		['Spec date', '2026-10-31T03:13:00Z', 8],
+		['Spec date + 0.5 s (ms clock)', '2026-10-31T03:13:00.500Z', 10],
+		['Spec date + 0.123 s (µs clock)', '2026-10-31T03:13:00.123000Z', 12],
+		['Rubber era, exact (ns clock)', '1966-06-15T12:00:00.123456789Z', 14],
+		['Before 1961, taken as UT', '1675-08-20T00:00:00Z', 8]
 	];
 	const vectorRows = vectors.map(([name, utc, n]) => ({ name, utc, n, stamp: format(fromFx(parseUtc(utc), n)) }));
 
@@ -149,7 +151,7 @@
 
 <div class="with-rail">
 	<header class="titleblock">
-		<span class="label">T32 · Draft 0.2 · Reference tables</span>
+		<span class="label">T32 · Draft {DRAFT} · Reference tables</span>
 		<h1>Tables</h1>
 		<p class="lede">Reference values for T32, each computed by the TypeScript implementation when the site is built.</p>
 	</header>

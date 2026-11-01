@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Head from '$lib/components/Head.svelte';
+	import { DRAFT } from '$lib/site';
 	import Toc from '$lib/components/Toc.svelte';
 	import { base } from '$app/paths';
 	let { data } = $props();
@@ -9,7 +10,7 @@
 
 <div class="with-rail">
 	<header class="titleblock">
-		<span class="label">T32 · Draft 0.2 · Guide (informative)</span>
+		<span class="label">T32 · Draft {DRAFT} · Guide (informative)</span>
 		<h1>Guide</h1>
 		<p class="lede">
 			Using T32 in practice. Where this guide and the <a href="{base}/spec/">specification</a>
