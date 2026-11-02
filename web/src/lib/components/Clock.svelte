@@ -95,7 +95,7 @@
 		border-left: 1px solid var(--rule-strong);
 	}
 	.ch {
-		font-size: clamp(1.6rem, 5.2vw, 3rem);
+		font-size: clamp(var(--fs-3), 5.2vw, var(--fs-8));
 		font-weight: var(--w-head);
 		font-variant-numeric: tabular-nums lining-nums;
 		letter-spacing: -0.01em;
@@ -107,7 +107,7 @@
 	}
 	.pos,
 	.span {
-		font-size: 0.6875rem;
+		font-size: var(--label);
 		color: var(--ink-3);
 		font-variant-numeric: tabular-nums;
 	}

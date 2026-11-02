@@ -16,7 +16,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "test": "tsx --test src/lib/t32.test.ts src/lib/describe.test.ts src/lib/site.test.ts"
+    "test": "tsx --test src/lib/t32.test.ts src/lib/describe.test.ts src/lib/site.test.ts src/lib/tokens.test.ts"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^4.0.1",

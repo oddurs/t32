@@ -121,43 +121,19 @@
 </div>
 
 <style>
-	.toc .label,
 	.elsewhere {
-		margin: 0 0 var(--s3);
+		margin: var(--s5) 0 var(--s3);
 	}
-	.elsewhere {
-		margin-top: var(--s5);
-	}
-	.toc ol,
 	.links {
 		list-style: none;
 		padding: 0;
 		margin: 0;
-		font-size: 0.875rem;
-		line-height: 1.35;
-	}
-	.toc li {
-		display: grid;
-		grid-template-columns: 1.75rem 1fr;
-		margin: 0 0 var(--s2);
-		padding: 0;
+		font-size: var(--small);
+		line-height: var(--lh-tight);
 	}
 	.links li {
 		margin: 0 0 var(--s2);
 		padding: 0;
-	}
-	.no {
-		font-size: 0.8125rem;
-		font-weight: var(--w-medium);
-		font-variant-numeric: tabular-nums;
-		color: var(--ink-3);
-	}
-	.toc a {
-		color: var(--ink-2);
-		text-decoration: none;
-	}
-	.toc a:hover {
-		color: var(--accent);
 	}
 
 	/* The path from draft to standard. */
@@ -211,12 +187,12 @@
 		color: var(--accent);
 	}
 	.when {
-		font-size: 0.75rem;
+		font-size: var(--label);
 		color: var(--ink-3);
 	}
 	.what {
-		font-size: 0.875rem;
-		line-height: 1.45;
+		font-size: var(--small);
+		line-height: var(--lh-small);
 		color: var(--ink-2);
 	}
 
@@ -249,15 +225,6 @@
 		color: var(--ink);
 	}
 
-	@media (max-width: 960px) {
-		.toc ol {
-			columns: 2 14rem;
-			column-gap: var(--s6);
-		}
-		.toc li {
-			break-inside: avoid;
-		}
-	}
 	@media (max-width: 700px) {
 		.track {
 			grid-auto-flow: row;

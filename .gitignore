@@ -19,3 +19,6 @@ __pycache__/
 /ietf/*.toc
 /ietf/*.pdf
 /web/static/draft-sigurdsson-t32-00.pdf
+
+# Python environment for tools/mark.py
+/.venv/

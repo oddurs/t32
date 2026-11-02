@@ -17,28 +17,9 @@
 </nav>
 
 <style>
-	.label {
-		margin: 0 0 var(--s3);
-	}
-	ol {
-		list-style: none;
-		padding: 0;
-		margin: 0;
-		font-size: 0.875rem;
-		line-height: 1.35;
-	}
-	li {
-		display: grid;
-		grid-template-columns: 1.75rem 1fr;
-		margin: 0 0 var(--s2);
-		padding: 0;
-	}
-	li.appendix {
-		grid-template-columns: 1.75rem 1fr;
-	}
-	.no,
+	/* Appendices carry a letter in the number column. The rest is the shared .toc style. */
 	.app {
-		font-size: 0.8125rem;
+		font-size: var(--label);
 		font-weight: var(--w-medium);
 		font-variant-numeric: tabular-nums;
 		color: var(--ink-3);
@@ -53,21 +34,5 @@
 	}
 	li.appendix .no {
 		display: none;
-	}
-	a {
-		color: var(--ink-2);
-		text-decoration: none;
-	}
-	a:hover {
-		color: var(--accent);
-	}
-	@media (max-width: 960px) {
-		ol {
-			columns: 2 14rem;
-			column-gap: var(--s6);
-		}
-		li {
-			break-inside: avoid;
-		}
 	}
 </style>
