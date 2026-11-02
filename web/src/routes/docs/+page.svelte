@@ -2,7 +2,7 @@
 	import Head from '$lib/components/Head.svelte';
 	import { DRAFT } from '$lib/site';
 	import Toc from '$lib/components/Toc.svelte';
-	import { base } from '$app/paths';
+	import { resolve } from '$app/paths';
 	let { data } = $props();
 </script>
 
@@ -13,7 +13,7 @@
 		<span class="label">T32 · Draft {DRAFT} · Guide (informative)</span>
 		<h1>Guide</h1>
 		<p class="lede">
-			Using T32 in practice. Where this guide and the <a href="{base}/spec/">specification</a>
+			Using T32 in practice. Where this guide and the <a href={resolve('spec/')}>specification</a>
 			differ, the specification is right and the guide has a defect.
 		</p>
 	</header>

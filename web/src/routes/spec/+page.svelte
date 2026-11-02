@@ -2,7 +2,7 @@
 	import Head from '$lib/components/Head.svelte';
 	import { DRAFT, DRAFT_DATE } from '$lib/site';
 	import Toc from '$lib/components/Toc.svelte';
-	import { base } from '$app/paths';
+	import { resolve } from '$app/paths';
 	let { data } = $props();
 </script>
 
@@ -17,7 +17,7 @@
 			<dt>Date</dt><dd>{DRAFT_DATE}</dd>
 			<dt>Editor</dt><dd>Oddur Sigurdsson (<a href="https://github.com/oddurs">@oddurs</a>)</dd>
 			<dt>Source</dt><dd><a href="https://github.com/oddurs/t32/blob/main/SPEC.md">SPEC.md</a> · <a href="https://github.com/oddurs/t32/commits/main/SPEC.md">history</a></dd>
-			<dt>Comments</dt><dd><a href="https://github.com/oddurs/t32/issues/new/choose">Report an erratum</a> · <a href="{base}/participate/">Participate</a></dd>
+			<dt>Comments</dt><dd><a href="https://github.com/oddurs/t32/issues/new/choose">Report an erratum</a> · <a href={resolve('participate/')}>Participate</a></dd>
 		</dl>
 	</header>
 

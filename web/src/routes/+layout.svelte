@@ -1,33 +1,34 @@
 <script lang="ts">
 	import '../app.css';
 	import { page } from '$app/state';
-	import { base } from '$app/paths';
+	import { resolve } from '$app/paths';
 	import { DRAFT } from '$lib/site';
 
 	let { children } = $props();
 
+	// Pathnames as resolve() takes them: relative, with the trailing slash the site uses.
 	const nav = [
 		{ href: '/', label: 'Overview' },
-		{ href: '/playground/', label: 'Playground' },
-		{ href: '/docs/', label: 'Guide' },
-		{ href: '/spec/', label: 'Specification' },
-		{ href: '/tables/', label: 'Tables' },
-		{ href: '/participate/', label: 'Participate' }
-	];
-	const current = (href: string) => page.url.pathname === base + href;
+		{ href: 'playground/', label: 'Playground' },
+		{ href: 'docs/', label: 'Guide' },
+		{ href: 'spec/', label: 'Specification' },
+		{ href: 'tables/', label: 'Tables' },
+		{ href: 'participate/', label: 'Participate' }
+	] as const;
+	const current = (href: (typeof nav)[number]['href']) => page.url.pathname === resolve(href);
 </script>
 
 <a class="skip" href="#content">Skip to content</a>
 
 <header class="site">
 	<div class="bar">
-		<a class="brand" href="{base}/" aria-label="T32, overview">
+		<a class="brand" href={resolve('/')} aria-label="T32, overview">
 			<span class="mark">T32</span>
 			<span class="edition">Draft {DRAFT}</span>
 		</a>
 		<nav aria-label="Main">
 			{#each nav as item (item.href)}
-				<a href="{base}{item.href}" aria-current={current(item.href) ? 'page' : undefined}>{item.label}</a>
+				<a href={resolve(item.href)} aria-current={current(item.href) ? 'page' : undefined}>{item.label}</a>
 			{/each}
 			<a class="ext" href="https://github.com/oddurs/t32">Source</a>
 		</nav>
@@ -51,7 +52,7 @@
 		<div>
 			<p class="label">Take part</p>
 			<p>
-				<a href="{base}/participate/">Participate</a><br />
+				<a href={resolve('participate/')}>Participate</a><br />
 				<a href="https://github.com/oddurs/t32/discussions">Discussions</a> ·
 				<a href="https://github.com/oddurs/t32/issues">Issues</a>
 			</p>

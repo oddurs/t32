@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { base } from '$app/paths';
+	import { resolve } from '$app/paths';
 	import Clock from '$lib/components/Clock.svelte';
 	import Head from '$lib/components/Head.svelte';
 	import { DRAFT, DRAFT_DATE, VECTOR_COUNT } from '$lib/site';
@@ -32,8 +32,8 @@
 			Fewer characters name a longer span, more name finer time, and sorting the text sorts the times.
 		</p>
 		<p class="cta">
-			<a class="btn primary" href="{base}/playground/">Try it in the playground</a>
-			<a class="btn" href="{base}/spec/">Read the specification</a>
+			<a class="btn primary" href={resolve('playground/')}>Try it in the playground</a>
+			<a class="btn" href={resolve('spec/')}>Read the specification</a>
 		</p>
 	</header>
 
@@ -44,7 +44,7 @@
 			<dt>Date</dt><dd>{DRAFT_DATE}</dd>
 			<dt>Editor</dt><dd>Oddur Sigurdsson</dd>
 			<dt>Time scale</dt><dd>TAI, International Atomic Time</dd>
-			<dt>Text</dt><dd><a href="{base}/spec/">Specification</a></dd>
+			<dt>Text</dt><dd><a href={resolve('spec/')}>Specification</a></dd>
 			<dt>Conformance</dt><dd><a href="https://github.com/oddurs/t32/blob/main/vectors/t32-vectors.json">{VECTOR_COUNT} vectors</a></dd>
 			<dt>Code</dt><dd><a href="https://crates.io/crates/t32">Rust</a> · <a href="https://github.com/oddurs/t32/blob/main/web/src/lib/t32.ts">TypeScript</a></dd>
 		</dl>
@@ -86,7 +86,7 @@
 		<p>
 			Shorten it to <span class="data">{format(coarse)}</span> and it names the 12 days that contain that
 			second. Each character narrows the span before it by a factor of 32; the
-			<a href="{base}/playground/">playground</a> shows the same steps for any date.
+			<a href={resolve('playground/')}>playground</a> shows the same steps for any date.
 		</p>
 
 		<ZoomFigure stamp={worked.stamp} />
@@ -127,21 +127,21 @@
 			T32 is a draft, published for public review. It is complete enough to implement and test against,
 			and it will not be frozen until it has been read widely, implemented independently and questioned
 			properly. Comments, implementations and objections are all welcome; the
-			<a href="{base}/participate/">participation page</a> says where they go and what they lead to.
+			<a href={resolve('participate/')}>participation page</a> says where they go and what they lead to.
 		</p>
 
 		<h2>Where to begin</h2>
 
 		<dl class="pairs">
-			<dt><a href="{base}/playground/">Playground</a></dt>
+			<dt><a href={resolve('playground/')}>Playground</a></dt>
 			<dd>Type a date or a stamp and see what it means.</dd>
-			<dt><a href="{base}/docs/">Guide</a></dt>
+			<dt><a href={resolve('docs/')}>Guide</a></dt>
 			<dd>Reading stamps, choosing a length, storing them in SQL, the Rust and TypeScript libraries, and common questions.</dd>
-			<dt><a href="{base}/spec/">Specification</a></dt>
+			<dt><a href={resolve('spec/')}>Specification</a></dt>
 			<dd>The normative text: definitions, grammar, conversion from UTC and test vectors.</dd>
-			<dt><a href="{base}/tables/">Tables</a></dt>
+			<dt><a href={resolve('tables/')}>Tables</a></dt>
 			<dd>The alphabet, eras, prefixes by year, durations and leap seconds.</dd>
-			<dt><a href="{base}/participate/">Participate</a></dt>
+			<dt><a href={resolve('participate/')}>Participate</a></dt>
 			<dd>Open questions, implementations, and the path to version 1.0.</dd>
 		</dl>
 	</div>
