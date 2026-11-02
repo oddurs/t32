@@ -3,7 +3,7 @@
 	import { DRAFT } from '$lib/site';
 	import EraStrip from '$lib/components/EraStrip.svelte';
 	import LeapChart from '$lib/components/LeapChart.svelte';
-	import { exponents } from '$lib/exponents';
+	let { data } = $props();
 	import {
 		ALPHABET, MAX_LEN, CANONICAL_LEN, STEPS, parse, format, fromFx, startFx, endFx, deltaAt,
 		fxToUtcString, fxToUtcStringExact, parseUtc, formatDuration, durationFromNs, unitSeconds,
@@ -200,7 +200,7 @@
 				<tbody>
 					{#each precision as p (p.n)}
 						<tr class:hl={p.n === CANONICAL_LEN}>
-							<td class="num">{p.n}</td><td class="data">{@html exponents(p.exact)}</td><td>{p.human}</td><td class="num">{p.bits}</td><td class="data">{p.binary}</td>
+							<td class="num">{p.n}</td><td>{@html data.units[p.n - 1]}</td><td>{p.human}</td><td class="num">{p.bits}</td><td class="data">{p.binary}</td>
 						</tr>
 					{/each}
 				</tbody>
@@ -221,7 +221,7 @@
 
 		<h2 id="eras"><span class="secno">3</span>Eras (first character)</h2>
 		<p>
-			Each era is 2<sup>35</sup> seconds, about 1,089 years, and every stamp written in it starts with
+			Each era is {@html data.math.era} seconds, about 1,089 years, and every stamp written in it starts with
 			its character. Years are UTC, in the proleptic Gregorian calendar, so era G, the present one,
 			begins in 1999: the epoch, midnight TAI, is 23:59:28 UTC on 31 December.
 		</p>
@@ -242,7 +242,7 @@
 		</div>
 
 		<h2 id="generations"><span class="secno">4</span>Two-character prefixes, 1900–2100</h2>
-		<p>Each is 2<sup>30</sup> seconds, about 34 years. Boundaries are given to the day.</p>
+		<p>Each is {@html data.math.generation} seconds, about 34 years. Boundaries are given to the day.</p>
 		<div class="table-wrap">
 			<table>
 				<thead><tr><th>Prefix</th><th>From (UTC)</th><th>Until (UTC)</th></tr></thead>
@@ -255,7 +255,7 @@
 		</div>
 
 		<h2 id="years"><span class="secno">5</span>Three-character prefixes, 2020–2035</h2>
-		<p>Each is 2<sup>25</sup> seconds, about 388 days. Useful as partition keys and for range queries.</p>
+		<p>Each is {@html data.math.year} seconds, about 388 days. Useful as partition keys and for range queries.</p>
 		<div class="table-wrap">
 			<table>
 				<thead><tr><th>Prefix</th><th>From (UTC)</th><th>Until (UTC)</th></tr></thead>
@@ -269,7 +269,7 @@
 
 		<h2 id="durations"><span class="secno">6</span>Common durations</h2>
 		<p>
-			A duration is a signed whole number of 2<sup>−40</sup> s, written exactly. It is read like a stamp
+			A duration is a signed whole number of {@html data.math.tick} s, written exactly. It is read like a stamp
 			with a sign and a point: the characters before the point count whole seconds in base32, and each one
 			after it is a 32nd of the one before. So <span class="data">+1W</span> is 1 × 32 + 28 = 60 seconds.
 			A decimal value that is not a whole number of units, such as a millisecond, is truncated toward zero.
@@ -321,7 +321,12 @@
 		</div>
 
 		<h2 id="rubber"><span class="secno">9</span>TAI − UTC, 1961–1971, and its steps</h2>
-		<p>Before 1972, UTC ran at an adjusted rate. TAI − UTC = a + (MJD − m) × r seconds, where MJD is the Modified Julian Date of the UTC instant. Before 1961 it is defined as 0.</p>
+		<p>Before 1972, UTC ran at an adjusted rate, and the difference from TAI, in seconds, followed a formula:</p>
+		{@html data.math.rubber}
+		<p>
+			MJD is the Modified Julian Date of the UTC instant, and <var>a</var>, <var>m</var> and <var>r</var> come
+			from the row in force on that date. Before 1961 the difference is defined as 0.
+		</p>
 		<div class="table-wrap">
 			<table>
 				<thead><tr><th>From</th><th class="num">a (s)</th><th class="num">m (MJD)</th><th class="num">r (s/day)</th></tr></thead>

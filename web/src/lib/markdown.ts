@@ -1,10 +1,16 @@
 // Renders a GFM document with GitHub-style heading ids, optional ISO-style
 // section numbers, and a table of contents. Runs at build time only.
 import { Marked, type Tokens } from 'marked';
+import { tex } from './server/math';
 
 /** A plain number: "16", "1,089", "−0.05", "+1.422818". */
 export const NUMBER = /^[+−-]?\d[\d,]*(\.\d+)?$/;
-import { exponents } from './exponents';
+
+// Math as GitHub writes it, so SPEC.md reads the same there: $…$ inline, $$…$$ on its own lines.
+// Inline math may not start or end with a space and may not be followed by a digit, so a price such
+// as "$5 and $6" stays text.
+const INLINE_MATH = /^\$(?!\s)((?:\\\$|[^$\n])+?)(?<!\s)\$(?!\d)/;
+const BLOCK_MATH = /^\$\$\n?([\s\S]+?)\n?\$\$(?:\n+|$)/;
 
 export interface TocEntry {
 	depth: number;
@@ -41,6 +47,30 @@ export function renderDoc(src: string, opts: { number?: boolean; base?: string }
 	let subsection = 0;
 
 	const md = new Marked({ gfm: true });
+	md.use({
+		extensions: [
+			{
+				name: 'blockMath',
+				level: 'block',
+				start: (src: string) => src.match(/^\$\$/m)?.index,
+				tokenizer(src: string) {
+					const m = BLOCK_MATH.exec(src);
+					return m ? { type: 'blockMath', raw: m[0], text: m[1].trim() } : undefined;
+				},
+				renderer: (t: Tokens.Generic) => tex(t.text, true) + '\n'
+			},
+			{
+				name: 'inlineMath',
+				level: 'inline',
+				start: (src: string) => src.indexOf('$'),
+				tokenizer(src: string) {
+					const m = INLINE_MATH.exec(src);
+					return m ? { type: 'inlineMath', raw: m[0], text: m[1] } : undefined;
+				},
+				renderer: (t: Tokens.Generic) => tex(t.text)
+			}
+		]
+	});
 	md.use({
 		// Rust blocks are compiled as doctests; lines rustdoc hides are hidden here too.
 		walkTokens(token) {
@@ -106,7 +136,7 @@ export function renderDoc(src: string, opts: { number?: boolean; base?: string }
 		}
 	});
 
-	return { html: exponents(md.parse(src) as string), toc };
+	return { html: md.parse(src) as string, toc };
 }
 
 /** Drop everything before the first `## ` heading (the title block the page draws itself). */

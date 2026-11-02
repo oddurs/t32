@@ -13,6 +13,7 @@
 @import '@fontsource-variable/public-sans/wght.css';
 @import '@fontsource-variable/public-sans/wght-italic.css';
 @import '@fontsource-variable/roboto-mono/wght.css';
+@import 'temml/dist/Temml-Local.css';
 
 :root {
 	/* Colour. Every text colour holds 4.5:1 on paper and on wash; /system/ measures it. */
@@ -455,6 +456,27 @@ th {
 }
 .error {
 	color: var(--err);
+}
+
+/* ------------------------------------------------------------------ math */
+
+/* Formulas are MathML, typeset from LaTeX when the site is built. They use a math font the reader
+   already has (STIX Two on Apple systems, Cambria on Windows), a touch larger, since math faces
+   run small beside Public Sans. Temml's own small font supplies stretchy symbols. */
+math {
+	font-family: 'STIX Two Math', 'Cambria Math', 'Latin Modern Math', math;
+	font-size: 1.12em;
+}
+/* Inline formulas here are short. Set in the line like a word, they keep its height and its spacing;
+   Temml's line-breaking flex box and padding would open the line up and leave a gap after them. */
+math:not(.tml-display) {
+	display: inline math;
+}
+math:not(.tml-display) > mrow {
+	padding: 0;
+}
+math.tml-display {
+	margin: var(--s4) 0;
 }
 
 /* ------------------------------------------------------------------ code and data */

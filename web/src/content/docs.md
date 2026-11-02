@@ -106,7 +106,7 @@ println!("{} {}", now.stamp(8)?, now.stamp(14)?.display_form()); // a nanosecond
 # Ok::<(), t32::Error>(())
 ```
 
-The crate has four types: `Instant` (a point in time, exact to 2⁻⁴⁰ s), `Stamp`, `Duration` and `UtcDateTime` (RFC 3339 text, leap seconds included). `cargo run --example t32 -- G0S7` prints a stamp's interval.
+The crate has four types: `Instant` (a point in time, exact to $2^{-40}$ s), `Stamp`, `Duration` and `UtcDateTime` (RFC 3339 text, leap seconds included). `cargo run --example t32 -- G0S7` prints a stamp's interval.
 
 ## Getting TAI from a system clock
 

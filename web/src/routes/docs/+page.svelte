@@ -13,8 +13,8 @@
 		<span class="label">T32 · Draft {DRAFT} · Guide (informative)</span>
 		<h1>Guide</h1>
 		<p class="lede">
-			Using T32 in practice. Where this guide and the <a href={resolve('spec/')}>specification</a>
-			differ, the specification is right and the guide has a defect.
+			How to use T32 in practice. If this guide and the <a href={resolve('spec/')}>specification</a>
+			disagree, the specification is right.
 		</p>
 	</header>
 

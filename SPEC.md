@@ -68,13 +68,13 @@ Five constants define T32. Nothing else is configurable.
 | --- | --- | --- |
 | Time scale | TAI (International Atomic Time) from 1961; Universal Time before (see Converting from UTC) | No leap seconds: every second is equal and arithmetic is exact |
 | Epoch E | 2000-01-01T00:00:00 TAI (= 1999-12-31T23:59:28 UTC, Unix 946684768) | A round, recent instant that keeps present-day values small. It is not J2000 (2000-01-01T12:00:00 TT) |
-| Bias B | 2^39 s = 549,755,813,888 s (about 17,421 years) | Offset binary: centres the range on the epoch, so past instants stay non-negative and sortable |
+| Bias B | $2^{39}$ s = 549,755,813,888 s (about 17,421 years) | Offset binary: centres the range on the epoch, so past instants stay non-negative and sortable |
 | Alphabet | `0123456789ABCDEFGHJKMNPQRSTVWXYZ` (Crockford base32) | Omits I, L, O, U; in ASCII order, so text order equals numeric order |
 | Lengths | 1 to 16 characters; 8 is canonical | 5 bits per character; 8 characters is 40 bits at 1 s |
 
-A stamp of length n has **unit** u(n) = 32^(8−n) seconds: 1 s at length 8, 32 s at length 7, 1/32 s at length 9.
+A stamp of length n has **unit** $u(n) = 32^{8-n}$ seconds: 1 s at length 8, 32 s at length 7, 1/32 s at length 9.
 
-The **biased time** of an instant t is its TAI seconds since E, plus B. Every representable instant has a biased time in [0, 2^40) seconds.
+The **biased time** of an instant t is its TAI seconds since E, plus B. Every representable instant has a biased time in $[0, 2^{40})$ seconds.
 
 TAI itself is computed after the fact by the BIPM; in real time it is approximated as UTC(k) + ΔAT. T32 does not distinguish these realizations.
 
@@ -119,8 +119,8 @@ V = floor( (t − E + B) / 32^(8−n) ),    0 ≤ V < 32^n
 ```
 
 1. Obtain t − E in TAI seconds, exactly (see Converting from UTC).
-2. Add B, divide by u(n), and floor. Encoders MUST floor exactly once, at this step, toward negative infinity; intermediate values MUST NOT be rounded. Rounding would let a stamp name an interval that does not contain t.
-3. If V is outside [0, 32^n), the encoder MUST fail. It MUST NOT wrap or clamp.
+2. Add B, divide by $u(n)$, and floor. Encoders MUST floor exactly once, at this step, toward negative infinity; intermediate values MUST NOT be rounded. Rounding would let a stamp name an interval that does not contain t.
+3. If V is outside $[0, 32^n)$, the encoder MUST fail. It MUST NOT wrap or clamp.
 4. Encoders MUST write V as exactly n digits from the alphabet, most significant first, uppercase.
 
 Because there is one floor, encoding at length n and truncating to length k gives the stamp that encoding at length k gives. Reducing resolution is a string operation.
@@ -155,24 +155,24 @@ Length records the resolution of the record: the width of the interval in which 
 
 | Length | Unit (exact) | Unit (approx.) | Example | Typical source |
 | --- | --- | --- | --- | --- |
-| 1 | 2^35 s | 1,089 years | `G` | |
-| 2 | 2^30 s | 34.0 years | `G0` | |
-| 3 | 2^25 s | 388 days | `G0S` | |
-| 4 | 2^20 s | 12.1 days | `G0S7` | |
-| 5 | 2^15 s | 9.10 hours | `G0S7G` | |
-| 6 | 2^10 s | 17.1 minutes | `G0S7G6` | |
-| 7 | 2^5 s | 32 seconds | `G0S7G6B` | |
+| 1 | $2^{35}$ s | 1,089 years | `G` | |
+| 2 | $2^{30}$ s | 34.0 years | `G0` | |
+| 3 | $2^{25}$ s | 388 days | `G0S` | |
+| 4 | $2^{20}$ s | 12.1 days | `G0S7` | |
+| 5 | $2^{15}$ s | 9.10 hours | `G0S7G` | |
+| 6 | $2^{10}$ s | 17.1 minutes | `G0S7G6` | |
+| 7 | $2^{5}$ s | 32 seconds | `G0S7G6B` | |
 | **8** | **1 s** | **1 second** | **`G0S7G6B1`** | **Seconds (canonical)** |
-| 10 | 2^−10 s | 0.977 ms | | Milliseconds |
-| 12 | 2^−20 s | 0.954 µs | | Microseconds |
-| 14 | 2^−30 s | 0.931 ns | | Nanoseconds |
-| 16 | 2^−40 s | 0.909 ps | | Picoseconds |
+| 10 | $2^{-10}$ s | 0.977 ms | | Milliseconds |
+| 12 | $2^{-20}$ s | 0.954 µs | | Microseconds |
+| 14 | $2^{-30}$ s | 0.931 ns | | Nanoseconds |
+| 16 | $2^{-40}$ s | 0.909 ps | | Picoseconds |
 
-Odd lengths are valid. A source's resolution r is the unit in which it reports time, such as 1 ns for a POSIX `timespec`, not the accuracy of the clock behind it. An encoder MUST NOT emit a stamp longer than the longest length n with u(n) > r/√32: the length whose unit is nearest r on a logarithmic scale, the shorter where two are equally near. In integers, n is the longest length with 32 · u(n)² > r². A millisecond clock therefore yields at most 10 characters, a nanosecond clock at most 14. Encoders SHOULD use one fixed length per field.
+Odd lengths are valid. A source's resolution $r$ is the unit in which it reports time, such as 1 ns for a POSIX `timespec`, not the accuracy of the clock behind it. An encoder MUST NOT emit a stamp longer than the longest length $n$ with $u(n) > r/\sqrt{32}$: the length whose unit is nearest $r$ on a logarithmic scale, the shorter where two are equally near. In integers, $n$ is the longest length with $32 \cdot u(n)^2 > r^2$. A millisecond clock therefore yields at most 10 characters, a nanosecond clock at most 14. Encoders SHOULD use one fixed length per field.
 
 ## Durations
 
-A duration is a signed whole number of 2^−40 s, written exactly as a sign, base32 seconds, and optional base32 fraction digits: `+2MC0` is one day.
+A duration is a signed whole number of $2^{-40}$ s, written exactly as a sign, base32 seconds, and optional base32 fraction digits: `+2MC0` is one day.
 
 | Duration | Seconds | T32 duration |
 | --- | --- | --- |
@@ -182,19 +182,19 @@ A duration is a signed whole number of 2^−40 s, written exactly as a sign, bas
 | 1 week | 604,800 | `+JEM0` |
 | Half a second | 0.5 | `+0.G` |
 
-- **Value.** sign × (I + F / 32^k) seconds, where I is the integer part and F the k fraction digits. Every duration is exact in this form, and its magnitude is less than 2^40 s.
+- **Value.** $\text{sign} \times (I + F / 32^k)$ seconds, where $I$ is the integer part and $F$ the $k$ fraction digits. Every duration is exact in this form, and its magnitude is less than $2^{40}$ s.
 - **Canonical form.** The sign is REQUIRED. No leading zeros in the integer part (zero is `0`), no trailing zeros in the fraction, no fraction if it is zero. Zero is `+0`, never `-0`.
 - **From other units.** Converting a duration from decimal units (nanoseconds, say) MUST truncate toward zero, so negating a duration negates its text.
 - **Stamp − stamp.** B − A is start(B) − start(A), exactly. The difference of the instants that B and A stand for lies within (−u(A), +u(B)) of it.
-- **Range.** Implementations MUST reject a duration whose magnitude reaches 2^40 s.
-- **Stamp + duration.** Add the duration to the stamp's start, then floor to the stamp's own length. If the result leaves [0, 2^40) s, the operation MUST fail.
+- **Range.** Implementations MUST reject a duration whose magnitude reaches $2^{40}$ s.
+- **Stamp + duration.** Add the duration to the stamp's start, then floor to the stamp's own length. If the result leaves $[0, 2^{40})$ s, the operation MUST fail.
 - Durations are SI seconds. `+2MC0` is 86,400 s even across a leap second; a civil day is a calendar notion.
 
 ## Converting from UTC
 
 T32 is TAI-native. UTC converts through ΔAT = TAI − UTC, given in Appendix A as a function of the UTC label. ΔAT has been 37 s since 2017-01-01.
 
-A **UTC label** L is a time written in the proleptic Gregorian calendar with astronomical year numbering (year 0 is 1 BCE), counted in seconds since 1970-01-01T00:00:00 by the POSIX formula: days × 86,400 + seconds of the day. A Unix timestamp is exactly such a label. Then:
+A **UTC label** L is a time written in the proleptic Gregorian calendar with astronomical year numbering (year 0 is 1 BCE), counted in seconds since 1970-01-01T00:00:00 by the POSIX formula: $\text{days} \times 86{,}400 + \text{seconds of the day}$. A Unix timestamp is exactly such a label. Then:
 
 ```
 t − E = L + ΔAT(L) − 946684800 s
@@ -291,7 +291,7 @@ This document is draft 0.3. Until version 1.0, any part may change. From 1.0, De
 | UUIDv7 | 48-bit Unix ms in a UUID | Unix time, ms | 36 | Yes | No |
 | **T32** | **`G0S7G6B1`** | **TAI** | **8** | **Yes** | **Yes, by length** |
 
-TAI64 is the closest relative: the same timescale and the same offset-binary idea (its bias is 2^62), written in hexadecimal at a precision fixed by the variant (TAI64, TAI64N, TAI64NA). ULID showed that sortable Crockford base32 works for time-ordered keys. T32 adds three things: length as resolution, with interval semantics and prefix containment; the shortest case-insensitive text that sorts as time; and an exact UTC mapping at every step of the table.
+TAI64 is the closest relative: the same timescale and the same offset-binary idea (its bias is $2^{62}$), written in hexadecimal at a precision fixed by the variant (TAI64, TAI64N, TAI64NA). ULID showed that sortable Crockford base32 works for time-ordered keys. T32 adds three things: length as resolution, with interval semantics and prefix containment; the shortest case-insensitive text that sorts as time; and an exact UTC mapping at every step of the table.
 
 ## Out of scope and known limits
 
@@ -395,7 +395,7 @@ The `FZ3BMMKB` interval is 0.99999997 UTC seconds wide, because UTC seconds were
 | --- | --- | --- |
 | 86,400 s | one day | `+2MC0` |
 | −1.5 s | | `-1.G` |
-| −1 ns (truncated toward zero) | −1,099 × 2^−40 s | `-0.0000012B` |
+| −1 ns (truncated toward zero) | $-1{,}099 \times 2^{-40}$ s | `-0.0000012B` |
 | 0 | | `+0` |
 | `G0S8` start − `G0S7` start | | `+10000` |
 | `G0S7G6B1` start − `G0S7` start | | `+G6B1` |
@@ -448,7 +448,7 @@ The `FZ3BMMKB` interval is 0.99999997 UTC seconds wide, because UTC seconds were
 | | | 2015-07-01 | 36 |
 | | | 2017-01-01 | 37 |
 
-**1961 to 1971 (ΔAT = a + (MJD − m) × r seconds, where MJD is the Modified Julian Date of the UTC label, fraction of the day included)**
+**1961 to 1971 ($\Delta\text{AT} = a + (\text{MJD} - m) \times r$ seconds, where MJD is the Modified Julian Date of the UTC label, fraction of the day included)**
 
 | From | a (s) | m (MJD) | r (s/day) |
 | --- | --- | --- | --- |
@@ -487,7 +487,7 @@ Known implementations, with their conformance, are listed in [IMPLEMENTATIONS.md
 - [`web/src/lib/t32.ts`](web/src/lib/t32.ts): the same algorithm in one TypeScript file, using BigInt.
 - [`tools/oracle.py`](tools/oracle.py): an independent check in exact rational arithmetic, written from this text and sharing no code with the implementations.
 
-Both implementations hold biased time as fixed point in units of 2^−40 s, and hold TAI − UTC as exact multiples of 1/(10^7 × 86,400 × 10^9) s, the finest step any coefficient in Appendix A needs. Converting a label is then exact, and inverting it is a single exact division per period.
+Both implementations hold biased time as fixed point in units of $2^{-40}$ s, and hold TAI − UTC as exact multiples of $1/(10^7 \times 86{,}400 \times 10^9)$ s, the finest step any coefficient in Appendix A needs. Converting a label is then exact, and inverting it is a single exact division per period.
 
 ## Appendix C: Open questions
 
@@ -499,7 +499,7 @@ These are the questions the editor considers open before version 1.0. Each state
 
 **C.3 Before 1961.** Labels before 1961 are read as Universal Time, which keeps stamps stable but makes elapsed time non-physical across centuries. The alternative is to apply a ΔT model, which is physical but changes stamps whenever the model is revised. The current position favours stability. Users of historical or astronomical data are invited to say which they would rather have. The reading of these labels is frozen at version 1.0, so this question closes then.
 
-**C.4 The resolution rule.** An encoder may use the length whose unit is nearest its source's resolution on a logarithmic scale (u(n) > r/√32), so a stamp can claim up to √32 (about 5.7) times more resolution than its source has. The stricter alternative is the longest length whose unit is no finer than the source, which gives 9 for a millisecond clock instead of 10. The current position prefers the familiar lengths 8, 10, 12 and 14 for seconds, milliseconds, microseconds and nanoseconds.
+**C.4 The resolution rule.** An encoder may use the length whose unit is nearest its source's resolution on a logarithmic scale ($u(n) > r/\sqrt{32}$), so a stamp can claim up to $\sqrt{32}$ (about 5.7) times more resolution than its source has. The stricter alternative is the longest length whose unit is no finer than the source, which gives 9 for a millisecond clock instead of 10. The current position prefers the familiar lengths 8, 10, 12 and 14 for seconds, milliseconds, microseconds and nanoseconds.
 
 **C.5 Letter case.** Canonical stamps are uppercase. Lowercase reads better in URLs and file names, and some systems fold case. Since parsing is case-insensitive, the question is only which form is canonical. The current position is uppercase, as in Crockford base32.
 
