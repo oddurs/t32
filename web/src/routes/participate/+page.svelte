@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Head from '$lib/components/Head.svelte';
 	import { DRAFT } from '$lib/site';
-	import { base } from '$app/paths';
+	import { resolve } from '$app/paths';
 	let { data } = $props();
 
 	const sections = [
@@ -71,7 +71,7 @@
 		<p>
 			The draft is complete enough to implement and to test against, and it is not yet frozen. Any part
 			may change before version 1.0; each change is made in the open, with its reason, and recorded in
-			Appendix D of the <a href="{base}/spec/">specification</a>.
+			Appendix D of the <a href={resolve('spec/')}>specification</a>.
 		</p>
 
 		<h2 id="ways"><span class="secno">2</span>Ways to take part</h2>
@@ -79,7 +79,7 @@
 		<dl class="ways">
 			<dt>Question it</dt>
 			<dd>
-				Read the <a href="{base}/spec/">specification</a> as if you had to implement it from the text alone.
+				Read the <a href={resolve('spec/')}>specification</a> as if you had to implement it from the text alone.
 				Anything ambiguous, missing or wrong is worth an <a href="https://github.com/oddurs/t32/issues/new/choose">erratum</a>,
 				including a sentence that two careful readers could take differently.
 			</dd>

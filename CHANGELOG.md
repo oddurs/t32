@@ -16,6 +16,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - CI runs `scripts/task check`, and branch protection requires one aggregate status, `required`.
 
+### Security
+
+- The site moves to SvelteKit 3, with Vite 8, vite-plugin-svelte 7, adapter-static 4 and TypeScript 6. This fixes two SvelteKit advisories (an XSS through an untrusted `cache-control` header in prerendered pages, and URL redirection through enhanced form submission) and one in `cookie`. The `deepmerge` advisory has no fixed release; it is reachable only at build time, through the site's own configuration.
+
 ## [0.3.0] - 2026-11-01
 
 Implements specification draft 0.3.

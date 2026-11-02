@@ -1,4 +1,7 @@
-import { base } from '$app/paths';
+import { resolve } from '$app/paths';
+
+// The deploy base ('' or '/t32'), for site-absolute links in the markdown.
+const base = resolve('/').replace(/\/$/, '');
 import spec from '../../../../SPEC.md?raw';
 import implementations from '../../../../IMPLEMENTATIONS.md?raw';
 import governance from '../../../../GOVERNANCE.md?raw';

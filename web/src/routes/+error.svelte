@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { base } from '$app/paths';
+	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 </script>
 
@@ -20,11 +20,11 @@
 
 	<div class="main">
 		<dl class="pairs">
-			<dt><a href="{base}/">Overview</a></dt>
+			<dt><a href={resolve('/')}>Overview</a></dt>
 			<dd>What T32 is, in a few minutes.</dd>
-			<dt><a href="{base}/playground/">Playground</a></dt>
+			<dt><a href={resolve('playground/')}>Playground</a></dt>
 			<dd>Type a date or a stamp and see what it means.</dd>
-			<dt><a href="{base}/spec/">Specification</a></dt>
+			<dt><a href={resolve('spec/')}>Specification</a></dt>
 			<dd>The normative text.</dd>
 		</dl>
 	</div>
