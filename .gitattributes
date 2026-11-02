@@ -1,0 +1,8 @@
+* text=auto eol=lf
+
+*.png binary
+*.woff2 binary
+
+# Generated: collapsed in diffs and left out of the language statistics.
+vectors/t32-vectors.json linguist-generated
+web/package-lock.json linguist-generated -diff

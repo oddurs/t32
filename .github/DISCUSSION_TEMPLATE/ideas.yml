@@ -1,0 +1,35 @@
+# The form for the Ideas category: proposals to change the specification.
+# GOVERNANCE.md says what a substantive proposal states; these fields follow it.
+title: "Proposal: "
+labels: ["proposal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A proposal is open for at least two weeks before a decision, which is written here with its reasons ([GOVERNANCE.md](https://github.com/oddurs/t32/blob/main/GOVERNANCE.md)). Describe the problem before the solution. If it concerns a question in Appendix C, say which.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What the specification gets wrong, leaves out or makes hard, with an example.
+    validations:
+      required: true
+  - type: textarea
+    id: change
+    attributes:
+      label: The change to the text
+      description: The sections affected, and the new wording if you have it.
+    validations:
+      required: true
+  - type: textarea
+    id: effect
+    attributes:
+      label: Effect on existing stamps and implementations
+      description: Does any existing stamp change meaning? What must implementations change?
+    validations:
+      required: true
+  - type: textarea
+    id: vectors
+    attributes:
+      label: New or changed vectors
+      description: Inputs and expected results that would show the change works.

@@ -1,0 +1,6 @@
+# The toolchain for development and CI. The library itself supports Rust 1.70
+# and later (rust/Cargo.toml), which CI checks separately.
+[toolchain]
+channel = "1.98.1"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

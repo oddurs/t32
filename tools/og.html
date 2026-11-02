@@ -1,0 +1,131 @@
+<!doctype html>
+<!--
+	Source of web/static/og.png, the site's link-preview image (1200x630), and of
+	the repository's social preview on GitHub (1280x640). It names no draft
+	number, so a new draft does not leave it out of date. After `npm ci` in web/
+	(for the font), render it with headless Chrome from the repository root:
+
+	  chrome --headless --hide-scrollbars --window-size=1200,630 \
+		--screenshot=web/static/og.png tools/og.html
+	  chrome --headless --hide-scrollbars --window-size=1280,640 \
+		--screenshot=social-preview.png tools/og.html
+
+	The social preview is uploaded by hand: Settings > General > Social preview.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>T32</title>
+<style>
+	@font-face {
+		font-family: 'Public Sans';
+		src: url('../web/node_modules/@fontsource-variable/public-sans/files/public-sans-latin-wght-normal.woff2') format('woff2');
+		font-weight: 100 900;
+	}
+	html, body {
+		margin: 0;
+		width: 100vw;
+		height: 100vh;
+		background: #fbfaf6;
+		color: #1b1b19;
+		font-family: 'Public Sans', sans-serif;
+		font-variant-numeric: tabular-nums lining-nums;
+	}
+	body {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	main {
+		width: 1056px;
+	}
+	.label {
+		font-size: 19px;
+		font-weight: 620;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: #85827a;
+	}
+	h1 {
+		margin: 18px 0 64px;
+		font-size: 60px;
+		font-weight: 700;
+		letter-spacing: -0.02em;
+		line-height: 1.1;
+	}
+	ol {
+		display: grid;
+		grid-template-columns: repeat(10, 1fr);
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		border-top: 2px solid #bdb7aa;
+		border-bottom: 2px solid #bdb7aa;
+	}
+	li {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 22px 0 18px;
+		border-left: 1px solid #e1ddd3;
+	}
+	li:first-child {
+		border-left: 0;
+	}
+	li.frac {
+		background: #f3f1ea;
+		color: #85827a;
+	}
+	li:nth-child(9) {
+		border-left: 2px solid #bdb7aa;
+	}
+	.ch {
+		font-size: 84px;
+		font-weight: 660;
+		line-height: 1;
+	}
+	.frac .ch {
+		font-weight: 400;
+	}
+	.span {
+		margin-top: 22px;
+		font-size: 17px;
+		color: #85827a;
+	}
+	footer {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		margin-top: 72px;
+		font-size: 24px;
+		color: #55534d;
+	}
+	footer strong {
+		font-weight: 620;
+		color: #1d4f86;
+	}
+</style>
+</head>
+<body>
+<main>
+	<div class="label">T32 · Draft for public review</div>
+	<h1>A compact universal timestamp</h1>
+	<ol>
+		<li><span class="ch">G</span><span class="span">1,089 y</span></li>
+		<li><span class="ch">0</span><span class="span">34 y</span></li>
+		<li><span class="ch">S</span><span class="span">388 d</span></li>
+		<li><span class="ch">7</span><span class="span">12.1 d</span></li>
+		<li><span class="ch">G</span><span class="span">9.1 h</span></li>
+		<li><span class="ch">6</span><span class="span">17.1 min</span></li>
+		<li><span class="ch">B</span><span class="span">32 s</span></li>
+		<li><span class="ch">1</span><span class="span">1 s</span></li>
+		<li class="frac"><span class="ch">G</span><span class="span">31 ms</span></li>
+		<li class="frac"><span class="ch">0</span><span class="span">0.98 ms</span></li>
+	</ol>
+	<footer>
+		<span>Atomic seconds since 2000, in base32. Length is resolution.</span>
+		<strong>oddurs.github.io/t32</strong>
+	</footer>
+</main>
+</body>
+</html>

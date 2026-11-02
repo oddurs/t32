@@ -1,0 +1,31 @@
+# Matches what the formatters and the existing files use.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# The site: tabs, as SvelteKit's scaffold and every file in web/ use.
+[web/**.{ts,js,svelte,css,html}]
+indent_style = tab
+
+# Shell scripts and the image source: tabs, as shfmt writes them.
+[{scripts/*,.githooks/*,tools/og.html}]
+indent_style = tab
+
+[*.{json,yml,yaml,toml,cff}]
+indent_size = 2
+
+# Written by tools/oracle.py with json.dumps(indent=1).
+[vectors/t32-vectors.json]
+indent_size = 1
+
+[*.md]
+indent_size = 2
+
+[*.tex]
+indent_size = 2
