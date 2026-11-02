@@ -140,6 +140,14 @@ export function humanSpan(seconds: number): string {
 	return fmt(seconds * 1e12, 'ps');
 }
 
+/** The span of a stamp of `len` characters, short enough to sit under one character: "1,089 y", "17.1 min", "977 µs". */
+export function shortSpan(len: number): string {
+	const units: Record<string, string> = { years: 'y', days: 'd', hours: 'h', minutes: 'min', seconds: 's', second: 's' };
+	return humanSpan(unitSeconds(len))
+		.replace('≈ ', '')
+		.replace(/ (years|days|hours|minutes|seconds|second)$/, (_, u: string) => ' ' + units[u]);
+}
+
 /** "2^5 s", "1 s", "2^−10 s" */
 export function exactUnit(len: number): string {
 	const e = 5 * (CANONICAL_LEN - len);
@@ -185,16 +193,20 @@ export function describe(stamp: Stamp): Description {
 	const dat = deltaAt(utc.unixNs);
 	// Floored, not truncated: a start before 1970 must not move later.
 	const ms = Number(utc.unixNs >= 0n ? utc.unixNs / 1_000_000n : -((-utc.unixNs + 999_999n) / 1_000_000n));
+	const start = fxToUtcStringExact(s, digits);
+	// UTC is read to the nanosecond. Below that, the ends print alike, so the end and the
+	// midpoint are named by their distance from the start instead.
+	const sub = (text: string, seconds: number) => (text === start ? `${humanSpan(seconds)} later` : text);
 	return {
 		stamp,
 		canonical: format(stamp),
 		display: display(stamp),
 		unitExact: exactUnit(stamp.len),
 		unitHuman: humanSpan(unitSeconds(stamp.len)),
-		start: fxToUtcStringExact(s, digits),
+		start,
 		// The last stamps end at 2^80, past the range: a bound with no UTC reading of its own.
-		end: e === 1n << 80n ? "the end of T32's range" : fxToUtcStringExact(e, digits),
-		mid: fxToUtcStringExact((s + e) / 2n, Math.min(9, digits + 2)),
+		end: e === 1n << 80n ? "the end of T32's range" : sub(fxToUtcStringExact(e, digits), unitSeconds(stamp.len)),
+		mid: sub(fxToUtcStringExact((s + e) / 2n, Math.min(9, digits + 2)), unitSeconds(stamp.len) / 2),
 		inserted: utc.insertedNs !== null,
 		startUnixMs: Math.abs(ms) <= 8.64e15 ? ms : null,
 		unixStart: secondsString(utc.unixNs, 9, false),

@@ -1,5 +1,9 @@
 <script lang="ts">
 	import Head from '$lib/components/Head.svelte';
+	import StampDigits from '$lib/components/StampDigits.svelte';
+	import { fly, fade } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
+	import { reducedMotion, stagger } from '$lib/motion.svelte';
 	import { DRAFT } from '$lib/site';
 	import { exponents } from '$lib/exponents';
 	import { onMount } from 'svelte';
@@ -112,6 +116,7 @@
 	}
 
 	function setInput(value: string) {
+		stop();
 		copied = null;
 		let input: Input | null = null;
 		try {
@@ -163,6 +168,39 @@
 		}
 		setInput(format(s));
 	}
+
+	// ---- play: build the stamp up one character at a time ----
+	let timer: ReturnType<typeof setInterval> | null = null;
+	let playing = $state(false);
+	let still = $state(false);
+
+	function stop() {
+		if (timer) clearInterval(timer);
+		timer = null;
+		playing = false;
+	}
+
+	function play() {
+		if (!shown) return;
+		stop();
+		const max = shown.maxLen;
+		len = 1;
+		playing = true;
+		timer = setInterval(() => {
+			if (len >= max) return stop();
+			len += 1;
+		}, still ? 900 : 650);
+	}
+
+	/** A length chosen by hand ends the play. */
+	function choose(n: number) {
+		stop();
+		len = n;
+	}
+
+	// Rows of the reading arrive with the characters, one after another.
+	const rowDelay = stagger(() => (shown ? Math.min(len, shown.full.len) : 0), 60);
+	const ms = (v: number) => (still ? 0 : v);
 
 	/** Stops the live clock, keeping the instant it showed, to the millisecond. */
 	function pause() {
@@ -226,6 +264,7 @@
 		// Enough fraction digits to tell the ends apart, and no more.
 		const frac = Math.max(2, Math.min(9, Math.ceil((d.stamp.len - 8) * 1.5052) + 1));
 		const a = parts(d.start, false, frac);
+		if (!d.end.endsWith('Z')) return `${what}, starting on ${a.date} at ${a.time} UTC`;
 		const b = parts(d.end, false, frac);
 		const range = a.date === b.date ? `on ${a.date}, from ${a.time} to ${b.time}` : `from ${a.date}, ${a.time} to ${b.date}, ${b.time}`;
 		return `${what}, ${range} UTC`;
@@ -290,6 +329,7 @@
 	// ---- lifecycle: live clock and shareable URL ----
 	onMount(() => {
 		mounted = true;
+		still = reducedMotion();
 		const q = new URLSearchParams(location.search);
 		if (q.get('q')) setInput(q.get('q')!);
 		const n = Number(q.get('n'));
@@ -307,7 +347,10 @@
 		const id = setInterval(() => {
 			if (live) nowMs = Date.now();
 		}, 100);
-		return () => clearInterval(id);
+		return () => {
+			clearInterval(id);
+			stop();
+		};
 	});
 
 	$effect(() => {
@@ -453,8 +496,18 @@
 		{#if shown && d}
 			<div class="output" class:stale aria-busy={stale}>
 			<div class="result">
+				<StampDigits full={shown.full} bind:len={() => len, choose} />
 				<div class="stamprow">
-					<div class="data stamp">{d.canonical}</div>
+					{#if mode === 'simple'}
+						<p class="meaning"><span class="data">{d.canonical}</span> stands for {meaning}.{#if live}{' '}<span class="live">Live.</span>{/if}</p>
+					{:else}
+						<p class="readout">
+							<span class="data stamp">{d.canonical}</span>
+							<span class="small muted">
+								{d.unitHuman} wide{#if live}<span class="live"> · live</span>{/if}{d.provisional ? ' · provisional: beyond the published leap-second table' : ''}
+							</span>
+						</p>
+					{/if}
 					<div class="actions">
 						<button class="btn" onclick={() => step(-1)} disabled={!neighbour(-1)} title="The stamp before (↓ in the box)">← Earlier</button>
 						<button class="btn" onclick={() => step(1)} disabled={!neighbour(1)} title="The stamp after (↑ in the box)">Later →</button>
@@ -462,14 +515,7 @@
 						<button class="btn copy" onclick={() => copy('stamp', d.canonical)} disabled={stale}>{copied === 'stamp' ? 'Copied' : 'Copy'}</button>
 					</div>
 				</div>
-				{#if mode === 'simple'}
-					<p class="meaning"><span class="data">{d.canonical}</span> stands for {meaning}.{#if live}<span class="live"> Live.</span>{/if}</p>
-					{#if local}<p class="small muted local">In your time zone, it starts {local}.</p>{/if}
-				{:else}
-					<div class="small muted">
-						{d.unitHuman} wide{#if live}<span class="live"> · live</span>{/if}{d.provisional ? ' · provisional: beyond the published leap-second table' : ''}
-					</div>
-				{/if}
+				{#if mode === 'simple' && local}<p class="small muted local">In your time zone, it starts {local}.</p>{/if}
 			</div>
 
 			{#if mode === 'simple'}
@@ -477,17 +523,24 @@
 					<span class="label" id="precision-label">How precise</span>
 					<div class="chips" role="group" aria-labelledby="precision-label">
 						{#each precisions as p (p.len)}
-							<button class="chip" aria-pressed={len === p.len} onclick={() => (len = p.len)} title="{p.len} characters">{p.label}</button>
+							<button class="chip" aria-pressed={len === p.len} onclick={() => choose(p.len)} title="{p.len} characters">{p.label}</button>
 						{/each}
 					</div>
-					<p class="small muted">Each character is 32 times finer than the one before it, so a shorter stamp names a longer span.</p>
+					<p class="small muted">
+						Each character is 32 times finer than the one before it, so a shorter stamp names a longer span.
+						Choose a character above to end the stamp there, or
+						<button class="link" onclick={playing ? stop : play}>{playing ? 'stop' : 'watch it built up, one character at a time'}</button>.
+					</p>
 				</div>
 
 				<h3>How to read it</h3>
 				<p class="small muted">Read a stamp from the left. Each character picks one of 32 equal parts of the span before it; the bar shows which.</p>
 				<ol class="reading">
-					{#each ladder.slice(0, shown.stamp.len) as row (row.stamp.len)}
-						<li>
+					{#each ladder.slice(0, shown.stamp.len) as row, i (row.stamp.len)}
+						<li
+							in:fly={{ y: -10, duration: ms(320), delay: ms(rowDelay.in(i)), easing: cubicOut }}
+							out:fade={{ duration: ms(140) }}
+						>
 							<span class="data prefix"><span class="head">{row.head}</span>{row.last}</span>
 							<span class="strip" role="img" aria-label="Part {row.part + 1} of 32">
 								{#each { length: 32 } as _, k (k)}<i class:on={k === row.part}></i>{/each}
@@ -515,7 +568,10 @@
 			</div>
 
 			<h3>Digit by digit</h3>
-			<p class="small muted">Each character picks one of 32 equal parts of the span before it; the bar shows which. Choose a row to use that length.</p>
+			<p class="small muted">
+				Each character picks one of 32 equal parts of the span before it; the bar shows which. Choose a row to use that length, or
+				<button class="link" onclick={playing ? stop : play}>{playing ? 'stop' : 'play them in order'}</button>.
+			</p>
 			<div class="table-wrap">
 				<table class="ladder">
 					<thead>
@@ -525,7 +581,7 @@
 						{#each ladder as row (row.stamp.len)}
 							<!-- The whole row is a target for the pointer; the button in it serves the keyboard. -->
 							<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-							<tr class="pick" class:hl={row.stamp.len === d.stamp.len} class:finer={row.stamp.len > d.stamp.len} onclick={() => (len = row.stamp.len)}>
+							<tr class="pick" class:hl={row.stamp.len === d.stamp.len} class:finer={row.stamp.len > d.stamp.len} onclick={() => choose(row.stamp.len)}>
 								<td class="num"><button class="link" aria-pressed={row.stamp.len === d.stamp.len} aria-label="Use length {row.stamp.len}">{row.stamp.len}</button></td>
 								<td>
 									<span class="data prefix"><span class="head">{row.head}</span>{row.last}</span>
@@ -534,7 +590,7 @@
 									</span>
 								</td>
 								<td class="nowrap unit">{row.unitHuman}</td>
-								<td class="data small"><span class="nowrap">{row.start} –</span> <span class="nowrap">{row.end}</span></td>
+								<td class="small interval"><span class="data nowrap">{row.start} –</span> <span class="data nowrap">{row.end}</span></td>
 							</tr>
 						{/each}
 					</tbody>
@@ -641,15 +697,15 @@
 		line-height: var(--lh-small);
 	}
 	.result {
-		margin: var(--s4) 0 var(--s4);
-		padding: var(--s4) 0 var(--s3);
-		border-top: 1px solid var(--rule-strong);
+		margin: var(--s5) 0 var(--s4);
+		padding: 0 0 var(--s3);
 		border-bottom: 1px solid var(--rule);
 	}
 	.stamprow {
+		margin-top: var(--s4);
 		display: flex;
 		flex-wrap: wrap;
-		align-items: center;
+		align-items: flex-start;
 		justify-content: space-between;
 		gap: var(--s2) var(--s5);
 	}
@@ -692,14 +748,18 @@
 	}
 
 	/* Simple view */
+	/* Beside the actions where there is room for both, above them where there is not. */
 	.meaning {
+		flex: 1 1 0;
+		min-width: min(100%, 22rem);
 		font-size: var(--fs-1);
 		line-height: var(--lh-small);
-		margin: var(--s3) 0 var(--s1);
+		margin: 0;
 		max-width: var(--measure);
+		text-wrap: pretty;
 	}
 	.local {
-		margin: 0;
+		margin: var(--s2) 0 0;
 	}
 	.precision {
 		margin: 0 0 var(--s5);
@@ -853,12 +913,19 @@
 	tr.finer .strip i.on {
 		background: var(--ink-3);
 	}
+	.readout {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: var(--s1) var(--s3);
+		margin: 0;
+	}
 	.stamp {
-		font-size: clamp(var(--fs-5), 6vw, var(--fs-7));
+		font-size: var(--fs-2);
 		font-weight: var(--w-head);
 		font-variant-numeric: tabular-nums lining-nums;
 		letter-spacing: 0.02em;
-		line-height: 1.15;
+		line-height: var(--lh-head);
 		word-break: break-all;
 	}
 	th {
@@ -890,10 +957,6 @@
 		}
 		.strip {
 			width: 8rem;
-		}
-		.stamprow {
-			align-items: flex-start;
-			flex-direction: column;
 		}
 		.controls,
 		.controls.two {

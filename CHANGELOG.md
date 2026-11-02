@@ -13,6 +13,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - `SUPPORT.md`, which says where each kind of question goes.
 - The specification as an Internet-Draft PDF, built by `scripts/task build` and published with the site, linked from the Specification page, the overview, every page's footer and the README.
 - A design-system page at `/system/`, linked from the footer: principles, the mark, colour, type, space, frame and parts, with every value read from the stylesheet when the site is built.
+- The playground draws a stamp as a row of characters, with every position the input can reach and the span each one names. Choosing a character ends the stamp there; added characters drop in one after another, and the stamp can be played from one character up. Motion is off for readers who ask for less.
 - A drawn mark, made from Public Sans outlines by `tools/mark.py`, in the header, the favicon (which now follows the colour scheme) and the link-preview image.
 
 ### Changed

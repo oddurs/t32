@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readInput, humanSpan, describe } from './describe.ts';
+import { readInput, humanSpan, shortSpan, describe } from './describe.ts';
 import { format, fromFx, parse, parseUtc, unitSeconds } from './t32.ts';
 
 const stampOf = (text: string, len?: number) => {
@@ -67,4 +67,16 @@ test('spans are named as the specification names them', () => {
 		'≈ 1,089 years', '≈ 34 years', '≈ 388 days', '≈ 12.1 days',
 		'≈ 9.1 hours', '≈ 17.1 minutes', '32 seconds', '1 second'
 	]);
+});
+
+test('short spans fit under a character, and agree with the long ones', () => {
+	const want = ['1,089 y', '34 y', '388 d', '12.1 d', '9.1 h', '17.1 min', '32 s', '1 s', '31.3 ms', '977 µs', '30.5 µs', '954 ns', '29.8 ns', '931 ps', '29.1 ps', '0.909 ps'];
+	assert.deepEqual(Array.from({ length: 16 }, (_, i) => shortSpan(i + 1)), want);
+});
+
+test('below a nanosecond, the end is named by its distance from the start', () => {
+	const d = describe(fromFx(parseUtc('2026-10-31T03:13:00.25Z'), 14));
+	assert.equal(d.start, '2026-10-31T03:13:00.250000000Z');
+	assert.equal(d.end, '≈ 931 ps later');
+	assert.notEqual(describe(fromFx(parseUtc('2026-10-31T03:13:00.25Z'), 13)).end, '2026-10-31T03:13:00.250000000Z');
 });
