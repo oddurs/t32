@@ -23,5 +23,13 @@ updates:
     schedule:
       interval: weekly
     groups:
+      # SvelteKit, its adapter, Vite and the Svelte plugin work only at matching
+      # majors, so they move together, majors included.
+      svelte:
+        patterns: ["@sveltejs/*", "svelte", "svelte-check", "vite"]
       npm:
         update-types: [minor, patch]
+    ignore:
+      # svelte-check supports TypeScript 5 and 6; hold 7 until it does.
+      - dependency-name: typescript
+        versions: [">=7"]

@@ -16,8 +16,9 @@ in_rust() { (cd rust && "$@"); }
 in_web() { (cd web && "$@"); }
 
 # The web targets need node_modules; install them once, exactly as locked.
+# --loglevel=error, not --silent: a failed install must say why.
 web_deps() {
-	[ -d web/node_modules ] || in_web npm ci --no-audit --no-fund --silent
+	[ -d web/node_modules ] || in_web npm ci --no-audit --no-fund --loglevel=error
 }
 
 # Print a command's output only when it fails, so passing steps stay quiet.
