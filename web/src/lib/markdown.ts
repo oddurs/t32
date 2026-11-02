@@ -1,6 +1,9 @@
 // Renders a GFM document with GitHub-style heading ids, optional ISO-style
 // section numbers, and a table of contents. Runs at build time only.
 import { Marked, type Tokens } from 'marked';
+
+/** A plain number: "16", "1,089", "−0.05", "+1.422818". */
+export const NUMBER = /^[+−-]?\d[\d,]*(\.\d+)?$/;
 import { exponents } from './exponents';
 
 export interface TocEntry {
@@ -87,12 +90,17 @@ export function renderDoc(src: string, opts: { number?: boolean; base?: string }
 			},
 			table(this: { parser: { parseInline: (t: Tokens.Generic[]) => string } }, token: Tokens.Table) {
 				// Wrap tables so wide ones scroll on phones instead of breaking the page.
-				const cell = (c: Tokens.TableCell, tag: 'th' | 'td') => {
-					const align = c.align ? ` style="text-align:${c.align}"` : '';
+				// A column of plain numbers is right-aligned, so its digits line up by place.
+				const numeric = token.header.map((_, i) => {
+					const cells = token.rows.map((r) => (r[i]?.text ?? '').replace(/[*_]/g, '').trim()).filter(Boolean);
+					return cells.length > 0 && cells.every((t) => NUMBER.test(t));
+				});
+				const cell = (c: Tokens.TableCell, tag: 'th' | 'td', i: number) => {
+					const align = c.align ? ` style="text-align:${c.align}"` : numeric[i] ? ' class="num"' : '';
 					return `<${tag}${align}>${this.parser.parseInline(c.tokens)}</${tag}>`;
 				};
-				const head = `<tr>${token.header.map((c) => cell(c, 'th')).join('')}</tr>`;
-				const body = token.rows.map((r) => `<tr>${r.map((c) => cell(c, 'td')).join('')}</tr>`).join('\n');
+				const head = `<tr>${token.header.map((c, i) => cell(c, 'th', i)).join('')}</tr>`;
+				const body = token.rows.map((r) => `<tr>${r.map((c, i) => cell(c, 'td', i)).join('')}</tr>`).join('\n');
 				return `<div class="table-wrap"><table>\n<thead>${head}</thead>\n<tbody>${body}</tbody>\n</table></div>\n`;
 			}
 		}
