@@ -8,8 +8,32 @@
 
 	// A stamp as a row of character cells. Every position the input can reach is drawn, the unused
 	// ones faint, with the span each position names beneath it. Choosing a cell cuts the stamp
-	// there; added characters drop in from above, one after another, and removed ones fall away.
-	let { full, len = $bindable() }: { full: Stamp; len: number } = $props();
+	// there, and dragging across the row sweeps the length; added characters drop in from above,
+	// one after another, and removed ones fall away. Cells past `stated`, the length the input
+	// itself supports, are hatched: they treat the input as exact and add no information.
+	let { full, stated = full.len, len = $bindable() }: { full: Stamp; stated?: number; len: number } = $props();
+
+	let row: HTMLDivElement;
+	let dragging = false;
+	/** The length a pointer at clientX asks for: the cell under it, clamped to the row. */
+	function lengthAt(clientX: number): number {
+		const r = row.getBoundingClientRect();
+		return Math.max(1, Math.min(chars.length, Math.floor(((clientX - r.left) / r.width) * chars.length) + 1));
+	}
+	function down(e: PointerEvent) {
+		if (e.button !== 0) return;
+		dragging = true;
+		row.setPointerCapture(e.pointerId);
+		len = lengthAt(e.clientX);
+	}
+	function move(e: PointerEvent) {
+		if (!dragging) return;
+		const n = lengthAt(e.clientX);
+		if (n !== len) len = n;
+	}
+	function up() {
+		dragging = false;
+	}
 
 	const chars = $derived([...format(full)]);
 	const n = $derived(Math.max(1, Math.min(len, chars.length)));
@@ -22,7 +46,17 @@
 	const t = (ms: number) => (still ? 0 : ms);
 </script>
 
-<div class="digits" style:--n={chars.length} role="group" aria-label="Characters of the stamp. Choose one to end the stamp there.">
+<div
+	class="digits"
+	bind:this={row}
+	style:--n={chars.length}
+	role="group"
+	aria-label="Characters of the stamp. Choose one, or drag across them, to end the stamp there."
+	onpointerdown={down}
+	onpointermove={move}
+	onpointerup={up}
+	onpointercancel={up}
+>
 	{#each chars as c, i (i)}
 		<button
 			type="button"
@@ -30,9 +64,13 @@
 			class:kept={i < n}
 			class:last={i === n - 1}
 			class:frac={i >= 8}
+			class:assumed={i >= stated}
 			aria-pressed={i === n - 1}
-			aria-label="{i + 1} {i ? 'characters' : 'character'}, {shortSpan(i + 1)}"
-			onclick={() => (len = i + 1)}
+			aria-label="{i + 1} {i ? 'characters' : 'character'}, {shortSpan(i + 1)}{i >= stated ? ', past what the input states' : ''}"
+			onclick={(e) => {
+				// A pointer has already set the length on press; this serves the keyboard.
+				if (e.detail === 0) len = i + 1;
+			}}
 		>
 			<span class="glyph" aria-hidden="true">
 				<span class="ghost">{c}</span>
@@ -53,6 +91,10 @@
 <style>
 	.digits {
 		container-type: inline-size;
+		/* Horizontal drags set the length; vertical ones still scroll the page. */
+		touch-action: pan-y;
+		user-select: none;
+		cursor: ew-resize;
 		display: grid;
 		grid-template-columns: repeat(var(--n), minmax(0, 1fr));
 		border-top: 1px solid var(--rule-strong);
@@ -70,6 +112,7 @@
 		border-radius: 0;
 		color: var(--ink);
 		font-variant-numeric: tabular-nums lining-nums;
+		cursor: inherit;
 	}
 	.cell:first-child {
 		border-left: 0;
@@ -80,6 +123,14 @@
 	}
 	.cell.frac {
 		background: var(--wash);
+	}
+	/* Past what the input states: the input taken as exact, digits with no information in them. */
+	.cell.assumed {
+		background: repeating-linear-gradient(135deg, transparent 0 5px, var(--rule) 5px 6px);
+	}
+	.assumed .ch {
+		color: var(--ink-3);
+		font-weight: var(--w-text);
 	}
 	.cell:hover .ghost {
 		opacity: 0.6;
@@ -129,6 +180,12 @@
 		line-height: var(--lh-tight);
 		color: var(--ink-3);
 		white-space: nowrap;
+	}
+	/* In a narrow cell the unit drops under its number rather than running into the next cell. */
+	.span {
+		white-space: normal;
+		text-align: center;
+		padding: 0 2px;
 	}
 	.pos {
 		margin-top: var(--s2);
