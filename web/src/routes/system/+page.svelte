@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import Head from '$lib/components/Head.svelte';
+	import Toc from '$lib/components/Toc.svelte';
 	import Mark from '$lib/components/Mark.svelte';
 	import { MARK } from '$lib/mark';
 	import { DRAFT } from '$lib/site';
@@ -91,14 +92,7 @@
 	</header>
 
 	<aside class="rail">
-		<nav class="toc" aria-label="Design system">
-			<p class="label">Contents</p>
-			<ol>
-				{#each sections as [id, title], i (id)}
-					<li><span class="no">{i + 1}</span><a href="#{id}">{title}</a></li>
-				{/each}
-			</ol>
-		</nav>
+		<Toc toc={sections.map(([id, text], i) => ({ depth: 2, id, text, label: String(i + 1) }))} title="Contents" />
 	</aside>
 
 	<div class="main">

@@ -22,7 +22,7 @@
 			<dt>Editor</dt><dd>Oddur Sigurdsson (<a href="https://github.com/oddurs">@oddurs</a>)</dd>
 			<dt>Source</dt><dd><a href="https://github.com/oddurs/t32/blob/main/SPEC.md">SPEC.md</a> · <a href="https://github.com/oddurs/t32/commits/main/SPEC.md">history</a></dd>
 			<dt>PDF</dt><dd><a href="{resolve('/')}{DRAFT_PDF}" type="application/pdf">As an Internet-Draft</a> (<span class="data">{DRAFT_PDF.replace('.pdf', '')}</span>)</dd>
-			<dt>Comments</dt><dd><a href="https://github.com/oddurs/t32/issues/new/choose">Report an erratum</a> · <a href={resolve('participate/')}>Participate</a></dd>
+			<dt>Comments</dt><dd><a href="https://github.com/oddurs/t32/issues/new/choose">Report a problem</a> · <a href={resolve('participate/')}>Participate</a></dd>
 		</dl>
 	</header>
 

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Head from '$lib/components/Head.svelte';
+	import Toc from '$lib/components/Toc.svelte';
 	import { DRAFT } from '$lib/site';
 	import { resolve } from '$app/paths';
 	let { data } = $props();
@@ -37,14 +38,7 @@
 	</header>
 
 	<aside class="rail">
-		<nav class="toc" aria-label="On this page">
-			<p class="label">On this page</p>
-			<ol>
-				{#each sections as [id, title], i (id)}
-					<li><span class="no">{i + 1}</span><a href="#{id}">{title}</a></li>
-				{/each}
-			</ol>
-		</nav>
+		<Toc toc={sections.map(([id, text], i) => ({ depth: 2, id, text, label: String(i + 1) }))} title="On this page" />
 		<p class="label elsewhere">Elsewhere</p>
 		<ul class="links">
 			<li><a href={discussions}>Discussions</a></li>
