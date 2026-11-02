@@ -223,8 +223,8 @@ body {
 		max-height: none;
 		overflow: visible;
 		margin-bottom: var(--s5);
-		padding: 0 0 var(--s4);
-		border-bottom: 1px solid var(--rule);
+		padding: 0;
+		align-self: stretch;
 	}
 	.rail.after {
 		order: 3;
@@ -584,15 +584,32 @@ th.num {
 	text-align: right;
 }
 tr.hl td,
-tr.hl th,
-td.hl {
+tr.hl th {
 	background: var(--mark);
 }
-/* A table set in two halves side by side: a stronger rule where the second half begins. */
-th.split,
-td.split {
-	padding-left: var(--s5);
-	border-left: 1px solid var(--rule-strong);
+/* One list in two tables: side by side where both fit, one above the other where they do not. */
+.pair {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0 var(--s7);
+	margin-bottom: var(--s5);
+}
+.pair > .table-wrap {
+	flex: 1 1 15rem;
+	max-width: 22rem;
+	margin-bottom: 0;
+}
+.pair table {
+	width: 100%;
+	min-width: 0;
+	/* Equal columns, so the halves line up when they stack. */
+	table-layout: fixed;
+}
+/* Stacked, the second table continues the first: no second header. */
+@media (max-width: 600px) {
+	.pair > .table-wrap + .table-wrap thead {
+		display: none;
+	}
 }
 
 /* ------------------------------------------------------------------ title block */

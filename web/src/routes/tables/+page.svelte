@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Head from '$lib/components/Head.svelte';
+	import Toc from '$lib/components/Toc.svelte';
 	import { DRAFT } from '$lib/site';
 	import EraStrip from '$lib/components/EraStrip.svelte';
 	import LeapChart from '$lib/components/LeapChart.svelte';
@@ -156,14 +157,7 @@
 	</header>
 
 	<aside class="rail">
-		<nav class="toc" aria-label="Tables">
-			<p class="label">Tables</p>
-			<ol>
-				{#each sections as [id, title], i (id)}
-					<li><span class="no">{i + 1}</span><a href="#{id}">{title}</a></li>
-				{/each}
-			</ol>
-		</nav>
+		<Toc toc={sections.map(([id, text], i) => ({ depth: 2, id, text, label: String(i + 1) }))} title="Tables" />
 	</aside>
 
 	<div class="main">
@@ -173,19 +167,19 @@
 			never written. On input, upper and lower case are both accepted, O is read as 0, and I or L as 1,
 			which helps with stamps copied by hand. U is rejected.
 		</p>
-		<div class="table-wrap">
-			<table>
-				<thead><tr><th>Character</th><th class="num">Value</th><th>Bits</th><th class="split">Character</th><th class="num">Value</th><th>Bits</th></tr></thead>
-				<tbody>
-					{#each alphabet.slice(0, 16) as a, i (a.c)}
-						{@const b = alphabet[i + 16]}
-						<tr>
-							<td class="data glyph">{a.c}</td><td class="num">{a.v}</td><td class="data">{a.bits}</td>
-							<td class="data glyph split">{b.c}</td><td class="num">{b.v}</td><td class="data">{b.bits}</td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
+		<div class="pair">
+			{#each [alphabet.slice(0, 16), alphabet.slice(16)] as half, h (h)}
+				<div class="table-wrap">
+					<table>
+						<thead><tr><th>Character</th><th class="num">Value</th><th>Bits</th></tr></thead>
+						<tbody>
+							{#each half as a (a.c)}
+								<tr><td class="data glyph">{a.c}</td><td class="num">{a.v}</td><td class="data">{a.bits}</td></tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
+			{/each}
 		</div>
 
 		<h2 id="precision"><span class="secno">2</span>Length and resolution</h2>
@@ -226,19 +220,19 @@
 			begins in 1999: the epoch, midnight TAI, is 23:59:28 UTC on 31 December.
 		</p>
 		<EraStrip {eras} current="G" />
-		<div class="table-wrap">
-			<table>
-				<thead><tr><th>Era</th><th class="num">From</th><th class="num">Until</th><th class="split">Era</th><th class="num">From</th><th class="num">Until</th></tr></thead>
-				<tbody>
-					{#each eras.slice(0, 16) as e, i (e.c)}
-						{@const f = eras[i + 16]}
-						<tr>
-							<td class="data" class:hl={e.c === 'G'}>{e.c}</td><td class="num" class:hl={e.c === 'G'}>{e.from}</td><td class="num" class:hl={e.c === 'G'}>{e.to}</td>
-							<td class="data split" class:hl={f.c === 'G'}>{f.c}</td><td class="num" class:hl={f.c === 'G'}>{f.from}</td><td class="num" class:hl={f.c === 'G'}>{f.to}</td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
+		<div class="pair">
+			{#each [eras.slice(0, 16), eras.slice(16)] as half, h (h)}
+				<div class="table-wrap">
+					<table>
+						<thead><tr><th>Era</th><th class="num">From</th><th class="num">Until</th></tr></thead>
+						<tbody>
+							{#each half as e (e.c)}
+								<tr class:hl={e.c === 'G'}><td class="data">{e.c}</td><td class="num">{e.from}</td><td class="num">{e.to}</td></tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
+			{/each}
 		</div>
 
 		<h2 id="generations"><span class="secno">4</span>Two-character prefixes, 1900–2100</h2>

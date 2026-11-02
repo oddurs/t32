@@ -8,8 +8,8 @@
 	let { children } = $props();
 
 	// Pathnames as resolve() takes them: relative, with the trailing slash the site uses.
+	// The mark is the way home, and the source is linked from the footer, so the bar holds the five places to read.
 	const nav = [
-		{ href: '/', label: 'Overview' },
 		{ href: 'playground/', label: 'Playground' },
 		{ href: 'docs/', label: 'Guide' },
 		{ href: 'spec/', label: 'Specification' },
@@ -31,7 +31,6 @@
 			{#each nav as item (item.href)}
 				<a href={resolve(item.href)} aria-current={current(item.href) ? 'page' : undefined}>{item.label}</a>
 			{/each}
-			<a class="ext" href="https://github.com/oddurs/t32">Source</a>
 		</nav>
 	</div>
 </header>
@@ -114,29 +113,31 @@
 	}
 	nav {
 		display: flex;
-		flex-wrap: wrap;
-		gap: var(--s2) var(--s5);
+		gap: var(--s5);
 	}
 	nav a {
+		position: relative;
 		font-size: var(--small);
 		font-weight: var(--w-medium);
-		letter-spacing: 0.005em;
 		color: var(--ink-2);
-		/* A decoration takes no layout space, unlike the padded border it replaces, so the marker cannot lift the text. */
-		text-decoration: underline 1px transparent;
-		text-underline-offset: 5px;
-		text-decoration-skip-ink: none;
+		text-decoration: none;
 	}
 	nav a:hover {
 		color: var(--ink);
 	}
+	/* The current page carries the mark's full stop: a small accent square on the baseline, just past
+	   the word. It is placed, not set, so the words keep their places from page to page. */
 	nav a[aria-current='page'] {
 		color: var(--ink);
-		text-decoration-color: var(--ink);
 	}
-	.ext::after {
-		content: ' ↗';
-		color: var(--ink-3);
+	nav a[aria-current='page']::after {
+		content: '';
+		position: absolute;
+		left: calc(100% + 0.12em);
+		bottom: 0.2em;
+		width: 0.32em;
+		height: 0.32em;
+		background: var(--accent);
 	}
 	footer.site {
 		border-top: 1px solid var(--rule);
@@ -163,10 +164,22 @@
 			grid-template-columns: 1fr 1fr;
 		}
 		.bar {
-			padding: var(--s3) var(--s4);
+			padding: var(--s3) var(--gutter);
 		}
+		/* Under the mark, in one line; on the narrowest screens it scrolls rather than wraps. */
+		/* Gap and size follow the screen, so all five fit at 375px. */
 		nav {
-			gap: var(--s2) var(--s4);
+			width: 100%;
+			gap: clamp(var(--s2), 2.4vw, var(--s4));
+			overflow-x: auto;
+			scrollbar-width: none;
+			/* Room inside the scroller for the current page's square and for focus rings. */
+			padding: 2px 0.6em 2px 2px;
+			margin-left: -2px;
+		}
+		nav a {
+			font-size: min(var(--small), 3.5vw);
+			white-space: nowrap;
 		}
 	}
 </style>

@@ -22,6 +22,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - In the playground's advanced view, the length runs to 16 characters for any input: characters past what the input states are hatched and treat it as exact. Dragging across the characters sets the length.
 - Tables say what they show: numeric columns in the specification and guide are right-aligned, the alphabet and era tables mark where their second half begins, the current era is highlighted alone, and the durations table explains how a duration is read.
 - Formulas are typeset: SPEC.md writes its math in LaTeX syntax (`$2^{40}$`, `$u(n) > r/\sqrt{32}$`), which GitHub renders, and the site turns it into MathML when it is built, with no script in the page.
+- The navigation bar holds five words in one line, with the current page marked by the mark's square full stop; the mark leads home and the source is linked from the footer. On phones, page contents fold into one line, and two-part tables stack.
 - The site's copy is plainer: shorter sentences, fewer slogans, and no jargon such as "rubber era" or "erratum" where an everyday word works.
 - The site's type follows one scale, 16px × 2^(n/5), so five steps double the size; headings, ledes, labels and figures each take a step of it. Muted text is darker, to hold 4.5:1 contrast, and tests now fail the build if a text colour falls below that.
 

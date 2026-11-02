@@ -1,38 +1,86 @@
 <script lang="ts">
 	import type { TocEntry } from '$lib/markdown';
+
+	// A page's contents. Beside the text on a wide screen it is a list; on a narrow one, where it
+	// would come before the text, it folds into one line to open. Both are rendered and CSS shows
+	// one, so nothing moves when the page loads.
 	let { toc, title = 'Contents' }: { toc: TocEntry[]; title?: string } = $props();
+
+	const entries = $derived(
+		toc
+			.filter((t) => t.depth === 2)
+			.map((t) => ({
+				id: t.id,
+				// Appendices are numbered by letter, taken from their title.
+				no: t.label ?? t.text.match(/^Appendix ([A-Z])/)?.[1] ?? '',
+				text: t.text.replace(/^Appendix [A-Z]: /, '')
+			}))
+	);
 </script>
 
-<nav class="toc" aria-label={title}>
-	<p class="label">{title}</p>
+{#snippet list()}
 	<ol>
-		{#each toc.filter((t) => t.depth === 2) as entry (entry.id)}
-			<li class:appendix={!entry.label}>
-				<span class="no">{entry.label ?? ''}</span>
-				<a href="#{entry.id}">{entry.text.replace(/^Appendix [A-Z]: /, '')}</a>
-				{#if !entry.label}<span class="app">{entry.text.match(/^Appendix ([A-Z])/)?.[1] ?? ''}</span>{/if}
-			</li>
+		{#each entries as e (e.id)}
+			<li><span class="no">{e.no}</span><a href="#{e.id}">{e.text}</a></li>
 		{/each}
 	</ol>
+{/snippet}
+
+<nav class="toc" aria-label={title}>
+	<div class="open">
+		<p class="label">{title}</p>
+		{@render list()}
+	</div>
+	<details class="fold">
+		<summary><span class="label">{title}</span><span class="count">{entries.length} sections</span></summary>
+		{@render list()}
+	</details>
 </nav>
 
 <style>
-	/* Appendices carry a letter in the number column. The rest is the shared .toc style. */
-	.app {
-		font-size: var(--label);
-		font-weight: var(--w-medium);
-		font-variant-numeric: tabular-nums;
-		color: var(--ink-3);
-	}
-	li.appendix .app {
-		grid-column: 1;
-		grid-row: 1;
-	}
-	li.appendix a {
-		grid-column: 2;
-		grid-row: 1;
-	}
-	li.appendix .no {
+	.fold {
 		display: none;
+	}
+	@media (max-width: 960px) {
+		.open {
+			display: none;
+		}
+		.fold {
+			display: block;
+			border-top: 1px solid var(--rule-strong);
+			border-bottom: 1px solid var(--rule);
+		}
+		summary {
+			display: flex;
+			align-items: baseline;
+			gap: var(--s3);
+			padding: var(--s3) 0;
+			cursor: pointer;
+			list-style: none;
+		}
+		summary::-webkit-details-marker {
+			display: none;
+		}
+		/* A plus that turns to a minus: the one mark the control needs. */
+		summary::after {
+			content: '+';
+			margin-left: auto;
+			font-size: var(--fs-1);
+			line-height: 1;
+			color: var(--ink-3);
+		}
+		.fold[open] summary::after {
+			content: '−';
+		}
+		.fold .label {
+			margin: 0;
+		}
+		.count {
+			font-size: var(--small);
+			color: var(--ink-3);
+		}
+		.fold :global(ol) {
+			padding-bottom: var(--s3);
+		}
 	}
 </style>
