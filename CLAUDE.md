@@ -28,7 +28,7 @@ T32 is a draft timestamp standard. The specification (`SPEC.md`) is the product;
 | `scripts/task fmt:check` | `cargo fmt --check` |
 | `scripts/task lint` | clippy with warnings denied; `svelte-check` |
 | `scripts/task test` | cargo tests with and without features, the example, `tools/oracle.py --check`, `npm test` |
-| `scripts/task build` | `cargo doc` (warnings denied), `cargo package`, the site build |
+| `scripts/task build` | `cargo doc` (warnings denied), `cargo package`, the Internet-Draft PDF (tectonic, into `web/static/`), the site build |
 | `scripts/task check` | all of the above |
 
 A branch passes `scripts/task check` before it becomes a pull request. Never use `--no-verify`, `|| true` or `continue-on-error` to get past a failure: fix the cause.

@@ -19,7 +19,7 @@ G0S7            the 12-day span that contains it
 
 | | |
 | --- | --- |
-| Specification | [SPEC.md](SPEC.md), draft 0.3 ([rendered](https://oddurs.github.io/t32/spec/)) |
+| Specification | [SPEC.md](SPEC.md), draft 0.3 ([rendered](https://oddurs.github.io/t32/spec/), [PDF](https://oddurs.github.io/t32/draft-sigurdsson-t32-00.pdf)) |
 | Site | https://oddurs.github.io/t32/: playground, guide and reference tables |
 | Conformance | [`vectors/t32-vectors.json`](vectors/t32-vectors.json), 782 vectors for any implementation |
 | Rust | `cargo add t32` ([docs](https://docs.rs/t32)) |
@@ -49,7 +49,7 @@ T32 is at the stage where a careful reader changes the most. You are welcome to:
 | [`tools/oracle.py`](tools/oracle.py) | An independent check in exact rational arithmetic, written from the text |
 | [`rust/`](rust) | The reference implementation, the [`t32`](https://crates.io/crates/t32) crate: no required dependencies, optional serde, Rust 1.70+ |
 | [`web/`](web) | The site, and a single-file TypeScript implementation, [`t32.ts`](web/src/lib/t32.ts) |
-| [`ietf/`](ietf) | The specification as an Internet-Draft, for review |
+| [`ietf/`](ietf) | The specification as an Internet-Draft, for review ([PDF](https://oddurs.github.io/t32/draft-sigurdsson-t32-00.pdf)) |
 
 ## Development
 

@@ -30,7 +30,7 @@ You do not need permission to contribute, and no contribution is too small. A se
 
 ## Setting up
 
-You need Git, the [GitHub CLI](https://cli.github.com/), [rustup](https://rustup.rs/), Node and Python 3. The Rust and Node versions are pinned in `rust-toolchain.toml` and `.node-version`. Once, after cloning:
+You need Git, the [GitHub CLI](https://cli.github.com/), [rustup](https://rustup.rs/), Node, Python 3 and [tectonic](https://tectonic-typesetting.github.io) (for the Internet-Draft PDF). The Rust and Node versions are pinned in `rust-toolchain.toml` and `.node-version`. Once, after cloning:
 
 ```sh
 scripts/setup    # wires the git hooks, installs the site's packages, checks the tools

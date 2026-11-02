@@ -7,6 +7,11 @@ name: CI
 on:
   pull_request:
   workflow_call:
+    inputs:
+      upload-pages:
+        description: Upload the checked site build for pages.yml to deploy
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -31,7 +36,30 @@ jobs:
           node-version-file: .node-version
           cache: npm
           cache-dependency-path: web/package-lock.json
+      - name: Install tectonic (pinned, checksum verified)
+        env:
+          VERSION: 0.17.0
+          SHA256: 8533d07f9ccbd7a65824b9e0459041bca34af1eb33daba48f59215593753a3b7
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/tectonic.tar.gz" \
+            "https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic%40${VERSION}/tectonic-${VERSION}-x86_64-unknown-linux-musl.tar.gz"
+          echo "${SHA256}  $RUNNER_TEMP/tectonic.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/tectonic.tar.gz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      # tectonic fetches the TeX packages the draft uses; keep them between runs.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/Tectonic
+          key: tectonic-0.17.0-${{ hashFiles('ietf/*.tex') }}
+          restore-keys: tectonic-0.17.0-
+      # Built with the production base path, so the site checked here is the one deployed.
       - run: scripts/task check
+        env:
+          BASE_PATH: /${{ github.event.repository.name }}
+      - if: inputs.upload-pages
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: web/build
 
   msrv:
     runs-on: ubuntu-latest

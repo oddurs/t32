@@ -2,7 +2,7 @@
 	import '../app.css';
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
-	import { DRAFT } from '$lib/site';
+	import { DRAFT, DRAFT_PDF } from '$lib/site';
 
 	let { children } = $props();
 
@@ -44,6 +44,7 @@
 		<div>
 			<p class="label">T32</p>
 			<p>A compact universal timestamp. Draft {DRAFT}, published for public review.</p>
+			<p><a href={resolve('spec/')}>Specification</a> · <a href="{resolve('/')}{DRAFT_PDF}" type="application/pdf">PDF</a></p>
 		</div>
 		<div>
 			<p class="label">Editor</p>

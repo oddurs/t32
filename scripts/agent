@@ -43,7 +43,7 @@ cmd_doctor() {
 	}
 	ok() { printf '  ✓ %s\n' "$1"; }
 	say "tools"
-	for tool in git gh cargo node npm python3; do
+	for tool in git gh cargo node npm python3 tectonic; do
 		if command -v "$tool" >/dev/null 2>&1; then ok "$tool"; else problem "$tool is not installed"; fi
 	done
 	say "GitHub"

@@ -2,14 +2,14 @@
 
 `draft-sigurdsson-t32-00.tex` is the T32 specification laid out as an IETF Internet-Draft, following the structure of RFC 9562. Its requirements are those of draft 0.3 of [SPEC.md](../SPEC.md) (tag `spec-draft-0.3`), restated in full; a difference between the two is a defect in one of them. The motivation, terminology, figures and worked example are informative additions for IETF readers. Unlike SPEC.md, it makes only its own vector tables normative, because an Internet-Draft carries its normative content itself.
 
-Build the PDF with any TeX Live installation. Run it three times: the second pass places the table of contents, the third corrects its page numbers.
+The PDF is built with every deploy and published at <https://oddurs.github.io/t32/draft-sigurdsson-t32-00.pdf>, linked from the site's Specification page. `scripts/task build` builds it with [tectonic](https://tectonic-typesetting.github.io) into `web/static/`.
+
+To build it with TeX Live instead, run `pdflatex` three times: the second pass places the table of contents, the third corrects its page numbers.
 
 ```sh
 cd ietf
 for pass in 1 2 3; do pdflatex draft-sigurdsson-t32-00.tex; done
 ```
-
-Or run `tectonic draft-sigurdsson-t32-00.tex`, which fetches missing packages and repeats passes itself.
 
 ## Submitting
 

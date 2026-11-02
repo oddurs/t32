@@ -18,3 +18,4 @@ __pycache__/
 /ietf/*.out
 /ietf/*.toc
 /ietf/*.pdf
+/web/static/draft-sigurdsson-t32-00.pdf
