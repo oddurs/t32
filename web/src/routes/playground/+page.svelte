@@ -5,7 +5,6 @@
 	import { cubicOut } from 'svelte/easing';
 	import { reducedMotion, stagger } from '$lib/motion.svelte';
 	import { DRAFT } from '$lib/site';
-	import { exponents } from '$lib/exponents';
 	import { onMount } from 'svelte';
 	import { replaceState } from '$app/navigation';
 	import {
@@ -13,6 +12,8 @@
 		durationToNs, unitSeconds, maxLengthFor, type Stamp
 	} from '$lib/t32';
 	import { readInput, errorText, describe, encode, humanSpan, secondsString, type Input } from '$lib/describe';
+
+	let { data } = $props();
 
 	const MS_LEN = maxLengthFor(1e-3); // Date.now() resolves 1 ms: at most 10 characters
 
@@ -540,8 +541,7 @@
 						{/each}
 					</div>
 					<p class="small muted">
-						Each character is 32 times finer than the one before it, so a shorter stamp names a longer span.
-						Choose a character above to end the stamp there, or
+						Choose or drag across the characters above to end the stamp there, or
 						<button class="link" onclick={playing ? stop : play}>{playing ? 'stop' : 'play it one character at a time'}</button>.
 					</p>
 				</div>
@@ -574,7 +574,7 @@
 						<tr><th>Unix time at start</th><td class="data">{d.unixStart}</td></tr>
 						<tr><th>TAI − UTC at start</th><td class="data">{d.taiMinusUtc}</td></tr>
 						<tr class="group"><th>Display form</th><td class="data">{d.display}</td></tr>
-						<tr><th>Length · unit</th><td>{d.stamp.len} characters · {@html exponents(d.unitExact)} ({d.unitHuman})</td></tr>
+						<tr><th>Length · unit</th><td>{d.stamp.len} characters · {@html data.units[d.stamp.len - 1]} ({d.unitHuman})</td></tr>
 						<tr><th>Value V</th><td class="data">{d.valueDec} = {d.valueHex}</td></tr>
 					</tbody>
 				</table>

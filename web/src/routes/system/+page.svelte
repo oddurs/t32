@@ -228,7 +228,7 @@
 		<h3>Scale</h3>
 
 		<p>
-			Each step is 2<sup>1/5</sup> times the size of the one below it, so the size doubles every five
+			Each step is {@html data.math.step} times the size of the one below it, so the size doubles every five
 			steps. T32 has the same ratio: five bits make one character. Step 0 is 16px and step 5 is 32px.
 		</p>
 

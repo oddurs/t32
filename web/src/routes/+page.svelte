@@ -6,6 +6,8 @@
 	import ZoomFigure from '$lib/components/ZoomFigure.svelte';
 	import { parse, parseUtc, fromFx, format } from '$lib/t32';
 
+	let { data } = $props();
+
 	// The worked example, computed by the implementation so the numbers cannot drift.
 	const BIAS = 2n ** 39n;
 	const example = fromFx(parseUtc('2026-10-31T03:13:00Z'), 8);
@@ -62,7 +64,7 @@
 				so every second is the same length.
 			</li>
 			<li>
-				<strong>Offset.</strong> Add 2<sup>39</sup> seconds, about 17,400 years, so that earlier dates are
+				<strong>Offset.</strong> Add {@html data.math.bias} seconds, about 17,400 years, so that earlier dates are
 				positive too and still sort in order.
 			</li>
 			<li>
@@ -77,7 +79,7 @@
 				<tbody>
 					<tr><th>UTC</th><td class="data">2026-10-31 03:13:00</td></tr>
 					<tr><th>TAI seconds since 2000</th><td class="data">{worked.tai}</td></tr>
-					<tr><th>Plus 2<sup>39</sup></th><td class="data">{worked.biased}</td></tr>
+					<tr><th>Plus {@html data.math.bias}</th><td class="data">{worked.biased}</td></tr>
 					<tr><th>In base32</th><td class="data"><strong>{worked.stamp}</strong></td></tr>
 				</tbody>
 			</table>

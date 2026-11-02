@@ -1,5 +1,6 @@
 import css from '../../app.css?raw';
 import { readTokens, value, contrast, TEXT_COLOURS } from '$lib/tokens';
+import { tex } from '$lib/server/math';
 
 // Everything the page states about a token is read from the stylesheet when the site is built.
 export function load() {
@@ -35,6 +36,7 @@ export function load() {
 		frame: pick(/^--(measure|page|rail|gutter|section|radius)$/),
 		weights: { light: pick(/^--w-/), dark: pick(/^--w-/).map((t) => ({ ...t, value: value(dark, t.name) })) },
 		leading: pick(/^--lh-/),
-		tracking: pick(/^--tr-/)
+		tracking: pick(/^--tr-/),
+		math: { step: tex('2^{1/5}') }
 	};
 }
