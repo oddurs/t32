@@ -13,7 +13,7 @@ readme = "README.md"
 keywords = ["time", "timestamp", "tai", "utc", "base32"]
 categories = ["date-and-time", "encoding"]
 # tests/conformance.rs reads ../vectors, outside the package, so it stays in the repository.
-include = ["src/**/*.rs", "tests/spec_vectors.rs", "tests/site_docs.rs", "examples/**/*.rs", "README.md", "LICENSE-MIT", "LICENSE-APACHE"]
+include = ["src/**/*.rs", "tests/spec_vectors.rs", "examples/**/*.rs", "README.md", "LICENSE-MIT", "LICENSE-APACHE"]
 
 [features]
 ## Serialize and deserialize every type with serde (see the crate docs, "Serde").

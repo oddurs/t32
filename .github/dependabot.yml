@@ -1,0 +1,27 @@
+# Weekly updates, minor and patch versions grouped into one pull request per
+# ecosystem. Majors arrive one at a time, so each can be read on its own.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        update-types: [minor, patch]
+
+  - package-ecosystem: cargo
+    directory: /rust
+    schedule:
+      interval: weekly
+    groups:
+      cargo:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /web
+    schedule:
+      interval: weekly
+    groups:
+      npm:
+        update-types: [minor, patch]

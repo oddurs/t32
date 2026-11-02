@@ -1,8 +1,16 @@
 /rust/target
 /rust/Cargo.lock
-.DS_Store
 __pycache__/
 *.pyc
+
+# Worktrees belong beside the checkout (../.worktrees/), never inside it.
+.worktrees/
+
+# OS and editor files
+.DS_Store
+.idea/
+.vscode/
+*.swp
 
 # LaTeX build output
 /ietf/*.aux

@@ -1,0 +1,82 @@
+#!/bin/sh
+# The one interface CI, the git hooks and scripts/agent use to reach the
+# toolchains: Rust (rust/), Node (web/) and Python (tools/oracle.py).
+#
+#   scripts/task fmt        format in place
+#   scripts/task fmt:check  verify formatting
+#   scripts/task lint       lint, warnings are errors
+#   scripts/task test       every test suite, and the vectors are current
+#   scripts/task build      docs, the crate package and the site
+#   scripts/task check      all of the above, as CI runs it
+set -eu
+
+cd "$(dirname "$0")/.."
+
+in_rust() { (cd rust && "$@"); }
+in_web() { (cd web && "$@"); }
+
+# The web targets need node_modules; install them once, exactly as locked.
+web_deps() {
+	[ -d web/node_modules ] || in_web npm ci --no-audit --no-fund --silent
+}
+
+# Print a command's output only when it fails, so passing steps stay quiet.
+quiet() {
+	out=$("$@" 2>&1) || {
+		printf '%s\n' "$out" >&2
+		return 1
+	}
+}
+
+step() { printf '==> %s\n' "$*"; }
+
+case "${1:-}" in
+fmt)
+	step "cargo fmt"
+	in_rust cargo fmt
+	# The web code has no formatter; svelte-check and the build gate it.
+	;;
+fmt:check)
+	step "cargo fmt --check"
+	in_rust cargo fmt --check
+	;;
+lint)
+	step "cargo clippy (warnings denied)"
+	in_rust cargo clippy --quiet --all-targets --all-features -- -D warnings
+	step "svelte-check"
+	web_deps
+	quiet in_web npm run check
+	;;
+test)
+	step "cargo test, without and with every feature"
+	in_rust cargo test --quiet
+	in_rust cargo test --quiet --all-features
+	step "the example prints the spec's vectors"
+	quiet in_rust cargo run --quiet --example vectors
+	step "the oracle regenerates vectors/t32-vectors.json unchanged"
+	quiet python3 tools/oracle.py --check vectors/t32-vectors.json
+	step "npm test"
+	web_deps
+	in_web npm test --silent
+	;;
+build)
+	step "cargo doc (warnings denied)"
+	RUSTDOCFLAGS="-D warnings" in_rust cargo doc --quiet --no-deps --all-features
+	step "cargo package"
+	# --allow-dirty so a local run can check uncommitted work; CI's tree is clean.
+	quiet in_rust cargo package --allow-dirty
+	step "site build"
+	web_deps
+	quiet in_web npm run build
+	;;
+check)
+	"$0" fmt:check
+	"$0" lint
+	"$0" test
+	"$0" build
+	;;
+*)
+	echo "usage: scripts/task <fmt|fmt:check|lint|test|build|check>" >&2
+	exit 2
+	;;
+esac

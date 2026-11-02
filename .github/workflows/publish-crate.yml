@@ -1,6 +1,7 @@
 name: Publish crate
 
-# Publishes the t32 crate to crates.io, then tags the commit t32-v<version>.
+# Publishes the t32 crate to crates.io, tags the commit t32-v<version>, and
+# makes a GitHub release whose notes are that version's CHANGELOG.md section.
 # Run it from the Actions tab (or the API) on main; from any other branch
 # every job is skipped. It runs the full CI on the commit first, so nothing
 # untested is published. It needs the repository secret
@@ -53,13 +54,24 @@ jobs:
             exit 1
           fi
 
+      # Checked before publishing, which cannot be undone; the release job needs it.
+      - name: Refuse to publish without release notes
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        working-directory: .
+        run: |
+          grep -q "^## \\[$VERSION\\]" CHANGELOG.md || {
+            echo "CHANGELOG.md has no '## [$VERSION]' section; add the release notes first." >&2
+            exit 1
+          }
+
       - name: Publish to crates.io
         run: cargo publish
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
   # The only job that can write to the repository, and it runs no build.
-  tag:
+  release:
     needs: publish
     runs-on: ubuntu-latest
     permissions:
@@ -73,3 +85,12 @@ jobs:
         run: |
           git tag "$TAG"
           git push origin "$TAG"
+
+      - name: Release, with the CHANGELOG section as notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.publish.outputs.version }}
+        run: |
+          awk -v v="$VERSION" '$0 ~ "^## \\[" v "\\]" {on = 1; next} on && (/^## \[/ || /^\[[^]]*\]: /) {exit} on' CHANGELOG.md > notes.md
+          test -s notes.md || { echo "CHANGELOG.md has no section for $VERSION" >&2; exit 1; }
+          gh release create "t32-v$VERSION" --title "t32 $VERSION" --notes-file notes.md --verify-tag

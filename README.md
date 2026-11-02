@@ -12,9 +12,10 @@ G0S7            the 12-day span that contains it
 - **Text order is time order.** Byte-wise sorting is chronological, and a prefix is a range query.
 - **Uniform seconds.** TAI has no leap seconds, so from 1961 on, subtracting two stamps gives elapsed time.
 
+[![CI](https://github.com/oddurs/t32/actions/workflows/pages.yml/badge.svg)](https://github.com/oddurs/t32/actions/workflows/pages.yml)
 [![crates.io](https://img.shields.io/crates/v/t32.svg)](https://crates.io/crates/t32)
 [![docs.rs](https://img.shields.io/docsrs/t32)](https://docs.rs/t32)
-[![CI](https://github.com/oddurs/t32/actions/workflows/pages.yml/badge.svg)](https://github.com/oddurs/t32/actions/workflows/pages.yml)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
 | | |
 | --- | --- |
@@ -48,14 +49,31 @@ T32 is at the stage where a careful reader changes the most. You are welcome to:
 | [`tools/oracle.py`](tools/oracle.py) | An independent check in exact rational arithmetic, written from the text |
 | [`rust/`](rust) | The reference implementation, the [`t32`](https://crates.io/crates/t32) crate: no required dependencies, optional serde, Rust 1.70+ |
 | [`web/`](web) | The site, and a single-file TypeScript implementation, [`t32.ts`](web/src/lib/t32.ts) |
+| [`ietf/`](ietf) | The specification as an Internet-Draft, for review |
+
+## Development
+
+After cloning, run `scripts/setup` once: it wires the git hooks, installs the site's packages and checks your tools. The Rust and Node versions are pinned in `rust-toolchain.toml` and `.node-version`.
 
 ```sh
-python3 tools/oracle.py --check vectors/t32-vectors.json   # the vectors are current
-cd rust && cargo test --all-features                        # the reference implementation
-cd rust && cargo run --example t32 -- G0S7                  # a stamp's interval
-cd web && npm ci && npm test                                # the TypeScript implementation
-cd web && npm run dev                                       # the site, at localhost:5173
+scripts/task check                              # every check CI runs
+cd rust && cargo run --example t32 -- G0S7      # a stamp's interval
+cd web && npm run dev                           # the site, at localhost:5173
 ```
+
+Changes go through [`scripts/agent`](scripts/agent): each one in its own worktree and branch, landing as a pull request.
+
+| Command | What it does |
+| --- | --- |
+| `scripts/agent doctor` | Checks the tools, sign-in, hooks and working tree |
+| `scripts/agent start <type>/<slug>` | Creates the branch and its worktree from `main` |
+| `scripts/agent commit "<message>"` | Commits, with the Conventional Commits check |
+| `scripts/agent pr [--draft]` | Runs every check, pushes and opens the pull request |
+| `scripts/agent sync` | Rebases onto `main` |
+| `scripts/agent done` | After the merge, removes the worktree and the branch |
+| `scripts/agent list` | Lists worktrees and their pull requests |
+
+[CONTRIBUTING.md](CONTRIBUTING.md) has the details.
 
 ## Citing
 

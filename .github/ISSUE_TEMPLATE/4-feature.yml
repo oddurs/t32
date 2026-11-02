@@ -1,0 +1,31 @@
+name: Feature for the crate, the TypeScript port or the site
+description: Something the code could do that it does not. Changes to the specification itself start in Discussions.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A change to what T32 means, how stamps are encoded, or what conforms is a change to the specification: please start it under *Ideas* in [Discussions](https://github.com/oddurs/t32/discussions) instead.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Rust crate (t32)
+        - TypeScript implementation (t32.ts)
+        - Site or playground
+        - Oracle or vectors
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you are trying to do, and what gets in the way today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would help
+      description: The feature you have in mind, ideally with an example of how it would be called or shown.

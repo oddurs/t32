@@ -1,0 +1,156 @@
+#!/bin/sh
+# One unit of work, one worktree, one branch, one pull request.
+#
+#   scripts/agent doctor             check the tools, auth, hooks and tree
+#   scripts/agent start <type/slug>  new branch from the default, in its own worktree
+#   scripts/agent check              scripts/task check
+#   scripts/agent commit <message>   a Conventional Commit, hooks included
+#   scripts/agent pr [--draft]       check, push, open the pull request
+#   scripts/agent sync               rebase onto the default branch
+#   scripts/agent done               after the merge: remove worktree and branch
+#   scripts/agent list               worktrees, branches and pull request state
+#
+# Worktrees live in ../.worktrees/<repo>/<branch>/ beside the primary checkout.
+# The script never changes your directory; it prints where to go.
+set -eu
+
+say() { printf '==> %s\n' "$*"; }
+die() {
+	printf 'agent: %s\n' "$1" >&2
+	exit 1
+}
+
+top=$(git rev-parse --show-toplevel 2>/dev/null) || die "not inside a git repository"
+# The primary checkout is the one holding the shared .git directory.
+primary=$(cd "$(git rev-parse --git-common-dir)/.." && pwd)
+repo=$(basename "$primary")
+worktrees="$(dirname "$primary")/.worktrees/$repo"
+
+default_branch() {
+	b=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||')
+	[ -n "$b" ] || b=$(gh repo view --json defaultBranchRef --jq .defaultBranchRef.name 2>/dev/null)
+	[ -n "$b" ] || die "cannot tell the default branch; run: git remote set-head origin --auto"
+	printf '%s\n' "$b"
+}
+
+current_branch() { git -C "$top" symbolic-ref --quiet --short HEAD || die "HEAD is detached"; }
+
+cmd_doctor() {
+	problems=0
+	problem() {
+		printf '  ✗ %s\n' "$1"
+		problems=$((problems + 1))
+	}
+	ok() { printf '  ✓ %s\n' "$1"; }
+	say "tools"
+	for tool in git gh cargo node npm python3; do
+		if command -v "$tool" >/dev/null 2>&1; then ok "$tool"; else problem "$tool is not installed"; fi
+	done
+	say "GitHub"
+	if gh auth status >/dev/null 2>&1; then ok "gh is signed in"; else problem "gh is not signed in: gh auth login"; fi
+	say "hooks"
+	hooks=$(git config core.hooksPath) || hooks=
+	if [ "$hooks" = .githooks ]; then
+		ok "core.hooksPath is .githooks"
+	else
+		git config core.hooksPath .githooks && ok "set core.hooksPath to .githooks"
+	fi
+	say "working tree"
+	if [ -z "$(git -C "$top" status --porcelain)" ]; then ok "clean"; else problem "uncommitted changes in $top"; fi
+	if [ "$problems" -gt 0 ]; then die "$problems problem(s)"; fi
+	say "ready"
+}
+
+cmd_start() {
+	branch=${1:-}
+	printf '%s\n' "$branch" | grep -Eq '^(feat|fix|chore|docs|perf|refactor|test)/[a-z0-9][a-z0-9._-]*$' ||
+		die "name the branch <type>/<slug>, type one of feat fix chore docs perf refactor test: got '${branch}'"
+	path="$worktrees/$branch"
+	default=$(default_branch)
+	git show-ref --verify --quiet "refs/heads/$branch" && die "branch $branch already exists"
+	[ -e "$path" ] && die "$path already exists"
+	say "fetching origin"
+	git fetch --quiet origin
+	git show-ref --verify --quiet "refs/remotes/origin/$branch" && die "origin already has $branch"
+	say "creating $branch from origin/$default at $path"
+	# --no-track: the branch must not inherit the default branch as its upstream.
+	git worktree add --quiet --no-track -b "$branch" "$path" "origin/$default"
+	printf '\ncd %s\n' "$path"
+}
+
+cmd_check() { "$top/scripts/task" check; }
+
+cmd_commit() {
+	[ "$#" -gt 0 ] || die "usage: scripts/agent commit <message>"
+	msg=$(mktemp)
+	trap 'rm -f "$msg"' EXIT
+	printf '%s\n' "$*" >"$msg"
+	"$top/.githooks/commit-msg" "$msg"
+	say "committing"
+	git -C "$top" commit --quiet --file "$msg"
+	git -C "$top" log -1 --oneline
+}
+
+cmd_pr() {
+	draft=
+	[ "${1:-}" = --draft ] && draft=--draft
+	branch=$(current_branch)
+	default=$(default_branch)
+	[ "$branch" != "$default" ] || die "on $default; start a branch first: scripts/agent start <type/slug>"
+	[ -z "$(git -C "$top" status --porcelain)" ] || die "commit or stash your changes first"
+	cmd_check
+	say "pushing $branch"
+	git -C "$top" push --quiet -u origin "$branch"
+	# The body: the commits' explanations, then the template's remaining sections.
+	body=$(mktemp)
+	trap 'rm -f "$body"' EXIT
+	{
+		printf '## What and why\n\n'
+		git -C "$top" log --reverse --format='%b' "origin/$default..HEAD"
+		awk 'found { print } /^## What and why/ { found = 1; skip = 1; next }' \
+			"$top/.github/pull_request_template.md" | sed '1{/^$/d;}'
+	} | grep -Eiv 'co-authored-by:|generated (with|by)|noreply@anthropic\.com|🤖' >"$body"
+	title=$(git -C "$top" log --reverse --format=%s "origin/$default..HEAD" | head -n 1)
+	say "opening the pull request"
+	gh pr create $draft --base "$default" --head "$branch" --title "$title" --body-file "$body"
+}
+
+cmd_sync() {
+	default=$(default_branch)
+	say "rebasing $(current_branch) onto origin/$default"
+	git -C "$top" fetch --quiet origin
+	git -C "$top" rebase "origin/$default"
+}
+
+cmd_done() {
+	branch=$(current_branch)
+	default=$(default_branch)
+	[ "$branch" != "$default" ] || die "on $default; run this from the branch's worktree"
+	state=$(gh pr view "$branch" --json state --jq .state 2>/dev/null) || die "no pull request for $branch"
+	[ "$state" = MERGED ] || die "the pull request for $branch is $state, not merged"
+	say "removing the worktree $top"
+	git -C "$primary" worktree remove "$top"
+	say "deleting the branch $branch"
+	git -C "$primary" branch --quiet -D "$branch"
+	git -C "$primary" worktree prune
+	git -C "$primary" fetch --quiet --prune origin
+	printf '\ncd %s\n' "$primary"
+}
+
+cmd_list() {
+	git -C "$primary" worktree list --porcelain | awk '/^worktree /{p=$2} /^branch /{sub("refs/heads/","",$2); print p, $2}' |
+		while read -r path branch; do
+			pr=$(gh pr view "$branch" --json number,state --jq '"#\(.number) \(.state)"' 2>/dev/null || echo "no pull request")
+			printf '%-28s %-16s %s\n' "$branch" "$pr" "$path"
+		done
+}
+
+command=${1:-}
+[ "$#" -gt 0 ] && shift
+case $command in
+doctor | start | check | commit | pr | sync | done | list) "cmd_$command" "$@" ;;
+*)
+	sed -n '2,12s/^# \{0,1\}//p' "$0" >&2
+	exit 2
+	;;
+esac

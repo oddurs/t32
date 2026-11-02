@@ -1,0 +1,30 @@
+#!/bin/sh
+# Rejects a commit message that is not a Conventional Commit, or that names an
+# AI or assistant: the work is published under its author's name.
+#   commit-msg <file>   (git passes the message file; scripts/agent reuses this)
+set -eu
+
+msg_file=$1
+subject=$(sed -n '/^[^#]/{p;q;}' "$msg_file")
+
+# Commits git makes itself, and autosquash markers, pass through.
+case $subject in
+Merge\ * | Revert\ \"* | fixup!\ * | squash!\ * | amend!\ *) exit 0 ;;
+esac
+
+fail() {
+	printf 'commit-msg: %s\n' "$1" >&2
+	printf '  subject: %s\n' "$subject" >&2
+	exit 1
+}
+
+types='feat|fix|chore|docs|perf|refactor|test|build|ci|style|revert'
+printf '%s\n' "$subject" | grep -Eq "^($types)(\([a-z0-9._/-]+\))?!?: [^ ]" ||
+	fail "use type(scope): subject, with type one of ${types}"
+[ "${#subject}" -le 72 ] || fail "subject is ${#subject} characters; keep it to 72"
+case $subject in *.) fail "drop the trailing period" ;; esac
+
+if grep -v '^#' "$msg_file" | grep -Eiq \
+	'co-authored-by:.*(claude|anthropic|openai|chatgpt|copilot|gemini)|generated (with|by) .*(claude|chatgpt|copilot|gemini|(^|[^a-z])ai([^a-z]|$))|noreply@anthropic\.com|🤖'; then
+	fail "remove the AI or assistant attribution"
+fi
