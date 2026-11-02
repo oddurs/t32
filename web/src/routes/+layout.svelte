@@ -2,6 +2,7 @@
 	import '../app.css';
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
+	import Mark from '$lib/components/Mark.svelte';
 	import { DRAFT, DRAFT_PDF } from '$lib/site';
 
 	let { children } = $props();
@@ -23,7 +24,7 @@
 <header class="site">
 	<div class="bar">
 		<a class="brand" href={resolve('/')} aria-label="T32, overview">
-			<span class="mark">T32</span>
+			<Mark cap="0.9375rem" label={null} />
 			<span class="edition">Draft {DRAFT}</span>
 		</a>
 		<nav aria-label="Main">
@@ -63,7 +64,8 @@
 			<p>
 				MIT OR Apache-2.0<br />
 				<a href="https://crates.io/crates/t32">crates.io</a> ·
-				<a href="https://github.com/oddurs/t32">Source</a>
+				<a href="https://github.com/oddurs/t32">Source</a> ·
+				<a href={resolve('system/')}>Design</a>
 			</p>
 		</div>
 	</div>
@@ -85,9 +87,9 @@
 		border-bottom: 1px solid var(--rule);
 	}
 	.bar {
-		max-width: 72rem;
+		max-width: var(--page);
 		margin: 0 auto;
-		padding: var(--s4) var(--s5);
+		padding: var(--s4) var(--gutter);
 		display: flex;
 		flex-wrap: wrap;
 		align-items: baseline;
@@ -103,15 +105,10 @@
 		text-decoration: none;
 		color: var(--ink);
 	}
-	.mark {
-		font-weight: 760;
-		font-size: 1.1875rem;
-		letter-spacing: -0.02em;
-	}
 	.edition {
 		font-size: var(--label);
 		font-weight: var(--w-strong);
-		letter-spacing: 0.08em;
+		letter-spacing: var(--tr-label);
 		text-transform: uppercase;
 		color: var(--ink-3);
 	}
@@ -147,16 +144,16 @@
 		color: var(--ink-2);
 	}
 	.cols {
-		max-width: 72rem;
+		max-width: var(--page);
 		margin: 0 auto;
-		padding: var(--s6) var(--s5) var(--s7);
+		padding: var(--s6) var(--gutter) var(--s7);
 		display: grid;
 		grid-template-columns: 2fr 1fr 1fr 1fr;
 		gap: var(--s5) var(--s6);
 	}
 	.cols p {
 		margin: 0;
-		line-height: 1.5;
+		line-height: var(--lh-small);
 	}
 	.cols .label {
 		margin-bottom: var(--s2);

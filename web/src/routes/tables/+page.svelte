@@ -347,42 +347,4 @@
 </div>
 
 <style>
-	.toc .label {
-		margin: 0 0 var(--s3);
-	}
-	.toc ol {
-		list-style: none;
-		padding: 0;
-		margin: 0;
-		font-size: 0.875rem;
-		line-height: 1.35;
-	}
-	.toc li {
-		display: grid;
-		grid-template-columns: 1.75rem 1fr;
-		margin: 0 0 var(--s2);
-		padding: 0;
-	}
-	.no {
-		font-size: 0.8125rem;
-		font-weight: var(--w-medium);
-		font-variant-numeric: tabular-nums;
-		color: var(--ink-3);
-	}
-	.toc a {
-		color: var(--ink-2);
-		text-decoration: none;
-	}
-	.toc a:hover {
-		color: var(--accent);
-	}
-	@media (max-width: 960px) {
-		.toc ol {
-			columns: 2 14rem;
-			column-gap: var(--s6);
-		}
-		.toc li {
-			break-inside: avoid;
-		}
-	}
 </style>

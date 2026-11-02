@@ -5,10 +5,12 @@
 	number, so a new draft does not leave it out of date. After `npm ci` in web/
 	(for the font), render it with headless Chrome from the repository root:
 
-	  chrome --headless --hide-scrollbars --window-size=1200,630 \
-		--screenshot=web/static/og.png tools/og.html
-	  chrome --headless --hide-scrollbars --window-size=1280,640 \
-		--screenshot=social-preview.png tools/og.html
+	  chrome --headless --hide-scrollbars --blink-settings=preferredColorScheme=1 \
+		--window-size=1200,630 --screenshot=web/static/og.png tools/og.html
+	  chrome --headless --hide-scrollbars --blink-settings=preferredColorScheme=1 \
+		--window-size=1280,640 --screenshot=social-preview.png tools/og.html
+
+	The colour-scheme setting keeps the mark (web/static/mark.svg) in its light colours.
 
 	The social preview is uploaded by hand: Settings > General > Social preview.
 -->
@@ -38,6 +40,14 @@
 	}
 	main {
 		width: 1056px;
+	}
+	.head {
+		display: flex;
+		align-items: baseline;
+		gap: 20px;
+	}
+	.head img {
+		height: 26px;
 	}
 	.label {
 		font-size: 19px;
@@ -108,7 +118,7 @@
 </head>
 <body>
 <main>
-	<div class="label">T32 · Draft for public review</div>
+	<div class="head"><img src="../web/static/mark.svg" alt="T32"><span class="label">Draft for public review</span></div>
 	<h1>A compact universal timestamp</h1>
 	<ol>
 		<li><span class="ch">G</span><span class="span">1,089 y</span></li>

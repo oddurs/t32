@@ -1,9 +1,13 @@
 /*
- * T32 — a quiet documentary style.
+ * T32: a quiet documentary style. The reference for everything below is /system/.
+ *
  * One family, Public Sans (a descendant of Franklin Gothic), in a few weights.
+ * Code, and only code, is set in Roboto Mono, matched to it in x-height.
  * Tabular figures wherever a stamp or a number sits in a column.
  * Hairline rules instead of boxes; one accent; a 4px spacing grid.
- * Code, and only code, is set in Roboto Mono, matched to Public Sans in x-height and cap height.
+ *
+ * The type scale is base 32 too: each step is 2^(1/5) larger, so five steps
+ * double the size, as five bits make one character. 16px is step 0.
  */
 
 @import '@fontsource-variable/public-sans/wght.css';
@@ -11,11 +15,11 @@
 @import '@fontsource-variable/roboto-mono/wght.css';
 
 :root {
-	/* Colour */
+	/* Colour. Every text colour holds 4.5:1 on paper and on wash; /system/ measures it. */
 	--paper: #fbfaf6;
 	--ink: #1b1b19;
 	--ink-2: #55534d;
-	--ink-3: #85827a;
+	--ink-3: #6c6962;
 	--rule: #e1ddd3;
 	--rule-strong: #bdb7aa;
 	--wash: #f3f1ea;
@@ -24,16 +28,46 @@
 	--mark: #f4ecd0;
 	--err: #a3261d;
 
-	/* Type */
+	/* Families */
 	--sans: 'Public Sans Variable', 'Public Sans', 'Libre Franklin', 'Franklin Gothic Book', 'Helvetica Neue', Arial, sans-serif;
 	--code: 'Roboto Mono Variable', 'Roboto Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-	--text: 1rem; /* 16px */
-	--small: 0.875rem; /* 14px */
-	--label: 0.6875rem; /* 11px */
-	--h1: 2.5rem;
-	--h2: 1.3125rem;
-	--h3: 1.0625rem;
-	--measure: 39rem;
+
+	/* Scale: 16px × 2^(n/5). The names are the steps; m is minus. */
+	--fs-m2: 0.758rem; /* 12.1 */
+	--fs-m1: 0.871rem; /* 13.9 */
+	--fs-0: 1rem; /* 16 */
+	--fs-1: 1.149rem; /* 18.4 */
+	--fs-2: 1.32rem; /* 21.1 */
+	--fs-3: 1.516rem; /* 24.3 */
+	--fs-4: 1.741rem; /* 27.9 */
+	--fs-5: 2rem; /* 32 */
+	--fs-6: 2.297rem; /* 36.8 */
+	--fs-7: 2.639rem; /* 42.2 */
+	--fs-8: 3.031rem; /* 48.5 */
+
+	/* Roles, each a step of the scale. h1 slides from step 5 to step 7 with the viewport. */
+	--label: var(--fs-m2);
+	--small: var(--fs-m1);
+	--text: var(--fs-0);
+	--lede: var(--fs-1);
+	--h3: var(--fs-1);
+	--h2: var(--fs-3);
+	--h1: clamp(var(--fs-5), 1.38rem + 2.2vw, var(--fs-7));
+	--display: var(--fs-8);
+
+	/* Leading tightens as size grows; tracking closes up. Labels, set in capitals, open out. */
+	--lh-display: 1.05;
+	--lh-head: 1.2;
+	--lh-lede: 1.5;
+	--lh-text: 1.625;
+	--lh-small: 1.5;
+	--lh-tight: 1.35;
+	--tr-display: -0.028em;
+	--tr-h2: -0.018em;
+	--tr-h3: -0.01em;
+	--tr-lede: -0.006em;
+	--tr-label: 0.07em;
+	--tr-data: 0.015em;
 
 	/* Weights: text, medium, strong, heading, display */
 	--w-text: 400;
@@ -42,15 +76,24 @@
 	--w-head: 660;
 	--w-display: 700;
 
-	/* Space: 4px grid */
-	--s1: 0.25rem;
-	--s2: 0.5rem;
-	--s3: 0.75rem;
-	--s4: 1rem;
-	--s5: 1.5rem;
-	--s6: 2rem;
-	--s7: 3rem;
-	--s8: 4rem;
+	/* Space: a 4px grid, in steps that roughly double */
+	--s1: 0.25rem; /* 4 */
+	--s2: 0.5rem; /* 8 */
+	--s3: 0.75rem; /* 12 */
+	--s4: 1rem; /* 16 */
+	--s5: 1.5rem; /* 24 */
+	--s6: 2rem; /* 32 */
+	--s7: 3rem; /* 48 */
+	--s8: 4rem; /* 64 */
+	--s9: 6rem; /* 96 */
+
+	/* Measure and frame */
+	--measure: 39rem; /* about 70 characters of text */
+	--page: 72rem;
+	--rail: 12.5rem;
+	--gutter: var(--s5);
+	--section: var(--s8);
+	--radius: 2px;
 
 	color-scheme: light dark;
 }
@@ -60,7 +103,7 @@
 		--paper: #141413;
 		--ink: #e8e5de;
 		--ink-2: #aaa69c;
-		--ink-3: #7c786f;
+		--ink-3: #8e8a81;
 		--rule: #2e2c28;
 		--rule-strong: #4a4740;
 		--wash: #1c1b19;
@@ -73,6 +116,14 @@
 		--w-strong: 600;
 		--w-head: 630;
 		--w-display: 670;
+	}
+}
+
+@media (max-width: 600px) {
+	:root {
+		--h2: var(--fs-2);
+		--gutter: var(--s4);
+		--section: var(--s7);
 	}
 }
 
@@ -92,7 +143,7 @@ body {
 	font-family: var(--sans);
 	font-size: var(--text);
 	font-weight: var(--w-text);
-	line-height: 1.625;
+	line-height: var(--lh-text);
 	font-kerning: normal;
 	font-variant-numeric: lining-nums proportional-nums;
 	-webkit-font-smoothing: antialiased;
@@ -105,14 +156,14 @@ body {
 /* ------------------------------------------------------------------ layout */
 
 .page {
-	max-width: 72rem;
+	max-width: var(--page);
 	margin: 0 auto;
-	padding: var(--s7) var(--s5) var(--s8);
+	padding: var(--s7) var(--gutter) var(--s8);
 }
 
 .with-rail {
 	display: grid;
-	grid-template-columns: 12.5rem minmax(0, 1fr);
+	grid-template-columns: var(--rail) minmax(0, 1fr);
 	grid-template-rows: auto 1fr;
 	gap: 0 var(--s7);
 }
@@ -183,6 +234,46 @@ body {
 	}
 }
 
+/* A contents list in the rail: numbers in a hanging column, links in quiet ink. */
+.toc .label {
+	margin: 0 0 var(--s3);
+}
+.toc ol {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	font-size: var(--small);
+	line-height: var(--lh-tight);
+}
+.toc li {
+	display: grid;
+	grid-template-columns: 1.75rem 1fr;
+	margin: 0 0 var(--s2);
+	padding: 0;
+}
+.toc .no {
+	font-size: var(--label);
+	font-weight: var(--w-medium);
+	font-variant-numeric: tabular-nums;
+	color: var(--ink-3);
+}
+.toc a {
+	color: var(--ink-2);
+	text-decoration: none;
+}
+.toc a:hover {
+	color: var(--accent);
+}
+@media (max-width: 960px) {
+	.toc ol {
+		columns: 2 14rem;
+		column-gap: var(--s6);
+	}
+	.toc li {
+		break-inside: avoid;
+	}
+}
+
 /* ------------------------------------------------------------------ type */
 
 h1,
@@ -190,29 +281,31 @@ h2,
 h3,
 h4 {
 	font-weight: var(--w-head);
-	line-height: 1.25;
-	letter-spacing: -0.008em;
+	line-height: var(--lh-head);
 	font-variant-numeric: lining-nums tabular-nums;
+	text-wrap: balance;
 }
 
 h1 {
 	font-size: var(--h1);
 	font-weight: var(--w-display);
-	line-height: 1.08;
-	letter-spacing: -0.026em;
+	line-height: var(--lh-display);
+	letter-spacing: var(--tr-display);
 	margin: 0 0 var(--s4);
 }
 
+/* A section opens with a rule; the space above it is the largest on the page. */
 h2 {
 	font-size: var(--h2);
-	letter-spacing: -0.014em;
-	margin: var(--s7) 0 var(--s4);
+	letter-spacing: var(--tr-h2);
+	margin: var(--section) 0 var(--s4);
 	padding-top: var(--s4);
 	border-top: 1px solid var(--rule);
 }
 
 h3 {
 	font-size: var(--h3);
+	letter-spacing: var(--tr-h3);
 	margin: var(--s6) 0 var(--s2);
 }
 
@@ -270,7 +363,7 @@ figure:has(> .caption) {
 	margin-top: var(--s3);
 	max-width: var(--measure);
 	font-size: var(--small);
-	line-height: 1.5;
+	line-height: var(--lh-small);
 	color: var(--ink-2);
 }
 
@@ -338,18 +431,19 @@ a:hover {
 th {
 	font-size: var(--label);
 	font-weight: var(--w-strong);
-	letter-spacing: 0.08em;
-	line-height: 1.4;
+	letter-spacing: var(--tr-label);
+	line-height: var(--lh-tight);
 	text-transform: uppercase;
 	color: var(--ink-3);
 }
 
 .lede {
-	font-size: 1.1875rem;
-	line-height: 1.5;
-	letter-spacing: -0.006em;
+	font-size: var(--lede);
+	line-height: var(--lh-lede);
+	letter-spacing: var(--tr-lede);
 	color: var(--ink-2);
-	max-width: 37rem;
+	max-width: 36rem;
+	text-wrap: pretty;
 }
 
 .muted {
@@ -357,6 +451,7 @@ th {
 }
 .small {
 	font-size: var(--small);
+	line-height: var(--lh-small);
 }
 .error {
 	color: var(--err);
@@ -367,7 +462,7 @@ th {
 /* Stamps and values outside code stay in the text face, with tabular figures. */
 .data {
 	font-variant-numeric: tabular-nums lining-nums;
-	letter-spacing: 0.015em;
+	letter-spacing: var(--tr-data);
 }
 
 /* Code is set in the companion mono, a step smaller so it sits level with the text. */
@@ -379,17 +474,18 @@ pre {
 	letter-spacing: -0.01em;
 }
 
+/* One step down the scale from the text around it. */
 code {
-	font-size: 0.875em;
+	font-size: 0.871em;
 	padding: 0.1em 0.32em;
 	background: var(--wash);
-	border-radius: 2px;
+	border-radius: var(--radius);
 	white-space: break-spaces;
 }
 
 pre {
-	font-size: 0.8125rem;
-	line-height: 1.65;
+	font-size: var(--small);
+	line-height: 1.6;
 	padding: var(--s4) var(--s5);
 	overflow-x: auto;
 	background: var(--wash);
@@ -496,7 +592,7 @@ tr.hl th {
 .meta dt {
 	font-size: var(--label);
 	font-weight: var(--w-strong);
-	letter-spacing: 0.08em;
+	letter-spacing: var(--tr-label);
 	text-transform: uppercase;
 	color: var(--ink-3);
 	padding-top: 0.22em;
@@ -537,11 +633,11 @@ input[type='number'],
 select {
 	font-size: var(--small);
 	font-variant-numeric: tabular-nums lining-nums;
-	letter-spacing: 0.015em;
+	letter-spacing: var(--tr-data);
 	padding: var(--s2) var(--s3);
 	background: var(--paper);
 	border: 1px solid var(--rule-strong);
-	border-radius: 2px;
+	border-radius: var(--radius);
 	line-height: 1.4;
 }
 input[type='text']:focus,
@@ -566,7 +662,7 @@ button {
 	color: var(--ink-2);
 	background: var(--paper);
 	border: 1px solid var(--rule-strong);
-	border-radius: 2px;
+	border-radius: var(--radius);
 }
 .btn:hover:not(:disabled) {
 	color: var(--ink);
@@ -600,16 +696,9 @@ button.link:hover {
 }
 
 @media (max-width: 600px) {
-	:root {
-		--small: 0.8125rem;
-		--h1: 2rem;
-		--h2: 1.1875rem;
-	}
 	.page {
-		padding: var(--s5) var(--s4) var(--s7);
-	}
-	.lede {
-		font-size: 1.0625rem;
+		padding-top: var(--s5);
+		padding-bottom: var(--s7);
 	}
 	th,
 	td {

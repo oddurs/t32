@@ -611,7 +611,7 @@
 		min-width: 0;
 	}
 	.biginput {
-		font-size: 1.125rem;
+		font-size: var(--fs-1);
 		padding: var(--s2) var(--s3);
 	}
 	.lenrow {
@@ -637,8 +637,8 @@
 	}
 	.hint {
 		color: var(--ink-2);
-		font-size: 0.875rem;
-		line-height: 1.5;
+		font-size: var(--small);
+		line-height: var(--lh-small);
 	}
 	.result {
 		margin: var(--s4) 0 var(--s4);
@@ -693,8 +693,8 @@
 
 	/* Simple view */
 	.meaning {
-		font-size: 1.125rem;
-		line-height: 1.5;
+		font-size: var(--fs-1);
+		line-height: var(--lh-small);
 		margin: var(--s3) 0 var(--s1);
 		max-width: var(--measure);
 	}
@@ -788,8 +788,8 @@
 	/* The rail's list of accepted forms. */
 	.forms {
 		margin: 0 0 var(--s4);
-		font-size: 0.875rem;
-		line-height: 1.45;
+		font-size: var(--small);
+		line-height: var(--lh-small);
 	}
 	.forms dt {
 		font-weight: var(--w-strong);
@@ -854,7 +854,7 @@
 		background: var(--ink-3);
 	}
 	.stamp {
-		font-size: clamp(2rem, 6vw, 2.875rem);
+		font-size: clamp(var(--fs-5), 6vw, var(--fs-7));
 		font-weight: var(--w-head);
 		font-variant-numeric: tabular-nums lining-nums;
 		letter-spacing: 0.02em;

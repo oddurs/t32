@@ -12,10 +12,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - GitHub releases, made by the publish workflow from this file.
 - `SUPPORT.md`, which says where each kind of question goes.
 - The specification as an Internet-Draft PDF, built by `scripts/task build` and published with the site, linked from the Specification page, the overview, every page's footer and the README.
+- A design-system page at `/system/`, linked from the footer: principles, the mark, colour, type, space, frame and parts, with every value read from the stylesheet when the site is built.
+- A drawn mark, made from Public Sans outlines by `tools/mark.py`, in the header, the favicon (which now follows the colour scheme) and the link-preview image.
 
 ### Changed
 
 - CI runs `scripts/task check`, and branch protection requires one aggregate status, `required`.
+- The site's type follows one scale, 16px × 2^(n/5), so five steps double the size; headings, ledes, labels and figures each take a step of it. Muted text is darker, to hold 4.5:1 contrast, and tests now fail the build if a text colour falls below that.
 
 ### Security
 

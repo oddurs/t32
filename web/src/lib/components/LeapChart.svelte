@@ -147,7 +147,7 @@
 	}
 	.tick,
 	.note {
-		font-size: 0.6875rem;
+		font-size: var(--label);
 		font-variant-numeric: tabular-nums;
 		fill: var(--ink-3);
 	}
@@ -185,7 +185,7 @@
 		background: var(--paper);
 		border: 1px solid var(--rule-strong);
 		font-size: var(--small);
-		line-height: 1.35;
+		line-height: var(--lh-tight);
 		white-space: nowrap;
 		pointer-events: none;
 	}
