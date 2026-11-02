@@ -427,7 +427,7 @@
 			</dl>
 			{/if}
 			<p class="hint">
-				In the box, ↑ and ↓ step to the next and previous stamp. Everything runs in your browser. The address keeps your input, so a link shows the same thing.
+				In the box, ↑ and ↓ move to the next and previous stamp. Everything runs in your browser. The page address includes what you typed, so you can share a link to it.
 				<button class="link" onclick={() => copy('link', location.href)}>{copied === 'link' ? 'Link copied' : 'Copy link'}</button>
 			</p>
 		</div>
@@ -478,7 +478,7 @@
 				{#if current.maxLen < 8}
 					<p class="muted small">
 						{#if current.kind === 'stamp'}
-							A short stamp names a long span. It can be made less precise, but not more: detail that was never recorded cannot be added.
+							A short stamp covers a long span. You can shorten it further, but you can't add precision it never had.
 						{:else}
 							This is given to {current.precision}, so the stamp is no more precise than that. {current.precision === 'the day' ? 'Add a time, such as 15:30,' : 'Add seconds'} for more.
 						{/if}
@@ -487,13 +487,13 @@
 			{:else if current.maxLen < MAX_LEN}
 				<p class="muted small">
 					{#if current.kind === 'stamp'}
-						This stamp has {current.maxLen} characters, and they say all it says.
+						This stamp has {current.maxLen} characters.
 					{:else if current.kind === 'now'}
-						Your clock resolves 1 ms, so {current.maxLen} characters say all it knows.
+						Your clock measures to the millisecond, which {current.maxLen} characters cover.
 					{:else}
-						This {current.unix ? 'Unix time' : 'date'} is written to {current.precision}, so {current.maxLen} characters say all it says.
+						This {current.unix ? 'Unix time' : 'date'} is written to {current.precision}, which {current.maxLen} characters cover.
 					{/if}
-					Past them, hatched, it is taken as exact: finer digits, no more information. An encoder would stop at {current.maxLen}.
+					The hatched characters after that treat the input as exact. They add digits but no real information, and an encoder would stop at {current.maxLen}.
 				</p>
 			{/if}
 			{#if current && alternative?.stamp}
@@ -542,7 +542,7 @@
 					<p class="small muted">
 						Each character is 32 times finer than the one before it, so a shorter stamp names a longer span.
 						Choose a character above to end the stamp there, or
-						<button class="link" onclick={playing ? stop : play}>{playing ? 'stop' : 'watch it built up, one character at a time'}</button>.
+						<button class="link" onclick={playing ? stop : play}>{playing ? 'stop' : 'play it one character at a time'}</button>.
 					</p>
 				</div>
 

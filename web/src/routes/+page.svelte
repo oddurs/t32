@@ -95,13 +95,13 @@
 
 		<dl class="pairs">
 			<dt>Length is resolution</dt>
-			<dd>Drop characters for a coarser span, add them for finer time. A stamp always names an interval, never a false instant.</dd>
+			<dd>Drop characters for a coarser span, add them for finer time. A stamp stands for a span of time: G0S7 is 12 days, and G0S7G6B1 is one whole second.</dd>
 			<dt>Text order is time order</dt>
-			<dd>Sorted byte by byte, stamps are in chronological order, so a prefix is a range query.</dd>
+			<dd>Sorting stamps as plain text puts them in time order, so every stamp that starts with a given prefix falls in one range.</dd>
 			<dt>Uniform seconds</dt>
 			<dd>T32 counts TAI, which has no leap seconds. From 1961 on, the difference of two stamps is the time elapsed between them.</dd>
 			<dt>Exact and stable</dt>
-			<dd>Conversion from UTC is exact at every step of the leap-second table, and a stamp, once written, keeps its meaning.</dd>
+			<dd>Converting from UTC uses the full leap-second table with no rounding, and a stamp written today will mean the same thing in the future.</dd>
 		</dl>
 
 		<h2>Compared</h2>
@@ -124,10 +124,10 @@
 		<h2>Status</h2>
 
 		<p>
-			T32 is a draft, published for public review. It is complete enough to implement and test against,
-			and it will not be frozen until it has been read widely, implemented independently and questioned
-			properly. Comments, implementations and objections are all welcome; the
-			<a href={resolve('participate/')}>participation page</a> says where they go and what they lead to.
+			T32 is a draft, published for public review. It is complete enough to implement and test against.
+			It won't be frozen until other people have read it, written their own implementations and reported
+			what's wrong with it. The <a href={resolve('participate/')}>participation page</a> explains how to
+			send comments and what happens to them.
 		</p>
 
 		<h2>Where to begin</h2>
