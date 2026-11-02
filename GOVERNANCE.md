@@ -7,7 +7,7 @@ T32 is an open specification. This document describes how it changes, who decide
 - **The specification is the product.** Code, the site and the vectors serve the text. Where they disagree, the text decides, and the disagreement is a defect to fix.
 - **Changes are made in the open.** Every change to normative text is proposed publicly, carries its reason, and is recorded in Appendix D of the specification.
 - **Rough consensus and running code.** Decisions follow the weight of argument, not the count of votes, and a proposal is stronger for an implementation and vectors that show it works.
-- **Stability is a feature.** A stamp, once written, means the same interval of time forever. Proposals that would change the meaning of existing stamps are out of scope after version 1.0.
+- **Stamps keep their meaning.** A stamp, once written, always refers to the same interval of time. Proposals that would change the meaning of existing stamps are out of scope after version 1.0.
 
 ## Roles
 
@@ -41,13 +41,13 @@ Version 1.0 will be published when all of the following hold:
 
 ## Toward a working group
 
-One editor is the right size for a draft. A standard that people depend on needs more than one person, and T32 is meant to outgrow its author.
+A single editor works for a draft, but a standard that people rely on shouldn't depend on one person. The plan is for T32 to be run by a group.
 
 When version 1.0 is published, or earlier if there is enough interest, a **T32 Working Group** will be formed by a short public charter covering its scope, membership, decision process and the transfer of the repository to a neutral organisation. Its first members will be drawn from active implementers and reviewers. The editor's role then becomes a role of the group, held by whoever the group chooses.
 
-Beyond that, if T32 sees real use in protocols, the group may take the specification to an established standards body, for example as an IETF Internet-Draft, and maintain it there. That step is the group's to take, not the editor's.
+Beyond that, if T32 sees real use in protocols, the group may take the specification to an established standards body, for example as an IETF Internet-Draft, and maintain it there. The group would make that decision.
 
-If you would like to take part in this, say so in [Discussions](https://github.com/oddurs/t32/discussions). Interest expressed now shapes the charter later.
+If you'd like to take part, say so in [Discussions](https://github.com/oddurs/t32/discussions). Knowing who is interested helps decide how the group is set up.
 
 ## Conduct
 

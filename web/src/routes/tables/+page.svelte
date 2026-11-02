@@ -118,16 +118,16 @@
 	// 10. Test vectors
 	const vectors: [string, string, number][] = [
 		['T32 epoch', '1999-12-31T23:59:28Z', 8],
-		['Unix epoch (rubber era)', '1970-01-01T00:00:00Z', 8],
+		['Unix epoch (before 1972)', '1970-01-01T00:00:00Z', 8],
 		['Apollo 11 landing', '1969-07-20T20:17:40Z', 8],
-		['UTC becomes integer', '1972-01-01T00:00:00Z', 8],
+		['UTC offset becomes whole seconds', '1972-01-01T00:00:00Z', 8],
 		['Before last leap second', '2016-12-31T23:59:59Z', 8],
 		['Last leap second', '2016-12-31T23:59:60Z', 8],
 		['After last leap second', '2017-01-01T00:00:00Z', 8],
-		['Spec date', '2026-10-31T03:13:00Z', 8],
-		['Spec date + 0.5 s (ms clock)', '2026-10-31T03:13:00.500Z', 10],
-		['Spec date + 0.123 s (µs clock)', '2026-10-31T03:13:00.123000Z', 12],
-		['Rubber era, exact (ns clock)', '1966-06-15T12:00:00.123456789Z', 14],
+		['Example date', '2026-10-31T03:13:00Z', 8],
+		['Example + 0.5 s (ms clock)', '2026-10-31T03:13:00.500Z', 10],
+		['Example + 0.123 s (µs clock)', '2026-10-31T03:13:00.123000Z', 12],
+		['Before 1972, exact (ns clock)', '1966-06-15T12:00:00.123456789Z', 14],
 		['Before 1961, taken as UT', '1675-08-20T00:00:00Z', 8]
 	];
 	const vectorRows = vectors.map(([name, utc, n]) => ({ name, utc, n, stamp: format(fromFx(parseUtc(utc), n)) }));
@@ -170,8 +170,8 @@
 		<h2 id="alphabet"><span class="secno">1</span>Alphabet</h2>
 		<p>
 			Crockford base32: the digits and 22 letters, in order, each standing for five bits. I, L, O and U are
-			never written. On input, either case is accepted, O reads as 0 and I or L as 1, so a stamp copied by
-			hand survives; U is rejected.
+			never written. On input, upper and lower case are both accepted, O is read as 0, and I or L as 1,
+			which helps with stamps copied by hand. U is rejected.
 		</p>
 		<div class="table-wrap">
 			<table>
@@ -190,8 +190,8 @@
 
 		<h2 id="precision"><span class="secno">2</span>Length and resolution</h2>
 		<p>
-			A stamp's length is the resolution of the record, not the accuracy of the clock. Each character
-			adds five bits and divides the unit by 32. Five lengths also have a fixed-width binary form, named
+			A stamp's length says how finely the time was recorded. It says nothing about how accurate the clock
+			was. Each character adds five bits and divides the unit by 32. Five lengths also have a fixed-width binary form, named
 			T32-<i>n</i> in the specification.
 		</p>
 		<div class="table-wrap">
@@ -206,7 +206,7 @@
 				</tbody>
 			</table>
 		</div>
-		<p>An encoder must not write more characters than its source resolves: at most the length whose unit is nearest the source's resolution.</p>
+		<p>An encoder must not write more characters than its clock can measure. The longest it may use is the length whose unit is closest to the clock's resolution.</p>
 		<div class="table-wrap">
 			<table>
 				<thead><tr><th>Source resolution</th><th class="num">Maximum length</th><th>Unit at that length</th></tr></thead>
@@ -304,9 +304,9 @@
 
 		<h2 id="leap-seconds"><span class="secno">8</span>Leap seconds</h2>
 		<p>
-			All 27 inserted leap seconds, each with its own T32 stamp: in T32 they are ordinary seconds. IERS Bulletin C 72
-			announced no leap second for the end of 2026, and the CGPM has made UTC continuous from 2027-05-20, so this list is
-			expected to be complete.
+			All 27 leap seconds inserted so far. Each has its own T32 stamp, because to T32 a leap second is an
+			ordinary second. IERS Bulletin C 72 announced no leap second for the end of 2026, and the CGPM has
+			made UTC continuous from 2027-05-20, so no more are expected.
 		</p>
 		<LeapChart />
 		<div class="table-wrap">

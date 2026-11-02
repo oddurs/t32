@@ -15,10 +15,10 @@
 	const track = [
 		{ name: 'Draft 0.1', when: '2026-10-30', what: 'First public draft.', state: 'done' },
 		{ name: 'Draft 0.2', when: '2026-10-31', what: 'Complete enough to implement. Public review opened.', state: 'done' },
-		{ name: 'Draft 0.3', when: '2026-11-01', what: 'Errata from the first review; every vector generated.', state: 'current' },
-		{ name: 'Review', when: 'Open', what: 'Open questions decided, errata closed, three independent implementations.', state: '' },
-		{ name: 'Version 1.0', when: 'After 60 days', what: 'The core is frozen: a stamp means the same thing forever.', state: '' },
-		{ name: 'Working group', when: 'With 1.0', what: 'Chartered by implementers and reviewers, in a neutral home.', state: '' }
+		{ name: 'Draft 0.3', when: '2026-11-01', what: 'Fixes from the first review.', state: 'current' },
+		{ name: 'Review', when: 'Open', what: 'Open questions settled, and three implementations passing.', state: '' },
+		{ name: 'Version 1.0', when: 'After 60 days', what: 'Core rules fixed. Stamps keep their meaning.', state: '' },
+		{ name: 'Working group', when: 'With 1.0', what: 'A group of implementers and reviewers takes over.', state: '' }
 	];
 
 	const discussions = 'https://github.com/oddurs/t32/discussions';
@@ -31,8 +31,8 @@
 		<span class="label">T32 · Draft {DRAFT} · Participation</span>
 		<h1>Participate</h1>
 		<p class="lede">
-			A specification becomes a standard by being read, implemented and questioned by people other than
-			its author. This page says where that happens, and what it leads to.
+			T32 is a draft. Before it can become a standard, people other than its author need to read it,
+			build it and report what's wrong with it. This page explains how to take part and what happens next.
 		</p>
 	</header>
 
@@ -48,7 +48,7 @@
 		<p class="label elsewhere">Elsewhere</p>
 		<ul class="links">
 			<li><a href={discussions}>Discussions</a></li>
-			<li><a href="https://github.com/oddurs/t32/issues/new/choose">Report an erratum</a></li>
+			<li><a href="https://github.com/oddurs/t32/issues/new/choose">Report a problem</a></li>
 			<li><a href="https://github.com/oddurs/t32/blob/main/CONTRIBUTING.md">Contributing</a></li>
 			<li><a href="https://github.com/oddurs/t32/blob/main/CODE_OF_CONDUCT.md">Code of conduct</a></li>
 		</ul>
@@ -69,9 +69,9 @@
 		</ol>
 
 		<p>
-			The draft is complete enough to implement and to test against, and it is not yet frozen. Any part
-			may change before version 1.0; each change is made in the open, with its reason, and recorded in
-			Appendix D of the <a href={resolve('spec/')}>specification</a>.
+			The draft is complete enough to implement and test against, but it isn't final. Any part may change
+			before version 1.0. Every change is made in public, with the reason for it, and listed in Appendix D
+			of the <a href={resolve('spec/')}>specification</a>.
 		</p>
 
 		<h2 id="ways"><span class="secno">2</span>Ways to take part</h2>
@@ -80,33 +80,29 @@
 			<dt>Question it</dt>
 			<dd>
 				Read the <a href={resolve('spec/')}>specification</a> as if you had to implement it from the text alone.
-				Anything ambiguous, missing or wrong is worth an <a href="https://github.com/oddurs/t32/issues/new/choose">erratum</a>,
-				including a sentence that two careful readers could take differently.
+				If anything is unclear, missing or wrong, <a href="https://github.com/oddurs/t32/issues/new/choose">report it</a>.
+				That includes any sentence two careful readers could take to mean different things.
 			</dd>
 			<dt>Weigh in</dt>
 			<dd>
-				The open questions below are undecided. Experience from your own systems is the most useful
-				evidence; bring it to <a href={discussions}>Discussions</a>.
+				The questions below haven't been decided yet. What you've seen in your own systems is the most
+				useful input. Post it in <a href={discussions}>Discussions</a>.
 			</dd>
 			<dt>Implement it</dt>
 			<dd>
 				Load the <a href="https://github.com/oddurs/t32/blob/main/vectors/t32-vectors.json">conformance vectors</a>,
-				make them pass in your language, and add your implementation to the list. Three independent
-				implementations are a condition of version 1.0.
+				make them pass in your language, and add your implementation to the list. Version 1.0 needs at
+				least three implementations written independently.
 			</dd>
 			<dt>Help govern it</dt>
 			<dd>
-				A working group will be chartered from active implementers and reviewers. If you would serve on it,
-				say so in <a href={discussions}>Discussions</a>; interest expressed now shapes the charter later.
+				A working group made up of active implementers and reviewers will take over the project. If you'd
+				like to be part of it, say so in <a href={discussions}>Discussions</a>. Knowing who is interested
+				helps decide how the group is set up.
 			</dd>
 		</dl>
 
 		<h2 id="questions"><span class="secno">3</span>Open questions</h2>
-
-		<p>
-			These are the questions the editor considers open before version 1.0, as listed in Appendix C of
-			the specification. Each states the current position and the kind of evidence that would change it.
-		</p>
 
 		<div class="doc questions">{@html data.questions}</div>
 

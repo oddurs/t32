@@ -10,7 +10,7 @@ G0S7G6B1G0      … to about a millisecond (03:13:00.500)
 G0S7G6          the 17-minute span 03:07:07 – 03:24:11 that contains it
 ```
 
-To try one, open the [playground](/playground/). To implement one, read the [specification](/spec/); it is short, and the test vectors at the end are the definition of correct.
+To try one, open the [playground](/playground/). To implement one, read the [specification](/spec/); it is short, and the test vectors at the end show the exact output an implementation must produce.
 
 ## Reading a stamp
 
@@ -106,7 +106,7 @@ println!("{} {}", now.stamp(8)?, now.stamp(14)?.display_form()); // a nanosecond
 # Ok::<(), t32::Error>(())
 ```
 
-Four types carry everything: `Instant` (a point in time, exact to 2⁻⁴⁰ s), `Stamp`, `Duration` and `UtcDateTime` (RFC 3339 text, leap seconds included). `cargo run --example t32 -- G0S7` prints a stamp's interval.
+The crate has four types: `Instant` (a point in time, exact to 2⁻⁴⁰ s), `Stamp`, `Duration` and `UtcDateTime` (RFC 3339 text, leap seconds included). `cargo run --example t32 -- G0S7` prints a stamp's interval.
 
 ## Getting TAI from a system clock
 
@@ -144,11 +144,11 @@ TAI is a plain count of SI seconds. UTC is TAI minus an offset that changes when
 
 ### Why not TAI64?
 
-TAI64 got the important part right: TAI with an offset-binary bias, which T32 shares. But its text form is 17 hexadecimal characters at a precision fixed by the variant (TAI64, TAI64N, TAI64NA). T32 is 8 characters at one second, and its length states its resolution, so one format covers eras to picoseconds and every prefix is a meaningful range.
+T32 shares TAI64's core idea: TAI with an offset-binary bias. But TAI64's text form is 17 hexadecimal characters at a precision fixed by the variant (TAI64, TAI64N, TAI64NA). T32 is 8 characters at one second, and its length states its resolution, so one format covers eras to picoseconds and every prefix is a meaningful range.
 
 ### Why not ULID or UUIDv7?
 
-They are identifiers: a millisecond Unix timestamp plus randomness. T32 is a time. It uses TAI rather than Unix time, has no fixed resolution, and makes no promise of uniqueness. Use a ULID when you need a key, and T32 when you need to say when.
+They are identifiers: a millisecond Unix timestamp plus randomness. T32 is a time. It uses TAI rather than Unix time, has no fixed resolution, and makes no promise of uniqueness. Use a ULID for keys and T32 for times.
 
 ### Why base32 and not base62 or base64?
 
@@ -156,7 +156,7 @@ Base32 is case-insensitive, so it survives file systems, URLs and people reading
 
 ### Why does every current stamp start with `G`?
 
-The first character covers about 1,089 years, so everything from 2000 to 3089 shares it. That is the price of a fixed width; writing "2026" repeats "20" for the same reason.
+The first character covers about 1,089 years, so everything from 2000 to 3089 shares it. Any fixed-width format does this: years written as "2026" all start with "20" for the same reason.
 
 ### Why not start at J2000?
 
@@ -164,11 +164,11 @@ J2000 is 2000-01-01T12:00:00 in Terrestrial Time, an astronomical convention tha
 
 ### Why aren't the buckets days and years?
 
-A day is not a fixed number of 32nds of anything. Calendar-aligned buckets would need a mixed radix, which breaks the property that a prefix is a range of exactly one-thirty-second the size. Calendars are for display.
+A day is not a fixed number of 32nds of anything. Calendar-aligned buckets would need a mixed radix, which would break the rule that each added character divides the span into 32 equal parts. Calendar dates are only needed for display.
 
 ### What about time zones?
 
-A stamp names one instant everywhere. Zones apply only when converting for display.
+A stamp means the same time everywhere. Time zones only matter when you convert a stamp for display.
 
 ### Will my stamps change if leap seconds change?
 
@@ -176,4 +176,4 @@ No stamp ever changes meaning. What could change is the conversion of a future U
 
 ### What about dates before 15,423 BCE?
 
-They are out of range. Astronomy uses Julian Dates for deep time, and so should you.
+They are out of range. For times that far back, use Julian Dates, as astronomers do.

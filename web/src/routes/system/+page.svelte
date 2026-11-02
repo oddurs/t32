@@ -36,7 +36,7 @@
 		{ role: 'Section', where: 'h2', size: '--h2', step: '3', lh: '--lh-head', tr: '--tr-h2', w: '--w-head', cls: 'r-h2', sample: 'Conversion from UTC' },
 		{ role: 'Subsection', where: 'h3', size: '--h3', step: '1', lh: '--lh-head', tr: '--tr-h3', w: '--w-head', cls: 'r-h3', sample: 'Leap seconds' },
 		{ role: 'Lede', where: '.lede', size: '--lede', step: '1', lh: '--lh-lede', tr: '--tr-lede', w: '--w-text', cls: 'lede', sample: 'T32 writes any moment as eight characters.' },
-		{ role: 'Text', where: 'body', size: '--text', step: '0', lh: '--lh-text', tr: '', w: '--w-text', cls: '', sample: 'A stamp names an interval, never a false instant. Drop characters for a coarser span; add them for finer time.' },
+		{ role: 'Text', where: 'body', size: '--text', step: '0', lh: '--lh-text', tr: '', w: '--w-text', cls: '', sample: 'A stamp stands for a span of time. Drop characters for a longer span, or add them for finer time.' },
 		{ role: 'Small', where: '.small, table, .caption', size: '--small', step: '−1', lh: '--lh-small', tr: '', w: '--w-text', cls: 'small', sample: 'Each position divides the one before it by 32.' },
 		{ role: 'Label', where: '.label, th, .meta dt', size: '--label', step: '−2', lh: '--lh-tight', tr: '--tr-label', w: '--w-strong', cls: 'label', sample: `Draft ${DRAFT} · Specification` }
 	];
@@ -84,9 +84,9 @@
 		<span class="label">T32 · Design system</span>
 		<h1>How the site is set</h1>
 		<p class="lede">
-			The tokens, type and parts this site is built from. Values are read from the stylesheet when the
-			site is built, and every specimen is drawn by the rules it describes, so the page cannot disagree
-			with the site.
+			The colours, type, spacing and components this site uses. The values on this page are read from
+			the site's stylesheet when the site is built, and the examples use the same styles as every other
+			page, so this page always matches the rest of the site.
 		</p>
 	</header>
 
@@ -105,23 +105,24 @@
 		<h2 id="principles"><span class="secno">1</span>Principles</h2>
 
 		<dl class="pairs">
-			<dt>The text decides</dt>
-			<dd>The site serves a specification. Nothing on it competes with the words, and nothing is there only to decorate.</dd>
-			<dt>Rules, not boxes</dt>
-			<dd>Hairlines separate things. A tinted ground is kept for code, notes and the digits after the eighth.</dd>
-			<dt>One accent</dt>
-			<dd>Blue marks what can be followed or chosen: links, the primary action, the marked cell of a figure.</dd>
-			<dt>Figures line up</dt>
-			<dd>Numbers in a column use tabular figures. Stamps are data, not code, and are set in the text face.</dd>
-			<dt>Nothing moves</dt>
-			<dd>Whatever arrives late has its space held for it, by placeholders that cannot be mistaken for values.</dd>
+			<dt>Text first</dt>
+			<dd>The site exists to explain a specification. Anything that doesn't help with that is left out.</dd>
+			<dt>Thin lines</dt>
+			<dd>Thin rules separate rows and sections. Tinted backgrounds are used only for code, notes and the digits after the eighth.</dd>
+			<dt>One accent colour</dt>
+			<dd>Blue is used for things you can click or choose, and for the highlighted cell in figures.</dd>
+			<dt>Numbers line up</dt>
+			<dd>Numbers in columns use fixed-width digits. Stamps are set in the normal text font, not as code.</dd>
+			<dt>No jumping</dt>
+			<dd>Anything that loads late, like the live clock, has its space reserved, and its placeholder can't be mistaken for a real value.</dd>
 		</dl>
 
 		<h2 id="mark"><span class="secno">2</span>The mark</h2>
 
 		<p>
-			The name, drawn from Public Sans at weight 720 and spaced by hand, with a square full stop. The full
-			stop is the marked cell of the zoom figure: one part in 32, picked out.
+			The logo is the name set in Public Sans at weight 720, with the letters spaced by hand, followed by a
+			square full stop. The square is the same highlighted cell as in the zoom figure on the overview page,
+			where it marks one part in 32.
 		</p>
 
 		<figure class="mark-sheet">
@@ -149,25 +150,26 @@
 				<rect class="cell" x={MARK.cell.x} y={MARK.cell.y} width={MARK.cell.size} height={MARK.cell.size} />
 			</svg>
 			<figcaption class="caption" id="construction-caption">
-				Construction. Cap height and baseline are 32 units apart. The full stop is a square
-				{MARK.cell.size.toFixed(2)} units wide, the thickness of the T's crossbar, and stands one 3-to-2 gap
-				after the 2.
+				How it's built. The baseline and the top of the capitals are 32 units apart. The full stop is a
+				square {MARK.cell.size.toFixed(2)} units wide, as thick as the crossbar of the T, and sits as far
+				after the 2 as the 2 sits after the 3.
 			</figcaption>
 		</figure>
 
 		<ul class="rules">
-			<li>Draw it from the paths in <a href="https://github.com/oddurs/t32/blob/main/web/static/mark.svg"><code>mark.svg</code></a>; never retype it in a font. <a href="https://github.com/oddurs/t32/blob/main/tools/mark.py"><code>tools/mark.py</code></a> makes it.</li>
-			<li>Keep half its cap height clear on every side. Below a 12px cap height, use the tile.</li>
-			<li>The name takes the text colour, the full stop the accent. Nothing else changes.</li>
-			<li>In running text the name is just T32, in the text face.</li>
+			<li>Use the shapes in <a href="https://github.com/oddurs/t32/blob/main/web/static/mark.svg"><code>mark.svg</code></a> rather than typing the name in a font. <a href="https://github.com/oddurs/t32/blob/main/tools/mark.py"><code>tools/mark.py</code></a> generates the file.</li>
+			<li>Leave clear space around it of at least half its capital height. When the capitals would be smaller than 12px, use the square tile instead.</li>
+			<li>The letters use the text colour and the full stop uses the accent colour. Don't recolour it in any other way.</li>
+			<li>In a sentence, write the name as plain text: T32.</li>
 		</ul>
 
 		<h2 id="colour"><span class="secno">3</span>Colour</h2>
 
 		<p>
-			Warm paper, near-black ink, two greys and one blue. The dark scheme is its own set of values, chosen
-			for the dark ground, not the light one inverted. Contrast is measured on paper; the build fails if
-			any text colour falls under 4.5:1 on paper or wash, in either scheme.
+			The palette is an off-white background, near-black text, two greys and one blue. Dark mode has its
+			own values, chosen to work on a dark background rather than inverted from the light ones. The
+			contrast column is measured against the page background. The build fails if any text colour drops
+			below 4.5:1 against either background colour, in light or dark mode.
 		</p>
 
 		<div class="table-wrap">
@@ -197,12 +199,12 @@
 			<div>
 				<p class="family-name">Public Sans</p>
 				<p class="glyphs-sample">Aa Bb Gg Rr 0123456789</p>
-				<p class="small muted">Everything but code. A descendant of Franklin Gothic, drawn for the United States government.</p>
+				<p class="small muted">Used for everything except code. It is based on Franklin Gothic and was made for the US government.</p>
 			</div>
 			<div>
 				<p class="family-name mono">Roboto Mono</p>
 				<p class="glyphs-sample mono">Aa Bb Gg Rr 0123456789</p>
-				<p class="small muted">Code, and only code. Its x-height matches Public Sans one step down the scale, so inline code sits level with the text.</p>
+				<p class="small muted">Used only for code. Set one step down the scale, its lowercase letters are the same height as Public Sans, so code lines up with the text around it.</p>
 			</div>
 		</div>
 
@@ -221,13 +223,13 @@
 				</tbody>
 			</table>
 		</div>
-		<p class="small muted measure-text">Light type on a dark ground reads heavier, so the dark scheme takes a little weight off. The variable font makes the in-between weights exact.</p>
+		<p class="small muted measure-text">Light text on a dark background looks heavier, so dark mode uses slightly lighter weights. The fonts are variable, so in-between weights like 620 are used exactly rather than rounded.</p>
 
 		<h3>Scale</h3>
 
 		<p>
-			Each step is 2<sup>1/5</sup> times the one below it, so five steps double the size, as five bits
-			make one character. Step 0 is 16px; step 5 is 32.
+			Each step is 2<sup>1/5</sup> times the size of the one below it, so the size doubles every five
+			steps. T32 has the same ratio: five bits make one character. Step 0 is 16px and step 5 is 32px.
 		</p>
 
 		<div class="table-wrap">
@@ -253,8 +255,8 @@
 		<h3>Roles</h3>
 
 		<p>
-			Seven roles, each on a step of the scale. Leading tightens as the size grows and tracking closes
-			up; labels, set in capitals, open out instead.
+			There are seven text styles, each on a step of the scale. Larger text gets tighter line spacing and
+			letter spacing. Labels, which are in capitals, get wider letter spacing instead.
 		</p>
 
 		<div class="roles">
@@ -276,8 +278,8 @@
 		<h3>Figures</h3>
 
 		<p>
-			Numbers that run in text are proportional. Numbers in a column, and every stamp, are tabular and
-			lining, with a little added tracking so that a stamp's characters can be counted.
+			Numbers in sentences use proportional digits. Numbers in columns, and all stamps, use fixed-width
+			digits so they line up, with a little extra letter spacing so a stamp's characters are easy to count.
 		</p>
 
 		<div class="figures">
@@ -298,8 +300,8 @@
 		<h2 id="space"><span class="secno">5</span>Space</h2>
 
 		<p>
-			A 4px grid, in nine steps that roughly double. Inside a part, the small steps; between parts, the
-			middle ones; the largest open a section.
+			Spacing uses a 4px grid with nine steps, each roughly double the one before. The small steps are used
+			inside components, the middle ones between components, and the largest above each section.
 		</p>
 
 		<div class="table-wrap">
@@ -323,8 +325,8 @@
 		<h2 id="frame"><span class="secno">6</span>Frame</h2>
 
 		<p>
-			A page is a rail and a main column, inside a fixed width. Running text is held to a measure of
-			about seventy characters, wherever the column is wider.
+			A page has a narrow side column and a main column, inside a fixed maximum width. Paragraphs are
+			limited to about 70 characters per line, even when the column is wider.
 		</p>
 
 		<div class="table-wrap">
@@ -342,16 +344,16 @@
 
 		<figure class="measure">
 			<p>
-				This paragraph is set to the measure. A line of about seventy characters is long enough to keep
-				the eye moving and short enough for it to find the start of the next line without hunting.
+				This paragraph is set to that width. Lines of about 70 characters are long enough to read
+				comfortably and short enough that your eye can easily find the start of the next line.
 			</p>
 			<span class="measure-rule" aria-hidden="true"></span>
-			<figcaption class="caption">The measure, <code>--measure</code>, about seventy characters of text.</figcaption>
+			<figcaption class="caption">The paragraph width, <code>--measure</code>: about 70 characters.</figcaption>
 		</figure>
 
 		<h2 id="parts"><span class="secno">7</span>Parts</h2>
 
-		<p>The pieces pages are made of. Each is a class or an element in the stylesheet, with no props to learn.</p>
+		<p>The components pages are built from. Each one is a plain HTML element or a CSS class.</p>
 
 		<div class="parts">
 			<section class="part" aria-labelledby="p-actions">
@@ -362,12 +364,12 @@
 					<button class="btn" type="button" disabled>Unavailable</button>
 					<button class="link" type="button">Use the current time</button>
 				</p>
-				<p class="small muted">One primary action to a view, at most. A text action is a button that looks like a link because it does not lead anywhere.</p>
+				<p class="small muted">Use at most one primary button per view. A text button looks like a link but acts on the page instead of going somewhere.</p>
 			</section>
 
 			<section class="part" aria-labelledby="p-links">
 				<h3 id="p-links">Links <code>a</code></h3>
-				<p>Read the <a href={resolve('spec/')}>specification</a>, or the <a href="https://github.com/oddurs/t32">source</a>. The underline is a tint of the link colour until it is pointed at.</p>
+				<p>Read the <a href={resolve('spec/')}>specification</a>, or the <a href="https://github.com/oddurs/t32">source</a>. The underline is a light tint until you hover over the link.</p>
 			</section>
 
 			<section class="part" aria-labelledby="p-fields">
@@ -401,7 +403,7 @@
 
 			<section class="part" aria-labelledby="p-note">
 				<h3 id="p-note">Note <code>.note</code></h3>
-				<div class="note"><p>A note says something the reader would otherwise get wrong. If it only adds emphasis, it is not a note.</p></div>
+				<div class="note"><p>Use a note for something the reader would otherwise get wrong. Don't use one just for emphasis.</p></div>
 			</section>
 
 			<section class="part" aria-labelledby="p-code">
@@ -414,7 +416,7 @@ assert_eq!(stamp.to_string(), "G0S7G6B1");</code></pre>
 
 			<section class="part" aria-labelledby="p-quote">
 				<h3 id="p-quote">Quotation <code>blockquote</code></h3>
-				<blockquote><p>A stamp, once written, keeps its meaning.</p></blockquote>
+				<blockquote><p>A stamp keeps the same meaning once it is written.</p></blockquote>
 			</section>
 		</div>
 	</div>
