@@ -9,8 +9,8 @@
 	import { onMount } from 'svelte';
 	import { replaceState } from '$app/navigation';
 	import {
-		MAX_LEN, fromUnixMs, truncate, contains, format, formatDuration, durationBetween, durationToNs,
-		unitSeconds, maxLengthFor, type Stamp
+		MAX_LEN, fromUnixMs, fromFx, unixNsToFx, truncate, contains, format, formatDuration, durationBetween,
+		durationToNs, unitSeconds, maxLengthFor, type Stamp
 	} from '$lib/t32';
 	import { readInput, errorText, describe, encode, humanSpan, secondsString, type Input } from '$lib/describe';
 
@@ -32,6 +32,9 @@
 	];
 
 	// ---- converter state ----
+	// The view comes first: the advanced one lets the stamp run past what the input states.
+	type Mode = 'simple' | 'advanced';
+	let mode: Mode = $state('simple');
 	let text = $state('2026-10-31T03:13:00');
 	let len = $state(8);
 	let live = $state(false);
@@ -39,24 +42,33 @@
 	let mounted = $state(false);
 	let copied: string | null = $state(null);
 
-	// The input at the longest length it supports. The chosen length only shortens
-	// it, so the digit-by-digit table can always show every row the input has.
+	// The input at the longest length it can be shown at. The chosen length only shortens it,
+	// so the digit-by-digit table can always show every row. maxLen is what the input states:
+	// in the advanced view the stamp runs on past it to 16 characters, treating the input as
+	// exact, and the characters past maxLen are marked as adding digits but no information.
 	type Source =
 		| { ok: true; full: Stamp; maxLen: number; kind: 'stamp' | 'date' | 'now'; precision: string; unix: boolean }
 		| { ok: false; error: string };
 	type Shown = Extract<Source, { ok: true }> & { stamp: Stamp };
 
+	/** A stamp lengthened to 16 characters by naming its start exactly. */
+	const lengthen = (s: Stamp): Stamp => ({ value: s.value * 32n ** BigInt(MAX_LEN - s.len), len: MAX_LEN });
+
 	const source: Source = $derived.by(() => {
+		const finer = mode === 'advanced';
 		if (live) {
-			return { ok: true, full: fromUnixMs(nowMs || 0, MS_LEN), maxLen: MS_LEN, kind: 'now', precision: 'the millisecond', unix: false };
+			const full = finer ? fromFx(unixNsToFx(BigInt(nowMs || 0) * 1_000_000n), MAX_LEN) : fromUnixMs(nowMs || 0, MS_LEN);
+			return { ok: true, full, maxLen: MS_LEN, kind: 'now', precision: 'the millisecond', unix: false };
 		}
 		try {
 			const input = readInput(text);
 			if (input.kind === 'now') return { ok: false, error: '' };
 			if (input.kind === 'stamp') {
-				return { ok: true, full: input.stamp, maxLen: input.stamp.len, kind: 'stamp', precision: '', unix: false };
+				const full = finer ? lengthen(input.stamp) : input.stamp;
+				return { ok: true, full, maxLen: input.stamp.len, kind: 'stamp', precision: '', unix: false };
 			}
-			return { ok: true, full: encode(input.fx, input.maxLen), maxLen: input.maxLen, kind: 'date', precision: input.precision, unix: input.unix };
+			const full = encode(input.fx, finer ? MAX_LEN : input.maxLen);
+			return { ok: true, full, maxLen: input.maxLen, kind: 'date', precision: input.precision, unix: input.unix };
 		} catch (e) {
 			return { ok: false, error: errorText(e) };
 		}
@@ -183,7 +195,7 @@
 	function play() {
 		if (!shown) return;
 		stop();
-		const max = shown.maxLen;
+		const max = shown.full.len;
 		len = 1;
 		playing = true;
 		timer = setInterval(() => {
@@ -222,11 +234,11 @@
 	}
 
 	// ---- simple and advanced views ----
-	type Mode = 'simple' | 'advanced';
-	let mode: Mode = $state('simple');
 
 	function setMode(m: Mode) {
 		mode = m;
+		// The simple view stops at what the input states.
+		if (m === 'simple' && shown && len > shown.maxLen) len = shown.maxLen;
 		try {
 			localStorage.setItem('t32-playground-mode', m);
 		} catch {
@@ -450,8 +462,8 @@
 			<label class="field len">
 				<span class="label lenlabel">Length <span class="unitnow">{humanSpan(unitSeconds(len))}</span></span>
 				<span class="lenrow">
-					<input type="range" min="1" max={shown ? shown.maxLen : MAX_LEN} bind:value={len} aria-label="Length" />
-					<input type="number" min="1" max={shown ? shown.maxLen : MAX_LEN} bind:value={len} class="data num" aria-label="Length (number)" />
+					<input type="range" min="1" max={shown ? shown.full.len : MAX_LEN} bind:value={() => len, choose} aria-label="Length" />
+					<input type="number" min="1" max={shown ? shown.full.len : MAX_LEN} bind:value={() => len, choose} class="data num" aria-label="Length (number)" />
 				</span>
 			</label>
 			{/if}
@@ -475,12 +487,13 @@
 			{:else if current.maxLen < MAX_LEN}
 				<p class="muted small">
 					{#if current.kind === 'stamp'}
-						A stamp can be shortened but not lengthened: resolution that was not recorded cannot be added.
+						This stamp has {current.maxLen} characters, and they say all it says.
 					{:else if current.kind === 'now'}
-						Your clock resolves 1 ms, so at most {current.maxLen} characters. More would overstate it.
+						Your clock resolves 1 ms, so {current.maxLen} characters say all it knows.
 					{:else}
-						This {current.unix ? 'Unix time' : 'date'} is written to {current.precision}, so at most {current.maxLen} characters. Write it more finely to go further.
+						This {current.unix ? 'Unix time' : 'date'} is written to {current.precision}, so {current.maxLen} characters say all it says.
 					{/if}
+					Past them, hatched, it is taken as exact: finer digits, no more information. An encoder would stop at {current.maxLen}.
 				</p>
 			{/if}
 			{#if current && alternative?.stamp}
@@ -496,7 +509,7 @@
 		{#if shown && d}
 			<div class="output" class:stale aria-busy={stale}>
 			<div class="result">
-				<StampDigits full={shown.full} bind:len={() => len, choose} />
+				<StampDigits full={shown.full} stated={shown.maxLen} bind:len={() => len, choose} />
 				<div class="stamprow">
 					{#if mode === 'simple'}
 						<p class="meaning"><span class="data">{d.canonical}</span> stands for {meaning}.{#if live}{' '}<span class="live">Live.</span>{/if}</p>
@@ -581,7 +594,7 @@
 						{#each ladder as row (row.stamp.len)}
 							<!-- The whole row is a target for the pointer; the button in it serves the keyboard. -->
 							<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-							<tr class="pick" class:hl={row.stamp.len === d.stamp.len} class:finer={row.stamp.len > d.stamp.len} onclick={() => choose(row.stamp.len)}>
+							<tr class="pick" class:hl={row.stamp.len === d.stamp.len} class:finer={row.stamp.len > d.stamp.len} class:assumed={row.stamp.len > shown.maxLen} onclick={() => choose(row.stamp.len)}>
 								<td class="num"><button class="link" aria-pressed={row.stamp.len === d.stamp.len} aria-label="Use length {row.stamp.len}">{row.stamp.len}</button></td>
 								<td>
 									<span class="data prefix"><span class="head">{row.head}</span>{row.last}</span>
@@ -903,6 +916,10 @@
 	}
 	tr.pick {
 		cursor: pointer;
+	}
+	/* Rows past what the input states: hatched, as the characters are. */
+	tr.assumed td:first-child {
+		background: repeating-linear-gradient(135deg, transparent 0 4px, var(--rule) 4px 5px);
 	}
 	tr.pick:hover:not(.hl) td {
 		background: var(--wash);
