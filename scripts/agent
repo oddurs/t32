@@ -82,6 +82,8 @@ cmd_check() { "$top/scripts/task" check; }
 
 cmd_commit() {
 	[ "$#" -gt 0 ] || die "usage: scripts/agent commit <message>"
+	# Only what you staged is committed, so nothing unintended slips in.
+	git -C "$top" diff --cached --quiet && die "nothing staged; stage what belongs in this commit: git add <paths>"
 	msg=$(mktemp)
 	trap 'rm -f "$msg"' EXIT
 	printf '%s\n' "$*" >"$msg"

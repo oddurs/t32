@@ -10,6 +10,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - Repository furniture: `scripts/task`, the single entry point to every check; `scripts/agent`, the worktree workflow; git hooks; `CLAUDE.md`; CODEOWNERS; Dependabot; `.editorconfig` and `.gitattributes`; pinned Rust and Node toolchains; a feature-request form and a proposal form for Discussions.
 - GitHub releases, made by the publish workflow from this file.
+- `SUPPORT.md`, which says where each kind of question goes.
 
 ### Changed
 
