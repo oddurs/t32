@@ -654,7 +654,8 @@
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) 15rem;
 		gap: var(--s3) var(--s5);
-		align-items: end;
+		/* Labels share a line across the row; the fields below them are the same height. */
+		align-items: start;
 		margin-bottom: var(--s3);
 	}
 	.controls.two {
@@ -681,6 +682,10 @@
 	}
 	.num {
 		width: 4.5em;
+	}
+	.lenrow .num {
+		font-size: var(--fs-1);
+		padding: var(--s2) var(--s3);
 	}
 	.examples {
 		list-style: none;
@@ -725,6 +730,10 @@
 		border-radius: 3px;
 		padding: 2px;
 		gap: 2px;
+	}
+	/* The switch already separates the page from the sections below it; the first section's rule follows it closely. */
+	.modes + h2 {
+		margin-top: 0;
 	}
 	.mode {
 		font-size: var(--small);
@@ -824,6 +833,7 @@
 	.lenlabel {
 		display: flex;
 		justify-content: space-between;
+		align-items: baseline;
 		gap: var(--s3);
 	}
 	.unitnow {
@@ -832,6 +842,7 @@
 		font-weight: var(--w-text);
 		color: var(--ink-2);
 		font-size: var(--small);
+		/* No taller than the label beside it, so it cannot push that label off the row's line. */
 		line-height: 1;
 	}
 	.facts tr.group th,
