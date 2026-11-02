@@ -6,7 +6,7 @@
 #   scripts/task fmt:check  verify formatting
 #   scripts/task lint       lint, warnings are errors
 #   scripts/task test       every test suite, and the vectors are current
-#   scripts/task build      docs, the crate package and the site
+#   scripts/task build      docs, the crate package, the Internet-Draft PDF and the site
 #   scripts/task check      all of the above, as CI runs it
 set -eu
 
@@ -66,6 +66,13 @@ build)
 	step "cargo package"
 	# --allow-dirty so a local run can check uncommitted work; CI's tree is clean.
 	quiet in_rust cargo package --allow-dirty
+	step "Internet-Draft PDF"
+	# Into web/static, so the site serves it beside the specification.
+	command -v tectonic >/dev/null 2>&1 || {
+		echo "scripts/task: building ietf/ needs tectonic: https://tectonic-typesetting.github.io" >&2
+		exit 1
+	}
+	quiet tectonic --chatter minimal --outdir web/static ietf/draft-sigurdsson-t32-00.tex
 	step "site build"
 	web_deps
 	quiet in_web npm run build

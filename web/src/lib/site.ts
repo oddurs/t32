@@ -6,4 +6,6 @@ export const SITE_URL = 'https://oddurs.github.io/t32';
 // out of the pages' scripts.
 export const DRAFT = '0.3';
 export const DRAFT_DATE = '2026-11-01';
+// The specification as an Internet-Draft, built from ietf/ by scripts/task build.
+export const DRAFT_PDF = 'draft-sigurdsson-t32-00.pdf';
 export const VECTOR_COUNT = 782;
