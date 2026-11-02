@@ -1,0 +1,13 @@
+#!/bin/sh
+# Run once after cloning: wires the git hooks and installs the site's packages.
+set -eu
+cd "$(dirname "$0")/.."
+
+echo "==> git hooks: core.hooksPath = .githooks"
+git config core.hooksPath .githooks
+
+echo "==> web/node_modules"
+(cd web && npm ci --no-audit --no-fund --silent)
+
+echo "==> checking the tools"
+scripts/agent doctor

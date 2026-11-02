@@ -1,7 +1,9 @@
 name: CI
 
 # Runs on pull requests, and on main as the first stage of pages.yml and
-# publish-crate.yml, so nothing ships from a commit that has not passed.
+# publish-crate.yml, so nothing ships from a commit that has not passed. CI
+# knows only scripts/task, the same entry point the git hooks use, so the two
+# cannot drift apart.
 on:
   pull_request:
   workflow_call:
@@ -9,55 +11,52 @@ on:
 permissions:
   contents: read
 
-jobs:
-  rust:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: rust
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - run: cargo fmt --check
-      - run: cargo clippy --all-targets --all-features -- -D warnings
-      - run: cargo test                      # unit, integration and doc tests
-      - run: cargo test --all-features       # and the serde support
-      - run: cargo doc --no-deps --all-features
-        env:
-          RUSTDOCFLAGS: -D warnings
-      - run: cargo run --quiet --example vectors
-      - run: cargo package
+# A newer push to a pull request supersedes the run in progress. Runs on main
+# are never cancelled: each one gates a deploy or a release.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-  rust-msrv:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install the pinned Rust toolchain (rust-toolchain.toml)
+        run: rustup toolchain install
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: scripts/task check
+
+  msrv:
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: rust
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - run: rustup toolchain install 1.70 --profile minimal
       # The library's MSRV; the test suite's dev-dependencies need newer Rust.
       - run: cargo +1.70 check --lib
       - run: cargo +1.70 check --lib --all-features
 
-  oracle:
+  # The one status check branch protection requires. It runs even when a job it
+  # needs fails or is skipped, so it can never pass by not running.
+  required:
+    if: always()
+    needs: [check, msrv]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - run: python3 tools/oracle.py --check vectors/t32-vectors.json
-
-  web:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: web
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-      - run: npm ci
-      - run: npm test
-      - run: npm run check
-      - run: npm run build
+      - name: Every job passed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "results: $RESULTS"
+          for result in $RESULTS; do [ "$result" = success ] || exit 1; done
