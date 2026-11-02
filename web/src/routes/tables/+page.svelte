@@ -22,8 +22,7 @@
 	const minute = (fx: bigint) => fxToUtcString(fx).replace(/:\d\dZ$/, 'Z').replace('T', ' ');
 
 	// 1. Alphabet
-	const aliases: Record<string, string> = { '0': 'O, o', '1': 'I, i, L, l' };
-	const alphabet = [...ALPHABET].map((c, v) => ({ c, v, bits: v.toString(2).padStart(5, '0'), alias: aliases[c] ?? '' }));
+	const alphabet = [...ALPHABET].map((c, v) => ({ c, v, bits: v.toString(2).padStart(5, '0') }));
 
 	// 2. Precision
 	const binary: Record<number, string> = { 8: 'T32-8', 10: 'T32-10', 12: 'T32-12', 14: 'T32-14', 16: 'T32-16' };
@@ -169,16 +168,20 @@
 
 	<div class="main">
 		<h2 id="alphabet"><span class="secno">1</span>Alphabet</h2>
-		<p>Crockford base32. The letters I, L, O and U are never written; on input, I and L read as 1 and O as 0. U is rejected.</p>
+		<p>
+			Crockford base32: the digits and 22 letters, in order, each standing for five bits. I, L, O and U are
+			never written. On input, either case is accepted, O reads as 0 and I or L as 1, so a stamp copied by
+			hand survives; U is rejected.
+		</p>
 		<div class="table-wrap">
 			<table>
-				<thead><tr><th>Char</th><th class="num">Value</th><th>Bits</th><th>Also accepted</th><th>Char</th><th class="num">Value</th><th>Bits</th><th>Also accepted</th></tr></thead>
+				<thead><tr><th>Character</th><th class="num">Value</th><th>Bits</th><th class="split">Character</th><th class="num">Value</th><th>Bits</th></tr></thead>
 				<tbody>
 					{#each alphabet.slice(0, 16) as a, i (a.c)}
 						{@const b = alphabet[i + 16]}
 						<tr>
-							<td class="data">{a.c}</td><td class="num">{a.v}</td><td class="data">{a.bits}</td><td class="data">{a.alias}</td>
-							<td class="data">{b.c}</td><td class="num">{b.v}</td><td class="data">{b.bits}</td><td class="data">{b.alias}</td>
+							<td class="data glyph">{a.c}</td><td class="num">{a.v}</td><td class="data">{a.bits}</td>
+							<td class="data glyph split">{b.c}</td><td class="num">{b.v}</td><td class="data">{b.bits}</td>
 						</tr>
 					{/each}
 				</tbody>
@@ -186,7 +189,11 @@
 		</div>
 
 		<h2 id="precision"><span class="secno">2</span>Length and resolution</h2>
-		<p>A stamp's length is the resolution of the record, not the accuracy of the clock.</p>
+		<p>
+			A stamp's length is the resolution of the record, not the accuracy of the clock. Each character
+			adds five bits and divides the unit by 32. Five lengths also have a fixed-width binary form, named
+			T32-<i>n</i> in the specification.
+		</p>
 		<div class="table-wrap">
 			<table>
 				<thead><tr><th class="num">Length</th><th>Unit (exact)</th><th>Unit (approx.)</th><th class="num">Bits</th><th>Binary form</th></tr></thead>
@@ -214,19 +221,20 @@
 
 		<h2 id="eras"><span class="secno">3</span>Eras (first character)</h2>
 		<p>
-			Each era is 2<sup>35</sup> seconds, about 1,089 years. Years are UTC, in the proleptic Gregorian
-			calendar, so era G begins in 1999: the epoch, midnight TAI, is 23:59:28 UTC on 31 December.
+			Each era is 2<sup>35</sup> seconds, about 1,089 years, and every stamp written in it starts with
+			its character. Years are UTC, in the proleptic Gregorian calendar, so era G, the present one,
+			begins in 1999: the epoch, midnight TAI, is 23:59:28 UTC on 31 December.
 		</p>
 		<EraStrip {eras} current="G" />
 		<div class="table-wrap">
 			<table>
-				<thead><tr><th>Char</th><th>From</th><th>Until</th><th>Char</th><th>From</th><th>Until</th></tr></thead>
+				<thead><tr><th>Era</th><th class="num">From</th><th class="num">Until</th><th class="split">Era</th><th class="num">From</th><th class="num">Until</th></tr></thead>
 				<tbody>
 					{#each eras.slice(0, 16) as e, i (e.c)}
 						{@const f = eras[i + 16]}
-						<tr class:hl={e.c === 'G' || f.c === 'G'}>
-							<td class="data">{e.c}</td><td>{e.from}</td><td>{e.to}</td>
-							<td class="data">{f.c}</td><td>{f.from}</td><td>{f.to}</td>
+						<tr>
+							<td class="data" class:hl={e.c === 'G'}>{e.c}</td><td class="num" class:hl={e.c === 'G'}>{e.from}</td><td class="num" class:hl={e.c === 'G'}>{e.to}</td>
+							<td class="data split" class:hl={f.c === 'G'}>{f.c}</td><td class="num" class:hl={f.c === 'G'}>{f.from}</td><td class="num" class:hl={f.c === 'G'}>{f.to}</td>
 						</tr>
 					{/each}
 				</tbody>
@@ -260,7 +268,12 @@
 		</div>
 
 		<h2 id="durations"><span class="secno">6</span>Common durations</h2>
-		<p>A duration is a signed whole number of 2<sup>−40</sup> s, written exactly. A decimal value that is not a whole number of these units is truncated toward zero.</p>
+		<p>
+			A duration is a signed whole number of 2<sup>−40</sup> s, written exactly. It is read like a stamp
+			with a sign and a point: the characters before the point count whole seconds in base32, and each one
+			after it is a 32nd of the one before. So <span class="data">+1W</span> is 1 × 32 + 28 = 60 seconds.
+			A decimal value that is not a whole number of units, such as a millisecond, is truncated toward zero.
+		</p>
 		<div class="table-wrap">
 			<table>
 				<thead><tr><th>Duration</th><th class="num">Seconds</th><th>T32 duration</th></tr></thead>
@@ -347,4 +360,7 @@
 </div>
 
 <style>
+	.glyph {
+		font-weight: var(--w-strong);
+	}
 </style>

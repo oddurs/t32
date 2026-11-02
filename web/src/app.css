@@ -562,8 +562,15 @@ th.num {
 	text-align: right;
 }
 tr.hl td,
-tr.hl th {
+tr.hl th,
+td.hl {
 	background: var(--mark);
+}
+/* A table set in two halves side by side: a stronger rule where the second half begins. */
+th.split,
+td.split {
+	padding-left: var(--s5);
+	border-left: 1px solid var(--rule-strong);
 }
 
 /* ------------------------------------------------------------------ title block */
