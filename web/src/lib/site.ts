@@ -1,5 +1,5 @@
 // Where the site is published, for canonical links and link previews.
-export const SITE_URL = 'https://oddurs.github.io/t32';
+export const SITE_URL = 'https://serre-ai.github.io/t32';
 
 // The draft the site presents. site.test.ts checks these against SPEC.md and the
 // vectors file, so they cannot drift; they are copied here to keep those files
