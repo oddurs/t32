@@ -47,8 +47,8 @@
 			<dt>Editor</dt><dd>Oddur Sigurdsson</dd>
 			<dt>Time scale</dt><dd>TAI, International Atomic Time</dd>
 			<dt>Text</dt><dd><a href={resolve('spec/')}>Specification</a> · <a href="{resolve('/')}{DRAFT_PDF}" type="application/pdf">PDF</a></dd>
-			<dt>Conformance</dt><dd><a href="https://github.com/oddurs/t32/blob/main/vectors/t32-vectors.json">{VECTOR_COUNT} vectors</a></dd>
-			<dt>Code</dt><dd><a href="https://crates.io/crates/t32">Rust</a> · <a href="https://github.com/oddurs/t32/blob/main/web/src/lib/t32.ts">TypeScript</a></dd>
+			<dt>Conformance</dt><dd><a href="https://github.com/serre-ai/t32/blob/main/vectors/t32-vectors.json">{VECTOR_COUNT} vectors</a></dd>
+			<dt>Code</dt><dd><a href="https://crates.io/crates/t32">Rust</a> · <a href="https://github.com/serre-ai/t32/blob/main/web/src/lib/t32.ts">TypeScript</a></dd>
 		</dl>
 	</aside>
 

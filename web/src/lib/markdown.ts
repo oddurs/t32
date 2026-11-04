@@ -24,7 +24,7 @@ export interface RenderedDoc {
 	toc: TocEntry[];
 }
 
-const REPO_BLOB = 'https://github.com/oddurs/t32/blob/main/';
+const REPO_BLOB = 'https://github.com/serre-ai/t32/blob/main/';
 
 /** GitHub's heading slug: lowercase, drop punctuation, spaces to hyphens. */
 function slug(text: string): string {

@@ -61,7 +61,7 @@ FROM events GROUP BY 1 ORDER BY 1;
 
 ## Using the TypeScript implementation
 
-[`t32.ts`](https://github.com/oddurs/t32/blob/main/web/src/lib/t32.ts) is a single file with no dependencies. Copy it into your project.
+[`t32.ts`](https://github.com/serre-ai/t32/blob/main/web/src/lib/t32.ts) is a single file with no dependencies. Copy it into your project.
 
 ```ts
 import { fromUnixMs, format, parse, startFx, endFx, fxToUtcString, durationBetween, formatDuration } from './t32';

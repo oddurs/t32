@@ -22,7 +22,7 @@
 		{ name: 'Working group', when: 'With 1.0', what: 'A group of implementers and reviewers takes over.', state: '' }
 	];
 
-	const discussions = 'https://github.com/oddurs/t32/discussions';
+	const discussions = 'https://github.com/serre-ai/t32/discussions';
 </script>
 
 <Head title="Participate" description="How T32 becomes a standard: where the draft stands, ways to take part, the open questions, implementations, and how decisions are made." path="/participate/" />
@@ -42,9 +42,9 @@
 		<p class="label elsewhere">Elsewhere</p>
 		<ul class="links">
 			<li><a href={discussions}>Discussions</a></li>
-			<li><a href="https://github.com/oddurs/t32/issues/new/choose">Report a problem</a></li>
-			<li><a href="https://github.com/oddurs/t32/blob/main/CONTRIBUTING.md">Contributing</a></li>
-			<li><a href="https://github.com/oddurs/t32/blob/main/CODE_OF_CONDUCT.md">Code of conduct</a></li>
+			<li><a href="https://github.com/serre-ai/t32/issues/new/choose">Report a problem</a></li>
+			<li><a href="https://github.com/serre-ai/t32/blob/main/CONTRIBUTING.md">Contributing</a></li>
+			<li><a href="https://github.com/serre-ai/t32/blob/main/CODE_OF_CONDUCT.md">Code of conduct</a></li>
 		</ul>
 	</aside>
 
@@ -74,7 +74,7 @@
 			<dt>Question it</dt>
 			<dd>
 				Read the <a href={resolve('spec/')}>specification</a> as if you had to implement it from the text alone.
-				If anything is unclear, missing or wrong, <a href="https://github.com/oddurs/t32/issues/new/choose">report it</a>.
+				If anything is unclear, missing or wrong, <a href="https://github.com/serre-ai/t32/issues/new/choose">report it</a>.
 				That includes any sentence two careful readers could take to mean different things.
 			</dd>
 			<dt>Weigh in</dt>
@@ -84,7 +84,7 @@
 			</dd>
 			<dt>Implement it</dt>
 			<dd>
-				Load the <a href="https://github.com/oddurs/t32/blob/main/vectors/t32-vectors.json">conformance vectors</a>,
+				Load the <a href="https://github.com/serre-ai/t32/blob/main/vectors/t32-vectors.json">conformance vectors</a>,
 				make them pass in your language, and add your implementation to the list. Version 1.0 needs at
 				least three implementations written independently.
 			</dd>

@@ -4,7 +4,7 @@ T32 is a data format, so most of its security questions are about parsing untrus
 
 ## Reporting a vulnerability
 
-Please report suspected vulnerabilities privately, through **Security → Report a vulnerability** on the [repository](https://github.com/oddurs/t32/security), rather than in a public issue. Include what you found, how to reproduce it, and which versions are affected.
+Please report suspected vulnerabilities privately, through **Security → Report a vulnerability** on the [repository](https://github.com/serre-ai/t32/security), rather than in a public issue. Include what you found, how to reproduce it, and which versions are affected.
 
 You can expect an acknowledgement within a week, and word on whether the report is accepted within two. Once a fix is ready it is released with an advisory that credits you, unless you would rather not be named. Please keep the report private until then.
 

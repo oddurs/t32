@@ -4,7 +4,7 @@ its resolution, every stamp names an interval, text order is time order, and a
 prefix is a range query.
 
 This crate is the reference implementation of the
-[T32 specification](https://github.com/oddurs/t32/blob/main/SPEC.md) (draft 0.3).
+[T32 specification](https://github.com/serre-ai/t32/blob/main/SPEC.md) (draft 0.3).
 It has no required dependencies, uses no `unsafe`, builds on Rust 1.70 and
 later, and does all of its arithmetic exactly in integers, rounding once,
 where the spec says to.
@@ -66,5 +66,5 @@ including the drifting "rubber seconds" of 1961–1971. With UTC continuous from
 Try it on the command line: `cargo run --example t32 -- 2026-10-31T03:13:00.500Z`,
 `cargo run --example t32 -- G0S7`, or with no argument for the time now.
 
-Licensed under either of [Apache License, Version 2.0](https://github.com/oddurs/t32/blob/main/LICENSE-APACHE)
-or [MIT license](https://github.com/oddurs/t32/blob/main/LICENSE-MIT), at your option.
+Licensed under either of [Apache License, Version 2.0](https://github.com/serre-ai/t32/blob/main/LICENSE-APACHE)
+or [MIT license](https://github.com/serre-ai/t32/blob/main/LICENSE-MIT), at your option.

@@ -47,7 +47,7 @@ When version 1.0 is published, or earlier if there is enough interest, a **T32 W
 
 Beyond that, if T32 sees real use in protocols, the group may take the specification to an established standards body, for example as an IETF Internet-Draft, and maintain it there. The group would make that decision.
 
-If you'd like to take part, say so in [Discussions](https://github.com/oddurs/t32/discussions). Knowing who is interested helps decide how the group is set up.
+If you'd like to take part, say so in [Discussions](https://github.com/serre-ai/t32/discussions). Knowing who is interested helps decide how the group is set up.
 
 ## Conduct
 

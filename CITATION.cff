@@ -13,8 +13,8 @@ authors:
   - given-names: Oddur
     family-names: Sigurdsson
     alias: oddurs
-repository-code: "https://github.com/oddurs/t32"
-url: "https://oddurs.github.io/t32/"
+repository-code: "https://github.com/serre-ai/t32"
+url: "https://t32.serre.ai/"
 license:
   - MIT
   - Apache-2.0

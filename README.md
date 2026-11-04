@@ -12,15 +12,15 @@ G0S7            the 12-day span that contains it
 - **Text order is time order.** Byte-wise sorting is chronological, and a prefix is a range query.
 - **Uniform seconds.** TAI has no leap seconds, so from 1961 on, subtracting two stamps gives elapsed time.
 
-[![CI](https://github.com/oddurs/t32/actions/workflows/pages.yml/badge.svg)](https://github.com/oddurs/t32/actions/workflows/pages.yml)
+[![CI](https://github.com/serre-ai/t32/actions/workflows/pages.yml/badge.svg)](https://github.com/serre-ai/t32/actions/workflows/pages.yml)
 [![crates.io](https://img.shields.io/crates/v/t32.svg)](https://crates.io/crates/t32)
 [![docs.rs](https://img.shields.io/docsrs/t32)](https://docs.rs/t32)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
 | | |
 | --- | --- |
-| Specification | [SPEC.md](SPEC.md), draft 0.3 ([rendered](https://oddurs.github.io/t32/spec/), [PDF](https://oddurs.github.io/t32/draft-sigurdsson-t32-00.pdf)) |
-| Site | https://oddurs.github.io/t32/: playground, guide and reference tables |
+| Specification | [SPEC.md](SPEC.md), draft 0.3 ([rendered](https://t32.serre.ai/spec/), [PDF](https://t32.serre.ai/draft-sigurdsson-t32-00.pdf)) |
+| Site | https://t32.serre.ai/: playground, guide and reference tables |
 | Conformance | [`vectors/t32-vectors.json`](vectors/t32-vectors.json), 782 vectors for any implementation |
 | Rust | `cargo add t32` ([docs](https://docs.rs/t32)) |
 | Editor | Oddur Sigurdsson ([@oddurs](https://github.com/oddurs)) |
@@ -33,8 +33,8 @@ T32 is a draft specification, published for public review. It is complete enough
 
 T32 is at the stage where a careful reader changes the most. You are welcome to:
 
-- **Question it.** Report anything ambiguous or wrong as an [issue](https://github.com/oddurs/t32/issues/new/choose). A sentence that can be read two ways is worth reporting.
-- **Discuss the open questions.** Appendix C of the specification lists what is still undecided, from the epoch to letter case. Views are sought in [Discussions](https://github.com/oddurs/t32/discussions).
+- **Question it.** Report anything ambiguous or wrong as an [issue](https://github.com/serre-ai/t32/issues/new/choose). A sentence that can be read two ways is worth reporting.
+- **Discuss the open questions.** Appendix C of the specification lists what is still undecided, from the epoch to letter case. Views are sought in [Discussions](https://github.com/serre-ai/t32/discussions).
 - **Implement it.** Pass the vectors in your language and add yourself to [IMPLEMENTATIONS.md](IMPLEMENTATIONS.md). Three independent implementations are a condition of version 1.0.
 - **Help govern it.** If you would serve on a future T32 working group, say so. Interest expressed now shapes the charter later.
 
@@ -49,7 +49,7 @@ T32 is at the stage where a careful reader changes the most. You are welcome to:
 | [`tools/oracle.py`](tools/oracle.py) | An independent check in exact rational arithmetic, written from the text |
 | [`rust/`](rust) | The reference implementation, the [`t32`](https://crates.io/crates/t32) crate: no required dependencies, optional serde, Rust 1.70+ |
 | [`web/`](web) | The site, and a single-file TypeScript implementation, [`t32.ts`](web/src/lib/t32.ts) |
-| [`ietf/`](ietf) | The specification as an Internet-Draft, for review ([PDF](https://oddurs.github.io/t32/draft-sigurdsson-t32-00.pdf)) |
+| [`ietf/`](ietf) | The specification as an Internet-Draft, for review ([PDF](https://t32.serre.ai/draft-sigurdsson-t32-00.pdf)) |
 
 ## Development
 

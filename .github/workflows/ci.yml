@@ -52,10 +52,9 @@ jobs:
           path: ~/.cache/Tectonic
           key: tectonic-0.17.0-${{ hashFiles('ietf/*.tex') }}
           restore-keys: tectonic-0.17.0-
-      # Built with the production base path, so the site checked here is the one deployed.
+      # The site is served at the root of https://t32.serre.ai, so it is built with
+      # no base path, and the site checked here is the one deployed.
       - run: scripts/task check
-        env:
-          BASE_PATH: /${{ github.event.repository.name }}
       - if: inputs.upload-pages
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:

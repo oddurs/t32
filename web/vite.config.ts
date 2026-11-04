@@ -3,7 +3,8 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import { defineConfig } from 'vite';
 
-// Set BASE_PATH=/t32 when serving from https://<user>.github.io/t32/
+// The site is served at the root of https://t32.serre.ai. Set BASE_PATH=/t32 to
+// serve a fork from https://<user>.github.io/t32/ instead.
 const base = (process.env.BASE_PATH ?? '') as '' | `/${string}`;
 
 export default defineConfig({
