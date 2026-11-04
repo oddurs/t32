@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        A change to what T32 means, how stamps are encoded, or what conforms is a change to the specification: please start it under *Ideas* in [Discussions](https://github.com/oddurs/t32/discussions) instead.
+        A change to what T32 means, how stamps are encoded, or what conforms is a change to the specification: please start it under *Ideas* in [Discussions](https://github.com/serre-ai/t32/discussions) instead.
   - type: dropdown
     id: component
     attributes:

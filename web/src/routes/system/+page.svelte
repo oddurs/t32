@@ -151,7 +151,7 @@
 		</figure>
 
 		<ul class="rules">
-			<li>Use the shapes in <a href="https://github.com/oddurs/t32/blob/main/web/static/mark.svg"><code>mark.svg</code></a> rather than typing the name in a font. <a href="https://github.com/oddurs/t32/blob/main/tools/mark.py"><code>tools/mark.py</code></a> generates the file.</li>
+			<li>Use the shapes in <a href="https://github.com/serre-ai/t32/blob/main/web/static/mark.svg"><code>mark.svg</code></a> rather than typing the name in a font. <a href="https://github.com/serre-ai/t32/blob/main/tools/mark.py"><code>tools/mark.py</code></a> generates the file.</li>
 			<li>Leave clear space around it of at least half its capital height. When the capitals would be smaller than 12px, use the square tile instead.</li>
 			<li>The letters use the text colour and the full stop uses the accent colour. Don't recolour it in any other way.</li>
 			<li>In a sentence, write the name as plain text: T32.</li>
@@ -363,7 +363,7 @@
 
 			<section class="part" aria-labelledby="p-links">
 				<h3 id="p-links">Links <code>a</code></h3>
-				<p>Read the <a href={resolve('spec/')}>specification</a>, or the <a href="https://github.com/oddurs/t32">source</a>. The underline is a light tint until you hover over the link.</p>
+				<p>Read the <a href={resolve('spec/')}>specification</a>, or the <a href="https://github.com/serre-ai/t32">source</a>. The underline is a light tint until you hover over the link.</p>
 			</section>
 
 			<section class="part" aria-labelledby="p-fields">

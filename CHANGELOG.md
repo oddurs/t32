@@ -18,6 +18,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- T32 is a Serre project: the repository moves to [github.com/serre-ai/t32](https://github.com/serre-ai/t32), and the site to the root of [t32.serre.ai](https://t32.serre.ai). Every link, `CITATION.cff`, the crate's `repository` and `homepage`, and the link-preview image use the new addresses. The editor and the governance are unchanged.
 - CI runs `scripts/task check`, and branch protection requires one aggregate status, `required`.
 - In the playground's advanced view, the length runs to 16 characters for any input: characters past what the input states are hatched and treat it as exact. Dragging across the characters sets the length.
 - Tables say what they show: numeric columns in the specification and guide are right-aligned, the alphabet and era tables mark where their second half begins, the current era is highlighted alone, and the durations table explains how a duration is read.
@@ -68,6 +69,6 @@ First release on crates.io. Implements specification draft 0.2.
 - Optional serde support.
 - Support for Rust 1.70 and later.
 
-[Unreleased]: https://github.com/oddurs/t32/compare/t32-v0.3.0...HEAD
-[0.3.0]: https://github.com/oddurs/t32/compare/t32-v0.2.0...t32-v0.3.0
-[0.2.0]: https://github.com/oddurs/t32/releases/tag/t32-v0.2.0
+[Unreleased]: https://github.com/serre-ai/t32/compare/t32-v0.3.0...HEAD
+[0.3.0]: https://github.com/serre-ai/t32/compare/t32-v0.2.0...t32-v0.3.0
+[0.2.0]: https://github.com/serre-ai/t32/releases/tag/t32-v0.2.0

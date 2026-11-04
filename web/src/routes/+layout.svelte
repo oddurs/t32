@@ -54,8 +54,8 @@
 			<p class="label">Take part</p>
 			<p>
 				<a href={resolve('participate/')}>Participate</a><br />
-				<a href="https://github.com/oddurs/t32/discussions">Discussions</a> ·
-				<a href="https://github.com/oddurs/t32/issues">Issues</a>
+				<a href="https://github.com/serre-ai/t32/discussions">Discussions</a> ·
+				<a href="https://github.com/serre-ai/t32/issues">Issues</a>
 			</p>
 		</div>
 		<div>
@@ -63,7 +63,7 @@
 			<p>
 				MIT OR Apache-2.0<br />
 				<a href="https://crates.io/crates/t32">crates.io</a> ·
-				<a href="https://github.com/oddurs/t32">Source</a> ·
+				<a href="https://github.com/serre-ai/t32">Source</a> ·
 				<a href={resolve('system/')}>Design</a>
 			</p>
 		</div>

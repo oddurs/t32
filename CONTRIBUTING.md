@@ -6,13 +6,13 @@ You do not need permission to contribute, and no contribution is too small. A se
 
 ## Ways to help
 
-**Read the specification critically.** Read [SPEC.md](SPEC.md), or the [rendered version](https://oddurs.github.io/t32/spec/), as if you had to implement it from the text alone. Report anything ambiguous, missing or wrong as an [issue](https://github.com/oddurs/t32/issues/new/choose).
+**Read the specification critically.** Read [SPEC.md](SPEC.md), or the [rendered version](https://t32.serre.ai/spec/), as if you had to implement it from the text alone. Report anything ambiguous, missing or wrong as an [issue](https://github.com/serre-ai/t32/issues/new/choose).
 
 **Weigh in on the open questions.** Appendix C of the specification lists the questions still open before version 1.0. Each states the current position and what would change it. Experience from your own systems is the most useful evidence.
 
 **Write an implementation.** The format is small, and an independent implementation is the best test the specification can have. Load [`vectors/t32-vectors.json`](vectors/t32-vectors.json), make every vector pass, and add your implementation to [IMPLEMENTATIONS.md](IMPLEMENTATIONS.md) with a pull request. Implementations that disagree with the vectors are valuable too: either the implementation or the specification is wrong, and both are worth knowing.
 
-**Propose a change.** Start a thread in [Discussions](https://github.com/oddurs/t32/discussions) under *Ideas*; its form asks for what a proposal needs. Describe the problem before the solution. If the idea holds up, turn it into a pull request that changes the text, the vectors and both implementations together. [GOVERNANCE.md](GOVERNANCE.md) describes how proposals are decided.
+**Propose a change.** Start a thread in [Discussions](https://github.com/serre-ai/t32/discussions) under *Ideas*; its form asks for what a proposal needs. Describe the problem before the solution. If the idea holds up, turn it into a pull request that changes the text, the vectors and both implementations together. [GOVERNANCE.md](GOVERNANCE.md) describes how proposals are decided.
 
 **Improve the implementations or the site.** Bug reports and fixes for the Rust crate, the TypeScript port and the site are welcome through the usual issues and pull requests.
 

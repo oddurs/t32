@@ -19,4 +19,4 @@ Independent implementations are what take the specification to version 1.0 (see 
 - **SQLite.** A loadable extension.
 - **Command-line tools.** A converter in the spirit of `date`.
 
-If you start one, say so in [Discussions](https://github.com/oddurs/t32/discussions), so that others can join rather than duplicate.
+If you start one, say so in [Discussions](https://github.com/serre-ai/t32/discussions), so that others can join rather than duplicate.

@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        A proposal is open for at least two weeks before a decision, which is written here with its reasons ([GOVERNANCE.md](https://github.com/oddurs/t32/blob/main/GOVERNANCE.md)). Describe the problem before the solution. If it concerns a question in Appendix C, say which.
+        A proposal is open for at least two weeks before a decision, which is written here with its reasons ([GOVERNANCE.md](https://github.com/serre-ai/t32/blob/main/GOVERNANCE.md)). Describe the problem before the solution. If it concerns a question in Appendix C, say which.
   - type: textarea
     id: problem
     attributes:

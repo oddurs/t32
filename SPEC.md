@@ -5,9 +5,9 @@
 | Document | T32 specification, draft 0.3 |
 | Date | 2026-11-01 |
 | Editor | Oddur Sigurdsson ([@oddurs](https://github.com/oddurs)) |
-| Latest version | https://oddurs.github.io/t32/spec/ |
-| Source and history | https://github.com/oddurs/t32 |
-| Comments | [Issues](https://github.com/oddurs/t32/issues) for errata and questions; [Discussions](https://github.com/oddurs/t32/discussions) for proposals |
+| Latest version | https://t32.serre.ai/spec/ |
+| Source and history | https://github.com/serre-ai/t32 |
+| Comments | [Issues](https://github.com/serre-ai/t32/issues) for errata and questions; [Discussions](https://github.com/serre-ai/t32/discussions) for proposals |
 
 ## Abstract
 
@@ -491,7 +491,7 @@ Both implementations hold biased time as fixed point in units of $2^{-40}$ s, an
 
 ## Appendix C: Open questions
 
-These are the questions the editor considers open before version 1.0. Each states the current position and the kind of evidence that would change it. Discussion of any of them is welcome, in the [Discussions](https://github.com/oddurs/t32/discussions) of the specification's repository.
+These are the questions the editor considers open before version 1.0. Each states the current position and the kind of evidence that would change it. Discussion of any of them is welcome, in the [Discussions](https://github.com/serre-ai/t32/discussions) of the specification's repository.
 
 **C.1 The name.** "T32" is also the name of Arm's 32-bit Thumb instruction set and the common name of Lauterbach's TRACE32 debugger. The current position is to keep the name, since the contexts rarely meet and the name says what the format is: T for time, 32 for its radix. Evidence of real confusion, or a better name, would reopen it.
 
